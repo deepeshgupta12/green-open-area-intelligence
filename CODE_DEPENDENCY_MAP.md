@@ -304,3 +304,27 @@ data/input/master_plan.png
 
 Important: the test requires `data/input/master_plan.png` to be a valid image file. If the local file is corrupted, HTML, JSON, or a failed download saved as `.png`, the test will correctly fail.
 
+## Step 3 Test Fix Dependency Note
+
+### tests/test_image_preprocessor.py
+
+Updated responsibility:
+
+- No longer assumes the master plan input must be `master_plan.png`.
+- Finds the first available supported file from:
+
+```text
+data/input/master_plan.jpg
+data/input/master_plan.jpeg
+data/input/master_plan.png
+data/input/master_plan.webp
+```
+
+Depends on:
+
+- app/services/image_preprocessor.py
+
+Reason:
+
+- The valid local master plan input is `master_plan.jpg`.
+- The previous `master_plan.png` file was invalid/corrupt or not a readable image.

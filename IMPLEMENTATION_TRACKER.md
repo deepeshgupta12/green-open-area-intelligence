@@ -271,3 +271,31 @@ Expected Step 4 output:
 - Ask model to return structured JSON
 - Store OpenAI vision analysis output locally
 
+### Step 3 Test Fix: Master Plan Image Extension Handling
+
+Status: Pending local confirmation
+
+Issue:
+
+- CLI worked with `data/input/master_plan.jpg`.
+- Test failed because `tests/test_image_preprocessor.py` was hardcoded to `data/input/master_plan.png`.
+
+Fix:
+
+- Update image preprocessor test to locate the first available supported master plan file among `.jpg`, `.jpeg`, `.png`, and `.webp`.
+
+Validation command:
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py -q
+```
+
+Expected result:
+
+```text
+2 passed
+```
+
+Next step after confirmation:
+
+Step 4: OpenAI Vision Analyzer.
