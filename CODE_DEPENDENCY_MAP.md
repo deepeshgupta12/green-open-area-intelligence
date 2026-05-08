@@ -39,127 +39,152 @@ Depends on:
 - pydantic-settings
 - dotenv
 
+Used by:
+
+- scripts/run_single_project.py
+- future FastAPI app initialization
+
 ### app/schemas/project_schema.py
 
 Defines normalized project metadata schema.
 
-Used by:
+Current models:
 
-- json_parser.py
-- validation_engine.py
-- confidence_engine.py
-- report_writer.py
-
-### app/schemas/image_schema.py
-
-Defines image metadata, boundary, and segmentation schemas.
+- ReraRecord
+- AmenityRecord
+- WowFactorRecord
+- UnitVariant
+- MasterPlanMetadata
+- ParsedProjectMetadata
 
 Used by:
 
-- image_preprocessor.py
-- vision_analyzer.py
-- segmentation_engine.py
-- area_calculator.py
+- app/services/json_parser.py
+- tests/test_json_parser.py
+- future validation/confidence/reporting modules
 
-### app/schemas/output_schema.py
+### app/utils/file_utils.py
 
-Defines final result schema.
+Provides:
+
+- ensure_directory
+- read_json_file
+- write_json_file
+- safe_get_nested
+- strip_html_tags
 
 Used by:
 
-- area_calculator.py
-- validation_engine.py
-- confidence_engine.py
-- report_writer.py
-- FastAPI endpoint
+- app/services/json_parser.py
+- scripts/run_single_project.py
 
 ### app/services/json_parser.py
 
-Parses Datacenter JSON into normalized metadata.
+Primary Datacenter JSON parser.
 
 Depends on:
 
-- project_schema.py
-- file_utils.py
+- app.schemas.project_schema
+- app.utils.file_utils
 
-### app/services/image_preprocessor.py
+Used by:
 
-Loads, validates, and prepares master plan image.
+- scripts/run_single_project.py
+- tests/test_json_parser.py
 
-Depends on:
+Current responsibilities:
 
-- image_schema.py
-- image_utils.py
+- Read Datacenter JSON payload
+- Normalize project-level metadata
+- Parse amenities
+- Parse RERA records
+- Parse wow factors
+- Parse unit mix
+- Parse master plan metadata
+- Extract green amenity signals
+- Extract open-space signals
+- Extract direct area claims from available text
 
-### app/services/vision_analyzer.py
+### scripts/run_single_project.py
 
-Calls OpenAI Vision for semantic master plan understanding.
+CLI runner for Step 2.
 
-Depends on:
+Current behavior:
 
-- config.py
-- project_schema.py
-- image_schema.py
-
-### app/services/segmentation_engine.py
-
-Uses OpenCV for image segmentation.
-
-Depends on:
-
-- image_schema.py
-- class_definitions.py
-- image_utils.py
-
-### app/services/area_calculator.py
-
-Calculates green and open area estimates.
+- Reads project Datacenter JSON
+- Parses normalized metadata
+- Writes output JSON
+- Prints parsed metadata summary
+- Accepts image path but does not process image yet
 
 Depends on:
 
-- green_area_rules.py
-- open_area_rules.py
-- guardrails.py
-- output_schema.py
+- app.config
+- app.services.json_parser
+- app.utils.file_utils
 
-### app/services/validation_engine.py
+### tests/test_json_parser.py
 
-Validates outputs against product rules and project metadata.
+Validates Birla Taranya JSON parsing using:
 
-Depends on:
-
-- guardrails.py
-- project_schema.py
-- output_schema.py
-
-### app/services/confidence_engine.py
-
-Computes confidence score, label, and reasons.
+```text
+data/input/342956.json
+```
 
 Depends on:
 
-- confidence_rules.py
-- output_schema.py
+- app.services.json_parser
 
-### app/services/explanation_engine.py
+### pytest.ini
 
-Generates compare-module explanation using OpenAI text model.
+Required for local test imports.
 
-Depends on:
+Purpose:
 
-- config.py
-- output_schema.py
+- Adds repo root to Python import path
+- Ensures pytest can import app.* modules
 
-### app/services/report_writer.py
+Content:
 
-Writes output JSON, Markdown report, and overlay image path.
+```ini
+[pytest]
+pythonpath = .
+testpaths = tests
+```
 
-Depends on:
+## 4. Step 2 Import Issue
 
-- output_schema.py
-- file_utils.py
+Observed error:
 
-## 4. Rule Files
+```text
+ModuleNotFoundError: No module named 'app'
+```
+
+Reason:
+
+Pytest did not add the repository root to sys.path during collection.
+
+Resolution:
+
+Create pytest.ini in repo root with:
+
+```ini
+[pytest]
+pythonpath = .
+testpaths = tests
+```
+
+Alternative temporary command:
+
+```bash
+PYTHONPATH=. pytest tests/test_json_parser.py -q
+```
+
+Preferred permanent fix:
+
+Use pytest.ini.
+
+## 5. Rule Files
 
 ### app/rules/class_definitions.py
 
@@ -181,7 +206,9 @@ Defines scoring weights and thresholds.
 
 Defines non-negotiable product guardrails.
 
-## 5. Storage Files
+These will be implemented in later steps.
+
+## 6. Storage Files
 
 ### app/storage/database.py
 
@@ -192,28 +219,6 @@ SQLite connection setup.
 Tables for project runs and outputs.
 
 Storage will be implemented after the first working CLI flow.
-
-## 6. Scripts
-
-### scripts/run_single_project.py
-
-CLI runner for one project.
-
-Expected input:
-
-```bash
-python scripts/run_single_project.py \
-  --json data/input/342956.json \
-  --image data/input/master_plan.png
-```
-
-### scripts/init_db.py
-
-Initializes SQLite database.
-
-### scripts/generate_sample_report.py
-
-Generates a sample report from a saved output.
 
 ## 7. Testing Strategy
 
