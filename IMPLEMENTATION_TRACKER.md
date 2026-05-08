@@ -498,3 +498,62 @@ Expected result:
 Next step after confirmation:
 
 Step 7: Final Report Writer and Compare Module Contract.
+
+### Step 7: Final Report Writer and Compare Module Contract
+
+Status: Pending local test confirmation
+
+Files implemented:
+
+- app/services/report_writer.py
+- tests/test_report_writer.py
+
+Files updated:
+
+- scripts/run_single_project.py
+
+Implemented capabilities:
+
+- Generates final Markdown area estimate report
+- Generates compare-module-ready JSON contract
+- Includes project metadata summary
+- Includes final Green/Open Area range
+- Includes confidence score, label, and reasons
+- Includes guardrail status
+- Includes warnings
+- Includes evidence summary
+- Includes output paths
+- Adds CLI flag `--write-report`
+
+Test command:
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py tests/test_area_calculator.py tests/test_report_writer.py -q
+```
+
+Expected result:
+
+```text
+6 passed
+```
+
+Manual command:
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-vision \
+  --run-segmentation \
+  --run-area-estimate \
+  --write-report
+```
+
+Expected output:
+
+- data/output/reports/342956_area_estimate_report.md
+- data/output/json/342956_compare_module_contract.json
+
+Next step:
+
+Step 8: FastAPI endpoint.

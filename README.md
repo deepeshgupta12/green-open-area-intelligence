@@ -519,5 +519,133 @@ pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vis
 ```bash
 git add .
 git commit -m "feat: add area calculator and range builder"
+
+# Step 6 Fix: Confidence Calibration
+
+## Issue
+
+Step 6 generated a valid area estimate, but the confidence label was too optimistic.
+
+Current result:
+
+```text
+Estimated Green Area: ~25–49%
+Estimated Open Area: ~39–67%
+Confidence Score: 0.82
+Confidence Label: High
+```
+
+However, the same output also contains:
+
+```text
+OpenCV unknown/unclassified area: 73.97%
+Image may be stylized and not to scale.
+```
+
+## Product Concern
+
+A High confidence label is not appropriate when:
+
+- Unknown/unclassified segmentation area is above 70%
+- The image may be stylized or not to scale
+- The final estimate range is very wide
+
+## Fix
+
+Add confidence caps:
+
+- If OpenCV unknown/unclassified area > 70%, max confidence score should be 0.74.
+- If both high unknown area and stylized/not-to-scale warning exist, max confidence score should be 0.69.
+- If Green Area or Open Area range width is greater than 20 percentage points, max confidence score should be 0.72.
+- Final confidence should become Medium in this scenario.
+
+## Expected Outcome
+
+For Birla Taranya, after calibration:
+
+```text
+Confidence Label: Medium
+```
+
+This better reflects the evidence quality.
+
+## Validation
+
+```bash
+pytest tests/test_area_calculator.py -q
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py tests/test_area_calculator.py -q
+```
+
+## Commit
+
+```bash
+git add app/services/area_calculator.py tests/test_area_calculator.py IMPLEMENTATION_TRACKER.md CODE_DEPENDENCY_MAP.md
+git commit -m "fix: calibrate confidence caps for high unknown segmentation"
+```
+
+```
+# Step 7: Final Report Writer and Compare Module Contract
+
+## Objective
+
+Create final human-readable and machine-readable outputs for the Green Open Area Intelligence Engine.
+
+## Scope
+
+Step 7 adds:
+
+- Final Markdown report generation
+- Compare-module contract JSON generation
+- Audit-friendly output summary
+- Source/evidence section
+- Warnings and confidence reasons section
+- Output paths printed in CLI
+
+## Inputs
+
+```text
+Parsed project metadata
+Image metadata
+OpenAI Vision analysis
+OpenCV segmentation result
+Area estimate result
+```
+
+## Outputs
+
+```text
+data/output/reports/342956_area_estimate_report.md
+data/output/json/342956_compare_module_contract.json
+```
+
+## Test Command
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py tests/test_area_calculator.py tests/test_report_writer.py -q
+```
+
+## Expected Result
+
+```text
+6 passed
+```
+
+## Manual Command
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-vision \
+  --run-segmentation \
+  --run-area-estimate \
+  --write-report
+```
+
+## Commit
+
+```bash
+git add .
+git commit -m "feat: add final report writer and compare module contract"
 ```
 

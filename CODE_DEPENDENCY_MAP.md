@@ -521,3 +521,52 @@ Reason:
 Updated responsibility:
 
 - Validate that very high unknown segmentation prevents High confidence.
+
+## Step 7 Implemented Dependency Details
+
+### app/services/report_writer.py
+
+Primary final output writer.
+
+Depends on:
+
+- app.config
+- app.schemas.project_schema
+- app.schemas.image_schema
+- app.schemas.vision_schema
+- app.schemas.segmentation_schema
+- app.schemas.area_schema
+- app.utils.file_utils
+
+Used by:
+
+- scripts/run_single_project.py
+- tests/test_report_writer.py
+
+### scripts/run_single_project.py
+
+Updated with optional flag:
+
+```text
+--write-report
+```
+
+Current behavior:
+
+- Parses Datacenter JSON
+- Preprocesses master plan image
+- Optionally runs OpenAI Vision
+- Optionally runs OpenCV segmentation
+- Optionally builds final range-based area estimate
+- Optionally writes Markdown report and compare-module contract
+
+### tests/test_report_writer.py
+
+Validates:
+
+- Markdown report file is created
+- Compare-module contract JSON is created
+- Report contains project name
+- Report contains estimated Green/Open Area
+- Contract contains compare-module display values
+
