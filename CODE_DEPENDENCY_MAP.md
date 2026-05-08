@@ -232,3 +232,75 @@ Initial tests:
 ## 8. Dependency Rule
 
 Before modifying an existing file, check this map to understand dependent files.
+
+## Step 3 Implemented Dependency Details
+
+### app/schemas/image_schema.py
+
+Defines:
+
+- ImageDimensions
+- ImageQualityAssessment
+- ImageMetadata
+
+Used by:
+
+- app/services/image_preprocessor.py
+- tests/test_image_preprocessor.py
+
+### app/utils/image_utils.py
+
+Provides:
+
+- validate_image_path
+- get_file_size_mb
+- load_image_with_pillow
+- load_image_with_cv2
+- save_normalized_png
+- calculate_laplacian_variance
+- calculate_brightness_score
+- calculate_colorfulness_score
+
+Used by:
+
+- app/services/image_preprocessor.py
+
+### app/services/image_preprocessor.py
+
+Primary image preprocessing service.
+
+Depends on:
+
+- app.config
+- app.schemas.image_schema
+- app.utils.image_utils
+
+Used by:
+
+- scripts/run_single_project.py
+- tests/test_image_preprocessor.py
+
+### scripts/run_single_project.py
+
+Updated to support Step 3.
+
+Current behavior:
+
+- Parses project Datacenter JSON
+- Writes parsed project metadata JSON
+- Preprocesses master plan image when image path is provided
+- Writes image metadata JSON
+- Writes normalized PNG image
+- Prints project metadata table
+- Prints image metadata table
+
+### tests/test_image_preprocessor.py
+
+Validates master plan preprocessing using:
+
+```text
+data/input/master_plan.png
+```
+
+Important: the test requires `data/input/master_plan.png` to be a valid image file. If the local file is corrupted, HTML, JSON, or a failed download saved as `.png`, the test will correctly fail.
+

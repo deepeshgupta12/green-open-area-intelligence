@@ -180,3 +180,94 @@ Step 3 expected output:
 - Generate normalized image copy
 - Generate basic image quality score
 - Prepare image metadata for OpenAI Vision and OpenCV
+
+## Step 3: Master Plan Image Preprocessing
+
+Status: Implementation added, test blocked by invalid local image input.
+
+## What was implemented
+
+Files implemented:
+
+- app/schemas/image_schema.py
+- app/utils/image_utils.py
+- app/services/image_preprocessor.py
+- tests/test_image_preprocessor.py
+
+Files updated:
+
+- scripts/run_single_project.py
+
+Implemented capabilities:
+
+- Validates master plan image path
+- Validates supported image extension
+- Checks image file size
+- Loads image using Pillow
+- Loads image using OpenCV
+- Creates normalized PNG copy
+- Reads normalized image dimensions
+- Computes total pixels
+- Calculates image sharpness metric
+- Calculates brightness metric
+- Calculates colorfulness metric
+- Generates image quality score
+- Generates image quality label
+- Generates image quality reasons
+- Writes image metadata JSON output
+- Prints image metadata table in CLI
+
+## Current Blocker
+
+The file at `data/input/master_plan.png` exists but is not a valid readable image file.
+
+Observed error:
+
+```text
+PIL.UnidentifiedImageError: cannot identify image file 'data/input/master_plan.png'
+```
+
+## Diagnosis Commands
+
+```bash
+ls -lh data/input/master_plan.png
+file data/input/master_plan.png
+python - <<'PY'
+from pathlib import Path
+p = Path('data/input/master_plan.png')
+print('Size bytes:', p.stat().st_size)
+print('First 80 bytes:', p.read_bytes()[:80])
+PY
+```
+
+## Required Fix
+
+Replace `data/input/master_plan.png` with the original readable master plan image file.
+
+If the source file is JPG/JPEG, keep the correct extension and run the script with that path.
+
+## Test Command
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py -q
+```
+
+Expected result after valid image replacement:
+
+```text
+2 passed
+```
+
+## Next Step After Confirmation
+
+Step 4: OpenAI Vision Analyzer.
+
+Expected Step 4 output:
+
+- Send normalized master plan image to OpenAI Vision
+- Send parsed project metadata context
+- Ask model to detect project boundary confidence
+- Ask model to identify visible green/open/built zones
+- Ask model to return structured JSON
+- Store OpenAI vision analysis output locally
+
