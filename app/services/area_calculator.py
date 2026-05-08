@@ -78,6 +78,9 @@ def build_area_estimate(
 
     guardrail = _apply_guardrails(green_range=green_range, open_range=open_range)
 
+    green_range.display = _format_range(green_range.min, green_range.max)
+    open_range.display = _format_range(open_range.min, open_range.max)
+
     confidence = _build_confidence(
         project=project,
         image_metadata=image_metadata,
@@ -85,10 +88,9 @@ def build_area_estimate(
         segmentation=segmentation,
         cv_unknown=cv_unknown,
         guardrail=guardrail,
+        green_range=green_range,
+        open_range=open_range,
     )
-
-    green_range.display = _format_range(green_range.min, green_range.max)
-    open_range.display = _format_range(open_range.min, open_range.max)
 
     compare_display = CompareModuleDisplay(
         green_space_label="Estimated Green Space",
@@ -290,6 +292,8 @@ def _build_confidence(
     segmentation: SegmentationResult,
     cv_unknown: float,
     guardrail: AreaEstimateGuardrail,
+    green_range: AreaRange,
+    open_range: AreaRange,
 ) -> AreaEstimateConfidence:
     score = 0.50
     reasons: list[str] = []
@@ -356,6 +360,37 @@ def _build_confidence(
 
     if vision.warnings:
         reasons.extend(vision.warnings)
+
+    confidence_caps: list[float] = []
+
+    if cv_unknown > 70:
+        confidence_caps.append(0.74)
+        reasons.append(
+            "Confidence capped because OpenCV unknown/unclassified area is above 70%."
+        )
+
+    has_stylized_warning = any(
+        "stylized" in warning.lower() or "not to scale" in warning.lower()
+        for warning in vision.warnings
+    )
+
+    if cv_unknown > 70 and has_stylized_warning:
+        confidence_caps.append(0.69)
+        reasons.append(
+            "Confidence capped because the image may be stylized/not to scale and unknown segmentation is very high."
+        )
+
+    green_range_width = green_range.max - green_range.min
+    open_range_width = open_range.max - open_range.min
+
+    if green_range_width > 20 or open_range_width > 20:
+        confidence_caps.append(0.72)
+        reasons.append(
+            "Confidence capped because the final estimate range is wide."
+        )
+
+    if confidence_caps:
+        score = min(score, min(confidence_caps))
 
     score = max(0.0, min(1.0, round(score, 2)))
 

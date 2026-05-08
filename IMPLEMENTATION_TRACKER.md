@@ -461,3 +461,40 @@ Expected output:
 Next step:
 
 Step 7: Final Report Writer and Compare Module Contract.
+
+### Step 6 Fix: Confidence Calibration for High Unknown Segmentation
+
+Status: Pending local confirmation
+
+Issue:
+
+- Step 6 generated a valid output.
+- Confidence score was High despite very high OpenCV unknown/unclassified area.
+- The output had a wide range and stylized-image warning.
+
+Fix:
+
+- Add confidence caps based on evidence quality:
+  - Unknown/unclassified area > 70%
+  - Stylized/not-to-scale warning
+  - Wide final estimate ranges
+
+Expected behavior:
+
+- Birla Taranya should return Medium confidence unless manual boundary/annotation or better segmentation improves evidence.
+
+Validation command:
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py tests/test_area_calculator.py -q
+```
+
+Expected result:
+
+```text
+5 passed
+```
+
+Next step after confirmation:
+
+Step 7: Final Report Writer and Compare Module Contract.

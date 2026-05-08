@@ -102,6 +102,10 @@ def test_area_calculator_builds_range_estimate():
     assert result.confidence.label in {"High", "Medium", "Low", "Insufficient"}
     assert len(result.confidence.reasons) > 0
 
+    if result.evidence_summary["opencv_unknown_percentage"] > 70:
+        assert result.confidence.score <= 0.74
+        assert result.confidence.label != "High"
+
     assert result.compare_module_display.green_space_value
     assert result.compare_module_display.open_area_value
     assert result.compare_module_display.tooltip

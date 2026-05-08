@@ -497,3 +497,27 @@ Validates:
 - Confidence reasons exist
 - Compare module display exists
 - High unknown segmentation is reflected in warnings/reasons
+
+## Step 6 Confidence Calibration Fix
+
+### app/services/area_calculator.py
+
+Updated responsibility:
+
+- Confidence scoring now applies caps when evidence quality is weak.
+
+New cap conditions:
+
+- Very high unknown/unclassified OpenCV segmentation area
+- Stylized/not-to-scale warning from OpenAI Vision
+- Wide Green/Open Area output ranges
+
+Reason:
+
+- Confidence should reflect trustworthiness of the estimate, not just the availability of input sources.
+
+### tests/test_area_calculator.py
+
+Updated responsibility:
+
+- Validate that very high unknown segmentation prevents High confidence.
