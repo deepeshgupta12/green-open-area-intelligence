@@ -328,3 +328,37 @@ Reason:
 
 - The valid local master plan input is `master_plan.jpg`.
 - The previous `master_plan.png` file was invalid/corrupt or not a readable image.
+
+## Step 4 OpenAI SDK Compatibility Fix
+
+### app/services/vision_analyzer.py
+
+Updated OpenAI dependency behavior:
+
+Previous:
+
+```python
+client.responses.create(...)
+```
+
+New:
+
+```python
+client.chat.completions.create(...)
+```
+
+Reason:
+
+- Local OpenAI SDK did not expose `responses`.
+- Chat Completions vision path supports image input through `image_url` content.
+
+No schema changes required.
+
+No test changes required.
+
+The typed output contract remains:
+
+- VisionBoundaryAssessment
+- VisionDetectedComponent
+- VisionAreaEstimate
+- VisionAnalysisResult

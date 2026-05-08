@@ -299,3 +299,40 @@ Expected result:
 Next step after confirmation:
 
 Step 4: OpenAI Vision Analyzer.
+
+### Step 4 Fix: OpenAI SDK Compatibility
+
+Status: Pending local confirmation
+
+Issue:
+
+- Unit tests passed.
+- Manual OpenAI Vision command failed because local OpenAI SDK did not expose `client.responses`.
+
+Fix:
+
+- Replace `client.responses.create(...)` with `client.chat.completions.create(...)`.
+- Keep the same structured JSON prompt and typed Pydantic parsing.
+
+Validation command:
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py -q
+```
+
+Manual command:
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-vision
+```
+
+Expected output:
+
+- data/output/json/342956_vision_analysis.json
+
+Next step after confirmation:
+
+Step 5: OpenCV Segmentation Engine.
