@@ -399,3 +399,65 @@ Expected output:
 Next step:
 
 Step 6: Area Calculator and Range Builder.
+
+### Step 6: Area Calculator and Range Builder
+
+Status: Pending local test confirmation
+
+Files implemented:
+
+- app/schemas/area_schema.py
+- app/services/area_calculator.py
+- tests/test_area_calculator.py
+
+Files updated:
+
+- scripts/run_single_project.py
+
+Implemented capabilities:
+
+- Reads project metadata
+- Reads image metadata
+- Reads OpenAI Vision analysis
+- Reads OpenCV segmentation result
+- Builds range-based Green Area estimate
+- Builds range-based Open Area estimate
+- Applies guardrail: Green Area <= Open Area
+- Uses qualitative OpenAI Vision estimate to adjust range
+- Uses OpenCV pixel segmentation as lower-bound evidence
+- Uses unknown/unclassified percentage to widen range
+- Produces confidence score, label, and reasons
+- Produces compare-module-ready display object
+- Writes final area estimate JSON output
+- Adds CLI flag `--run-area-estimate`
+
+Test command:
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py tests/test_area_calculator.py -q
+```
+
+Expected result:
+
+```text
+5 passed
+```
+
+Manual command:
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-vision \
+  --run-segmentation \
+  --run-area-estimate
+```
+
+Expected output:
+
+- data/output/json/342956_area_estimate.json
+
+Next step:
+
+Step 7: Final Report Writer and Compare Module Contract.

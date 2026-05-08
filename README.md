@@ -448,3 +448,76 @@ python scripts/run_single_project.py \
 git add .
 git commit -m "feat: add OpenCV segmentation engine"
 ```
+
+# Step 6: Area Calculator and Range Builder
+
+## Objective
+
+Convert the OpenAI Vision analysis and OpenCV segmentation result into range-based Green Area and Open Area estimates.
+
+## Why Step 6 is Needed
+
+Step 5 produced raw pixel percentages, but the unknown/unclassified area is high. Therefore, the product should not directly use OpenCV percentages as final estimates.
+
+Step 6 combines:
+
+- OpenCV segmentation percentages
+- OpenAI Vision qualitative estimate
+- Project JSON signals
+- Image quality score
+- Unknown/unclassified percentage
+- Mandatory guardrails
+
+## Inputs
+
+```text
+data/output/json/342956_parsed_project_metadata.json
+data/output/json/master_plan_image_metadata.json
+data/output/json/342956_vision_analysis.json
+data/output/json/342956_segmentation_result.json
+```
+
+## Outputs
+
+```text
+data/output/json/342956_area_estimate.json
+```
+
+## Core Rules
+
+- Output range, not exact percentage.
+- Green Area % must be less than or equal to Open Area %.
+- High unknown segmentation area must widen the range and reduce confidence.
+- Vision output can boost or adjust the estimate, but cannot override guardrails.
+- Final output must include reasons and warnings.
+
+## Manual Command
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-vision \
+  --run-segmentation \
+  --run-area-estimate
+```
+
+## Test Command
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py tests/test_area_calculator.py -q
+```
+
+## Expected Result
+
+```text
+5 passed
+```
+
+## Commit
+
+```bash
+git add .
+git commit -m "feat: add area calculator and range builder"
+```
+

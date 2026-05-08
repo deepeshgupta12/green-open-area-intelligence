@@ -435,3 +435,65 @@ Validates:
 - Class percentages are non-negative
 - Total classified/unknown percentage is within valid bounds
 - Overlay and mask files are generated
+
+## Step 6 Implemented Dependency Details
+
+### app/schemas/area_schema.py
+
+Defines:
+
+- AreaRange
+- AreaEstimateConfidence
+- AreaEstimateGuardrail
+- CompareModuleDisplay
+- AreaEstimateResult
+
+Used by:
+
+- app/services/area_calculator.py
+- tests/test_area_calculator.py
+
+### app/services/area_calculator.py
+
+Primary range-building and guardrail service.
+
+Depends on:
+
+- app.schemas.project_schema
+- app.schemas.image_schema
+- app.schemas.vision_schema
+- app.schemas.segmentation_schema
+- app.schemas.area_schema
+
+Used by:
+
+- scripts/run_single_project.py
+- tests/test_area_calculator.py
+
+### scripts/run_single_project.py
+
+Updated with optional flag:
+
+```text
+--run-area-estimate
+```
+
+Current behavior:
+
+- Parses Datacenter JSON
+- Preprocesses master plan image
+- Optionally runs OpenAI Vision
+- Optionally runs OpenCV segmentation
+- Optionally builds final area estimate
+- Writes area estimate JSON
+
+### tests/test_area_calculator.py
+
+Validates:
+
+- Green/Open range output exists
+- Green Area <= Open Area guardrail
+- Confidence score exists
+- Confidence reasons exist
+- Compare module display exists
+- High unknown segmentation is reflected in warnings/reasons
