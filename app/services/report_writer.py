@@ -15,18 +15,16 @@ def write_final_outputs(
     vision: VisionAnalysisResult,
     segmentation: SegmentationResult,
     area_estimate: AreaEstimateResult,
+    reports_dir: Path | None = None,
+    json_dir: Path | None = None,
 ) -> dict[str, str]:
     settings = get_settings()
 
-    report_path = (
-        settings.data_output_reports_dir
-        / f"{project.project_id}_area_estimate_report.md"
-    )
+    resolved_reports_dir = reports_dir or settings.data_output_reports_dir
+    resolved_json_dir = json_dir or settings.data_output_json_dir
 
-    compare_contract_path = (
-        settings.data_output_json_dir
-        / f"{project.project_id}_compare_module_contract.json"
-    )
+    report_path = resolved_reports_dir / f"{project.project_id}_area_estimate_report.md"
+    compare_contract_path = resolved_json_dir / f"{project.project_id}_compare_module_contract.json"
 
     report_content = build_markdown_report(
         project=project,
