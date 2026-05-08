@@ -259,3 +259,192 @@ git add .
 git commit -m "test: validate master plan image preprocessing with valid input"
 ```
 
+# Step 3 Test Fix: Master Plan Image Extension
+
+## Issue
+
+The Step 3 CLI ran successfully with:
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg
+```
+
+But the test failed because `tests/test_image_preprocessor.py` was hardcoded to look for:
+
+```text
+data/input/master_plan.png
+```
+
+The valid master plan image is now:
+
+```text
+data/input/master_plan.jpg
+```
+
+## Root Cause
+
+The original PNG file was not a valid readable image. The corrected file is a JPG, but the test still expected PNG.
+
+## Fix
+
+Update `tests/test_image_preprocessor.py` so it can detect either:
+
+```text
+data/input/master_plan.jpg
+data/input/master_plan.jpeg
+data/input/master_plan.png
+data/input/master_plan.webp
+```
+
+## Validation Command
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py -q
+```
+
+## Expected Result
+
+```text
+2 passed
+```
+
+## Commit Message
+
+```bash
+git add tests/test_image_preprocessor.py IMPLEMENTATION_TRACKER.md CODE_DEPENDENCY_MAP.md
+git commit -m "fix: support jpg master plan input in image preprocessor test"
+```
+# Step 4 Fix: OpenAI SDK Compatibility
+
+## Issue
+
+The test passed, but the manual OpenAI Vision run failed with:
+
+```text
+AttributeError: 'OpenAI' object has no attribute 'responses'
+```
+
+## Root Cause
+
+The installed OpenAI Python SDK in the local environment does not expose `client.responses.create(...)`.
+
+## Fix
+
+Use the widely supported Chat Completions vision path:
+
+```python
+client.chat.completions.create(...)
+```
+
+with message content containing:
+
+```json
+[
+  {"type": "text", "text": "..."},
+  {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
+]
+```
+
+## Files Impacted
+
+- app/services/vision_analyzer.py
+
+## Validation
+
+Run:
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py -q
+```
+
+Expected:
+
+```text
+3 passed
+```
+
+Then run:
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-vision
+```
+
+Expected output:
+
+```text
+data/output/json/342956_vision_analysis.json
+```
+
+## Commit
+
+```bash
+git add app/services/vision_analyzer.py IMPLEMENTATION_TRACKER.md CODE_DEPENDENCY_MAP.md
+git commit -m "fix: use chat completions for OpenAI vision analyzer"
+```
+# Step 5: OpenCV Segmentation Engine
+
+## Objective
+
+Implement the OpenCV segmentation layer for master plan images.
+
+This step uses the normalized master plan image and creates rough pixel-based masks for:
+
+- green landscape
+- water/pool
+- road/paved/open hardscape
+- likely building footprint / built structures
+- unknown/unclassified area
+
+## Important Note
+
+This is not the final area calculation step. Step 5 produces class-wise pixel percentages and overlay images. Final green/open range calculation, guardrails, confidence scoring, and compare-module output will come in later steps.
+
+## Inputs
+
+```text
+data/output/overlays/master_plan_normalized.png
+```
+
+## Outputs
+
+```text
+data/output/json/342956_segmentation_result.json
+data/output/overlays/master_plan_segmentation_overlay.png
+data/output/overlays/master_plan_green_mask.png
+data/output/overlays/master_plan_water_mask.png
+data/output/overlays/master_plan_built_mask.png
+data/output/overlays/master_plan_paved_mask.png
+```
+
+## Test Command
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py -q
+```
+
+## Expected Result
+
+```text
+4 passed
+```
+
+## Manual Command
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-segmentation
+```
+
+## Commit
+
+```bash
+git add .
+git commit -m "feat: add OpenCV segmentation engine"
+```

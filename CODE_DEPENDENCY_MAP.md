@@ -362,3 +362,76 @@ The typed output contract remains:
 - VisionDetectedComponent
 - VisionAreaEstimate
 - VisionAnalysisResult
+
+## Step 5 Implemented Dependency Details
+
+### app/schemas/segmentation_schema.py
+
+Defines:
+
+- SegmentationClassResult
+- SegmentationOutputPaths
+- SegmentationResult
+
+Used by:
+
+- app/services/segmentation_engine.py
+- tests/test_segmentation_engine.py
+
+### app/rules/class_definitions.py
+
+Updated to define canonical segmentation class names:
+
+- green_landscape
+- water_pool
+- built_structure
+- paved_open_area
+- unknown_unclassified
+
+Used by:
+
+- app/services/segmentation_engine.py
+
+### app/services/segmentation_engine.py
+
+Primary OpenCV segmentation service.
+
+Depends on:
+
+- app.config
+- app.schemas.image_schema
+- app.schemas.segmentation_schema
+- app.rules.class_definitions
+- cv2
+- numpy
+
+Used by:
+
+- scripts/run_single_project.py
+- tests/test_segmentation_engine.py
+
+### scripts/run_single_project.py
+
+Updated with optional flag:
+
+```text
+--run-segmentation
+```
+
+Current behavior:
+
+- Parses Datacenter JSON
+- Preprocesses image
+- Optionally runs OpenAI Vision with `--run-vision`
+- Optionally runs OpenCV segmentation with `--run-segmentation`
+- Writes segmentation JSON and overlay artifacts
+
+### tests/test_segmentation_engine.py
+
+Validates:
+
+- Segmentation runs on normalized image
+- Output JSON-compatible schema is produced
+- Class percentages are non-negative
+- Total classified/unknown percentage is within valid bounds
+- Overlay and mask files are generated

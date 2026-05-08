@@ -11,6 +11,8 @@ sys.path.append(str(ROOT_DIR))
 from app.config import get_settings
 from app.services.image_preprocessor import preprocess_master_plan_image
 from app.services.json_parser import parse_datacenter_json_file
+from app.services.segmentation_engine import run_opencv_segmentation
+from app.services.vision_analyzer import analyze_master_plan_with_openai
 from app.utils.file_utils import write_json_file
 
 
@@ -30,6 +32,16 @@ def main() -> None:
         "--image",
         required=False,
         help="Path to project master plan image.",
+    )
+    parser.add_argument(
+        "--run-vision",
+        action="store_true",
+        help="Run OpenAI Vision analysis. Requires OPENAI_API_KEY in .env.",
+    )
+    parser.add_argument(
+        "--run-segmentation",
+        action="store_true",
+        help="Run OpenCV segmentation on the normalized master plan image.",
     )
 
     args = parser.parse_args()
@@ -72,6 +84,8 @@ def main() -> None:
 
     console.print(project_table)
 
+    image_metadata = None
+
     if args.image:
         image_metadata = preprocess_master_plan_image(args.image)
 
@@ -106,6 +120,97 @@ def main() -> None:
         if image_metadata.processing_warnings:
             console.print("[yellow]Image Processing Warnings:[/yellow]")
             for warning in image_metadata.processing_warnings:
+                console.print(f"- {warning}")
+
+    if args.run_vision:
+        if image_metadata is None:
+            raise ValueError("--run-vision requires --image.")
+
+        console.print("[cyan]Running OpenAI Vision analysis...[/cyan]")
+
+        vision_result = analyze_master_plan_with_openai(
+            project=parsed_metadata,
+            image_metadata=image_metadata,
+        )
+
+        vision_output_path = (
+            settings.data_output_json_dir
+            / f"{parsed_metadata.project_id}_vision_analysis.json"
+        )
+
+        write_json_file(
+            vision_output_path,
+            vision_result.model_dump(mode="json"),
+        )
+
+        vision_table = Table(title="OpenAI Vision Analysis")
+        vision_table.add_column("Field", style="cyan")
+        vision_table.add_column("Value", style="green")
+
+        vision_table.add_row("Boundary Visible", str(vision_result.boundary.boundary_visible))
+        vision_table.add_row("Boundary Confidence", vision_result.boundary.boundary_confidence)
+        vision_table.add_row(
+            "Manual Correction Recommended",
+            str(vision_result.boundary.manual_correction_recommended),
+        )
+        vision_table.add_row(
+            "Green Area Visual Estimate",
+            vision_result.green_area_visual_estimate.qualitative_estimate,
+        )
+        vision_table.add_row(
+            "Open Area Visual Estimate",
+            vision_result.open_area_visual_estimate.qualitative_estimate,
+        )
+        vision_table.add_row(
+            "Building Footprint Visual Estimate",
+            vision_result.building_footprint_visual_estimate.qualitative_estimate,
+        )
+        vision_table.add_row("Detected Components", str(len(vision_result.detected_components)))
+        vision_table.add_row("Warnings", str(len(vision_result.warnings)))
+        vision_table.add_row("Vision Output", str(vision_output_path))
+
+        console.print(vision_table)
+
+    if args.run_segmentation:
+        if image_metadata is None:
+            raise ValueError("--run-segmentation requires --image.")
+
+        console.print("[cyan]Running OpenCV segmentation...[/cyan]")
+
+        segmentation_result = run_opencv_segmentation(
+            image_metadata=image_metadata,
+            project_id=parsed_metadata.project_id,
+        )
+
+        segmentation_output_path = (
+            settings.data_output_json_dir
+            / f"{parsed_metadata.project_id}_segmentation_result.json"
+        )
+
+        write_json_file(
+            segmentation_output_path,
+            segmentation_result.model_dump(mode="json"),
+        )
+
+        segmentation_table = Table(title="OpenCV Segmentation Result")
+        segmentation_table.add_column("Class", style="cyan")
+        segmentation_table.add_column("Pixels", style="green")
+        segmentation_table.add_column("Percentage", style="green")
+
+        for item in segmentation_result.classes:
+            segmentation_table.add_row(
+                item.class_name,
+                str(item.pixel_count),
+                f"{item.percentage}%",
+            )
+
+        console.print(segmentation_table)
+        console.print(f"[green]Segmentation output:[/green] {segmentation_output_path}")
+        console.print(f"[green]Segmentation overlay:[/green] {segmentation_result.output_paths.overlay_path}")
+
+        if segmentation_result.warnings:
+            console.print("[yellow]Segmentation Warnings:[/yellow]")
+            for warning in segmentation_result.warnings:
                 console.print(f"- {warning}")
 
 

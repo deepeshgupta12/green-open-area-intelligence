@@ -336,3 +336,66 @@ Expected output:
 Next step after confirmation:
 
 Step 5: OpenCV Segmentation Engine.
+
+### Step 5: OpenCV Segmentation Engine
+
+Status: Pending local test confirmation
+
+Files implemented:
+
+- app/schemas/segmentation_schema.py
+- app/services/segmentation_engine.py
+- tests/test_segmentation_engine.py
+
+Files updated:
+
+- app/rules/class_definitions.py
+- scripts/run_single_project.py
+
+Implemented capabilities:
+
+- Reads normalized master plan image
+- Creates HSV-based green landscape mask
+- Creates HSV-based water/pool mask
+- Creates heuristic built-structure mask
+- Creates heuristic paved/open hardscape mask
+- Calculates pixel count and percentage for each class
+- Calculates unknown/unclassified percentage
+- Saves class masks as PNG files
+- Saves segmentation overlay image
+- Saves segmentation result JSON
+- Adds CLI flag `--run-segmentation`
+
+Test command:
+
+```bash
+pytest tests/test_json_parser.py tests/test_image_preprocessor.py tests/test_vision_analyzer.py tests/test_segmentation_engine.py -q
+```
+
+Expected result:
+
+```text
+4 passed
+```
+
+Manual command:
+
+```bash
+python scripts/run_single_project.py \
+  --json data/input/342956.json \
+  --image data/input/master_plan.jpg \
+  --run-segmentation
+```
+
+Expected output:
+
+- data/output/json/342956_segmentation_result.json
+- data/output/overlays/master_plan_segmentation_overlay.png
+- data/output/overlays/master_plan_green_mask.png
+- data/output/overlays/master_plan_water_mask.png
+- data/output/overlays/master_plan_built_mask.png
+- data/output/overlays/master_plan_paved_mask.png
+
+Next step:
+
+Step 6: Area Calculator and Range Builder.
