@@ -35,7 +35,7 @@ def build_master_plan_comparison_report(
     )
 
     matrix_rows = "\n".join(
-        f"| {row.category_label} | {row.winner_project_name or '-'} | {row.winner_reason} | {row.tradeoff} |"
+        f"| {row.category_label} | {row.winner_project_name or '-'} | {row.frontend_winner_reason} | {row.frontend_tradeoff} | {row.frontend_category_summary} |"
         for row in comparison.category_comparison_matrix
     )
 
@@ -44,17 +44,22 @@ def build_master_plan_comparison_report(
         for item in comparison.category_winners
     )
 
+    evidence_rows = "\n".join(
+        f"| {item.project_slot} | {item.project_name or '-'} | {item.confidence_label or '-'} | {'; '.join(item.technical_warnings[:3]) or '-'} |"
+        for item in comparison.internal_evidence_quality.project_evidence
+    )
+
     return f"""# Master Plan Comparison Report
 
-## Overall Recommendation
+## Frontend Overall Recommendation
 
 | Field | Value |
 |---|---|
 | Winner | {comparison.overall_recommendation.winner_project_name or '-'} |
 | Score | {comparison.overall_recommendation.score} |
 | Rating | {comparison.overall_recommendation.rating} |
-| One-Liner | {comparison.overall_recommendation.one_liner} |
-| Detailed Reason | {comparison.overall_recommendation.detailed_reason} |
+| Headline | {comparison.overall_recommendation.frontend_headline} |
+| Summary | {comparison.overall_recommendation.frontend_summary} |
 
 ## User-Friendly Summary
 
@@ -74,17 +79,25 @@ def build_master_plan_comparison_report(
 |---|---|---|---|---:|---|
 {project_rows}
 
-## Category Winners
+## Frontend Category Winners
 
-| Category | Winner | Winner Score | Reason |
+| Category | Winner | Winner Score | Frontend Reason |
 |---|---|---:|---|
 {winner_rows}
 
-## Category Comparison Matrix
+## Frontend Category Comparison Matrix
 
-| Category | Winner | Winner Reason | Tradeoff |
-|---|---|---|---|
+| Category | Winner | Frontend Winner Reason | Frontend Tradeoff | Frontend Category Summary |
+|---|---|---|---|---|
 {matrix_rows}
+
+## Internal Evidence Quality
+
+OpenCV used for frontend copy: {comparison.internal_evidence_quality.opencv_used_for_frontend_copy}
+
+| Slot | Project | Confidence | Internal Technical Warnings |
+|---|---|---|---|
+{evidence_rows}
 
 ## Notes
 

@@ -9,6 +9,17 @@ from app.services.segmentation_engine import run_opencv_segmentation
 from app.services.vision_analyzer import parse_vision_analysis_payload
 
 
+BANNED_FRONTEND_TERMS = [
+    "OpenCV",
+    "unknown area",
+    "unknown/unclassified",
+    "segmentation",
+    "pixel",
+    "image quality",
+    "area estimate confidence",
+]
+
+
 def find_master_plan_image() -> Path:
     for candidate in [
         Path("data/input/master_plan.jpg"),
@@ -95,6 +106,12 @@ def build_single_project_bundle():
     return project, area, category
 
 
+def assert_frontend_clean(value: str):
+    lowered = value.lower()
+    for term in BANNED_FRONTEND_TERMS:
+        assert term.lower() not in lowered
+
+
 def test_master_plan_compare_engine_builds_three_project_comparison():
     project, area, category = build_single_project_bundle()
 
@@ -113,15 +130,33 @@ def test_master_plan_compare_engine_builds_three_project_comparison():
 
     assert result.comparison_run_id == "test-run"
     assert len(result.projects) == 3
-    assert len(result.category_comparison_matrix) == 10
-    assert len(result.category_winners) == 10
+    assert len(result.category_comparison_matrix) == 9
+    assert len(result.category_winners) == 9
     assert result.overall_recommendation.winner_project_slot in {"A", "B", "C"}
     assert result.overall_recommendation.one_liner
     assert result.user_friendly_summary.headline
     assert result.user_friendly_summary.caution_note
+    assert result.internal_evidence_quality.opencv_used_for_frontend_copy is False
+    assert result.internal_evidence_quality.project_evidence
+
+    category_keys = {row.category_key for row in result.category_comparison_matrix}
+    assert "evidence_reliability" not in category_keys
 
     for row in result.category_comparison_matrix:
         assert len(row.project_scores) == 3
         assert row.winner_project_slot in {"A", "B", "C"}
         assert row.winner_reason
         assert row.tradeoff
+        assert row.frontend_winner_reason
+        assert row.frontend_tradeoff
+        assert row.frontend_category_summary
+        assert row.internal_scoring
+
+        assert_frontend_clean(row.winner_reason)
+        assert_frontend_clean(row.tradeoff)
+        assert_frontend_clean(row.frontend_winner_reason)
+        assert_frontend_clean(row.frontend_tradeoff)
+        assert_frontend_clean(row.frontend_category_summary)
+
+        for project_score in row.project_scores:
+            assert_frontend_clean(project_score.user_facing_one_liner)

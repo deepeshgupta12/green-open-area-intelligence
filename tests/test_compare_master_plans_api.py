@@ -9,6 +9,23 @@ from tests.test_master_plan_compare_engine import build_mock_vision
 client = TestClient(app)
 
 
+BANNED_FRONTEND_TERMS = [
+    "OpenCV",
+    "unknown area",
+    "unknown/unclassified",
+    "segmentation",
+    "pixel",
+    "image quality",
+    "area estimate confidence",
+]
+
+
+def assert_frontend_clean(value: str):
+    lowered = value.lower()
+    for term in BANNED_FRONTEND_TERMS:
+        assert term.lower() not in lowered
+
+
 def find_master_plan_image() -> Path:
     for candidate in [
         Path("data/input/master_plan.jpg"),
@@ -29,7 +46,11 @@ def test_compare_master_plans_api(monkeypatch):
             project_name=project.project_name,
         )
 
+    def fake_openai_narrative(comparison):
+        return comparison
+
     monkeypatch.setattr("app.main.analyze_master_plan_with_openai", fake_vision)
+    monkeypatch.setattr("app.main.enhance_master_plan_comparison_with_openai", fake_openai_narrative)
 
     json_path = Path("data/input/342956.json")
     image_path = find_master_plan_image()
@@ -58,6 +79,7 @@ def test_compare_master_plans_api(monkeypatch):
                 "run_area_estimate": "true",
                 "run_category_comparison": "true",
                 "write_report": "true",
+                "use_ai_narrative": "true",
             },
         )
 
@@ -67,20 +89,14 @@ def test_compare_master_plans_api(monkeypatch):
 
     assert payload["comparison_run_id"]
     assert len(payload["projects"]) == 3
-    assert len(payload["category_comparison_matrix"]) == 10
-    assert len(payload["category_winners"]) == 10
-
+    assert len(payload["category_comparison_matrix"]) == 9
+    assert len(payload["category_winners"]) == 9
     assert payload["overall_recommendation"]["winner_project_slot"] in {"A", "B", "C"}
-    assert payload["overall_recommendation"]["one_liner"]
-    assert payload["overall_recommendation"]["detailed_reason"]
-
     assert payload["user_friendly_summary"]["headline"]
-    assert payload["user_friendly_summary"]["short_summary"]
-    assert payload["user_friendly_summary"]["caution_note"]
+    assert payload["internal_evidence_quality"]["opencv_used_for_frontend_copy"] is False
 
     assert payload["run_artifacts"]["comparison_json_path"]
     assert payload["run_artifacts"]["comparison_report_path"]
-
     assert Path(payload["run_artifacts"]["comparison_json_path"]).exists()
     assert Path(payload["run_artifacts"]["comparison_report_path"]).exists()
 
@@ -89,8 +105,18 @@ def test_compare_master_plans_api(monkeypatch):
         assert row["winner_project_slot"] in {"A", "B", "C"}
         assert row["winner_reason"]
         assert row["tradeoff"]
+        assert row["frontend_winner_reason"]
+        assert row["frontend_tradeoff"]
+        assert row["frontend_category_summary"]
+
+        assert_frontend_clean(row["winner_reason"])
+        assert_frontend_clean(row["tradeoff"])
+        assert_frontend_clean(row["frontend_winner_reason"])
+        assert_frontend_clean(row["frontend_tradeoff"])
+        assert_frontend_clean(row["frontend_category_summary"])
 
         for project_score in row["project_scores"]:
             assert project_score["user_facing_one_liner"]
             assert project_score["score"] >= 0
             assert project_score["score"] <= 100
+            assert_frontend_clean(project_score["user_facing_one_liner"])

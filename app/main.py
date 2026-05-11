@@ -10,6 +10,7 @@ from app.services.image_preprocessor import preprocess_master_plan_image
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
+from app.services.master_plan_narrative_engine import enhance_master_plan_comparison_with_openai
 from app.services.report_writer import write_final_outputs
 from app.services.segmentation_engine import run_opencv_segmentation
 from app.services.vision_analyzer import analyze_master_plan_with_openai
@@ -306,6 +307,7 @@ async def compare_master_plans(
     run_area_estimate: bool = Form(True),
     run_category_comparison: bool = Form(True),
     write_report: bool = Form(True),
+    use_ai_narrative: bool = Form(True),
 ) -> dict:
     settings = get_settings()
 
@@ -359,6 +361,9 @@ async def compare_master_plans(
             category_c=bundle_c["category_comparison"],
             comparison_run_id=comparison_run_id,
         )
+
+        if use_ai_narrative:
+            comparison = enhance_master_plan_comparison_with_openai(comparison)
 
         final_outputs = None
         if write_report:
