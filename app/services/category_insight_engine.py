@@ -153,7 +153,7 @@ def _green_landscape_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["confidence_label"],
         one_liner=(
-            f"The master plan shows strong landscaped planning with {context['green_range']} estimated green space and multiple garden or woodland signals."
+            f"Best suited for buyers who want garden-led outdoor living, because the layout includes named green zones like butterfly garden, herb garden, fruit orchard and woodland area."
         ),
         detailed=(
             "The project includes visible and declared green planning signals across the master plan and Datacenter JSON. "
@@ -199,7 +199,7 @@ def _open_space_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["confidence_label"],
         one_liner=(
-            f"The master plan indicates generous openness, with estimated open area at {context['open_range']} and multiple circulation/recreation zones."
+            f"Feels more open than dense on paper, with internal driveways, sports zones, pool areas and recreational decks spread across the layout."
         ),
         detailed=(
             "Open-space strength is supported by the Vision estimate, internal circulation signals, sports courts, pool areas and recreational zones. "
@@ -244,7 +244,7 @@ def _built_density_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["confidence_label"],
         one_liner=(
-            "Built footprint appears moderate in the master plan, with open and amenity zones still visually prominent."
+            "Moderate density signal: the project has multiple towers and high units per acre, so the open-space promise should be checked against official layout drawings."
         ),
         detailed=(
             "The built density signal combines Vision's building-footprint estimate, OpenCV built-structure detection and project density. "
@@ -276,7 +276,7 @@ def _amenity_richness_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence="High" if len(amenities) >= 20 else context["confidence_label"],
         one_liner=(
-            f"The project has a rich amenity mix with {len(amenities)} parsed amenities across {len(categories)} categories."
+            f"Designed for amenity-heavy living, with sports, leisure, convenience, environment and safety features available in the parsed project data."
         ),
         detailed=(
             "Amenity richness is strongly supported by structured Datacenter JSON. "
@@ -327,7 +327,7 @@ def _sports_active_lifestyle_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["confidence_label"],
         one_liner=(
-            "The master plan is strong on active lifestyle, with multiple sports courts, tracks, pool and outdoor activity signals."
+            "Strong pick for active families, with football, running track, tennis/bowl, volleyball, pickleball, basketball, skating and pool signals in the master plan."
         ),
         detailed=(
             f"Sports planning is supported by extracted details such as {', '.join(details[:10]) if details else 'sports courts and outdoor activity zones'}. "
@@ -374,7 +374,7 @@ def _family_community_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["confidence_label"],
         one_liner=(
-            "The master plan shows strong family and community planning with kids, senior, pet, clubhouse and social-space signals."
+            "Better suited for families and community living, with kids’ play areas, senior zones, pet park, camping zone, party lawn and clubhouse-led social spaces."
         ),
         detailed=(
             f"Family/community planning is supported by extracted details such as {', '.join(details[:10]) if details else 'kids, senior and clubhouse spaces'}. "
@@ -406,7 +406,7 @@ def _water_leisure_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["confidence_label"],
         one_liner=(
-            "The project includes visible and declared water/leisure recreation through swimming pool and clubhouse-linked leisure spaces."
+            "Good leisure fit for buyers who value pool-led recreation, with swimming pools, kids’ pool, clubhouse areas and stepped seating signals."
         ),
         detailed=(
             f"Water and leisure planning is supported by {', '.join(details[:8]) if details else 'pool and leisure signals'}. "
@@ -447,7 +447,7 @@ def _access_circulation_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["confidence_label"],
         one_liner=(
-            "The master plan provides strong access and circulation signals, including frontage, internal driveway, drop-off zones and pedestrian/vehicular movement."
+            "Better planned for daily movement, with Thane-Belapur Road frontage, internal driveway, drop-off zones, school bus bay and pedestrian/vehicular entry planning."
         ),
         detailed=(
             f"Access planning is supported by extracted details such as {', '.join(details[:10]) if details else 'roads and driveways'}. "
@@ -484,7 +484,7 @@ def _environment_sustainability_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence="High" if len(details) >= 4 else context["confidence_label"],
         one_liner=(
-            "The project has several sustainability and environment signals, including green area, rainwater harvesting, STP and eco-friendly amenities."
+            "Shows practical sustainability features, including rainwater harvesting, STP, treated water supply, solar heaters, eco-friendly planning and large green area."
         ),
         detailed=(
             f"Environment planning is supported by extracted details such as {', '.join(details[:10]) if details else 'green and sustainability amenities'}. "
@@ -515,7 +515,7 @@ def _evidence_reliability_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence=context["area_estimate"].confidence.label,
         one_liner=(
-            f"Evidence reliability is {context['area_estimate'].confidence.label.lower()} because the image is usable but OpenCV unknown area is high."
+            f"Reliable enough for directional comparison, but not for official measurement because the image is usable while OpenCV still leaves a large area unclassified."
         ),
         detailed=(
             "The model has strong Datacenter and Vision evidence, but OpenCV segmentation left a large share of pixels unclassified. "
@@ -581,6 +581,12 @@ def _category(
     tooltip: str,
 ) -> CategoryInsight:
     final_score = _cap(score)
+
+    # Prevent visually inferred categories from looking over-certain when evidence is only medium.
+    structured_only_categories = {"amenity_richness", "environment_sustainability"}
+    if confidence == "Medium" and key not in structured_only_categories:
+        final_score = min(final_score, 89)
+
     return CategoryInsight(
         category_key=key,
         category_label=label,

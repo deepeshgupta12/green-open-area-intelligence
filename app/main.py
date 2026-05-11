@@ -8,6 +8,8 @@ from app.services.area_calculator import build_area_estimate
 from app.services.category_insight_engine import build_category_comparison
 from app.services.image_preprocessor import preprocess_master_plan_image
 from app.services.json_parser import parse_datacenter_json_file
+from app.services.master_plan_compare_engine import build_master_plan_comparison
+from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
 from app.services.report_writer import write_final_outputs
 from app.services.segmentation_engine import run_opencv_segmentation
 from app.services.vision_analyzer import analyze_master_plan_with_openai
@@ -289,3 +291,170 @@ def _safe_upload_name(file_name: str, fallback_extension: str) -> str:
         raw_name = f"{raw_name}{fallback_extension}"
 
     return raw_name
+
+
+@app.post("/compare-master-plans")
+async def compare_master_plans(
+    project_a_json_file: UploadFile = File(...),
+    project_a_master_plan_image_file: UploadFile = File(...),
+    project_b_json_file: UploadFile = File(...),
+    project_b_master_plan_image_file: UploadFile = File(...),
+    project_c_json_file: UploadFile = File(...),
+    project_c_master_plan_image_file: UploadFile = File(...),
+    run_vision: bool = Form(True),
+    run_segmentation: bool = Form(True),
+    run_area_estimate: bool = Form(True),
+    run_category_comparison: bool = Form(True),
+    write_report: bool = Form(True),
+) -> dict:
+    settings = get_settings()
+
+    if not run_vision or not run_segmentation or not run_area_estimate or not run_category_comparison:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "compare-master-plans currently requires run_vision=true, "
+                "run_segmentation=true, run_area_estimate=true, and run_category_comparison=true."
+            ),
+        )
+
+    comparison_run_id = str(uuid4())
+
+    compare_input_dir = ensure_directory(settings.data_input_dir / "compare_runs" / comparison_run_id)
+    compare_output_dir = ensure_directory(settings.data_output_dir / "compare_runs" / comparison_run_id)
+    compare_json_dir = ensure_directory(compare_output_dir / "json")
+
+    try:
+        bundle_a = await _process_compare_project_bundle(
+            slot="A",
+            project_json_file=project_a_json_file,
+            master_plan_image_file=project_a_master_plan_image_file,
+            input_dir=compare_input_dir,
+            output_json_dir=compare_json_dir,
+        )
+        bundle_b = await _process_compare_project_bundle(
+            slot="B",
+            project_json_file=project_b_json_file,
+            master_plan_image_file=project_b_master_plan_image_file,
+            input_dir=compare_input_dir,
+            output_json_dir=compare_json_dir,
+        )
+        bundle_c = await _process_compare_project_bundle(
+            slot="C",
+            project_json_file=project_c_json_file,
+            master_plan_image_file=project_c_master_plan_image_file,
+            input_dir=compare_input_dir,
+            output_json_dir=compare_json_dir,
+        )
+
+        comparison = build_master_plan_comparison(
+            project_a=bundle_a["project"],
+            area_a=bundle_a["area_estimate"],
+            category_a=bundle_a["category_comparison"],
+            project_b=bundle_b["project"],
+            area_b=bundle_b["area_estimate"],
+            category_b=bundle_b["category_comparison"],
+            project_c=bundle_c["project"],
+            area_c=bundle_c["area_estimate"],
+            category_c=bundle_c["category_comparison"],
+            comparison_run_id=comparison_run_id,
+        )
+
+        final_outputs = None
+        if write_report:
+            final_outputs = write_master_plan_comparison_outputs(
+                comparison=comparison,
+                output_dir=compare_output_dir,
+            )
+
+        return {
+            "comparison_run_id": comparison_run_id,
+            "projects": comparison.projects,
+            "category_comparison_matrix": comparison.category_comparison_matrix,
+            "category_winners": comparison.category_winners,
+            "overall_recommendation": comparison.overall_recommendation,
+            "user_friendly_summary": comparison.user_friendly_summary,
+            "run_artifacts": {
+                "compare_input_dir": str(compare_input_dir),
+                "compare_output_dir": str(compare_output_dir),
+                "comparison_json_path": final_outputs["comparison_json_path"] if final_outputs else None,
+                "comparison_report_path": final_outputs["comparison_report_path"] if final_outputs else None,
+                "project_a_artifacts": bundle_a["artifacts"],
+                "project_b_artifacts": bundle_b["artifacts"],
+                "project_c_artifacts": bundle_c["artifacts"],
+            },
+            "notes": comparison.notes,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+async def _process_compare_project_bundle(
+    slot: str,
+    project_json_file: UploadFile,
+    master_plan_image_file: UploadFile,
+    input_dir: Path,
+    output_json_dir: Path,
+) -> dict:
+    project_json_path = input_dir / f"project_{slot.lower()}_{_safe_upload_name(project_json_file.filename or 'project.json', '.json')}"
+    image_path = input_dir / f"project_{slot.lower()}_{_safe_upload_name(master_plan_image_file.filename or 'master_plan.jpg', '.jpg')}"
+
+    await _save_upload_file(project_json_file, project_json_path)
+    await _save_upload_file(master_plan_image_file, image_path)
+
+    project = parse_datacenter_json_file(str(project_json_path))
+    image_metadata = preprocess_master_plan_image(str(image_path))
+
+    vision = analyze_master_plan_with_openai(project=project, image_metadata=image_metadata)
+    segmentation = run_opencv_segmentation(image_metadata=image_metadata, project_id=project.project_id)
+    area_estimate = build_area_estimate(
+        project=project,
+        image_metadata=image_metadata,
+        vision=vision,
+        segmentation=segmentation,
+    )
+    category_comparison = build_category_comparison(
+        project=project,
+        image_metadata=image_metadata,
+        vision=vision,
+        segmentation=segmentation,
+        area_estimate=area_estimate,
+    )
+
+    project_prefix = f"project_{slot.lower()}_{project.project_id}"
+
+    project_metadata_path = output_json_dir / f"{project_prefix}_parsed_project_metadata.json"
+    image_metadata_path = output_json_dir / f"{project_prefix}_image_metadata.json"
+    vision_path = output_json_dir / f"{project_prefix}_vision_analysis.json"
+    segmentation_path = output_json_dir / f"{project_prefix}_segmentation_result.json"
+    area_path = output_json_dir / f"{project_prefix}_area_estimate.json"
+    category_path = output_json_dir / f"{project_prefix}_category_comparison.json"
+
+    write_json_file(project_metadata_path, project.model_dump(mode="json"))
+    write_json_file(image_metadata_path, image_metadata.model_dump(mode="json"))
+    write_json_file(vision_path, vision.model_dump(mode="json"))
+    write_json_file(segmentation_path, segmentation.model_dump(mode="json"))
+    write_json_file(area_path, area_estimate.model_dump(mode="json"))
+    write_json_file(category_path, category_comparison.model_dump(mode="json"))
+
+    return {
+        "project": project,
+        "image_metadata": image_metadata,
+        "vision": vision,
+        "segmentation": segmentation,
+        "area_estimate": area_estimate,
+        "category_comparison": category_comparison,
+        "artifacts": {
+            "input_project_json_path": str(project_json_path),
+            "input_master_plan_image_path": str(image_path),
+            "project_metadata_json_path": str(project_metadata_path),
+            "image_metadata_json_path": str(image_metadata_path),
+            "vision_analysis_json_path": str(vision_path),
+            "segmentation_result_json_path": str(segmentation_path),
+            "area_estimate_json_path": str(area_path),
+            "category_comparison_json_path": str(category_path),
+        },
+    }
