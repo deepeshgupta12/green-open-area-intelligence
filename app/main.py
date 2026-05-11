@@ -379,6 +379,7 @@ async def compare_master_plans(
             "category_winners": comparison.category_winners,
             "overall_recommendation": comparison.overall_recommendation,
             "user_friendly_summary": comparison.user_friendly_summary,
+            "internal_evidence_quality": comparison.internal_evidence_quality,
             "run_artifacts": {
                 "compare_input_dir": str(compare_input_dir),
                 "compare_output_dir": str(compare_output_dir),
