@@ -44,8 +44,10 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     ],
     "water_leisure": ["pool", "water", "spa", "leisure", "deck", "clubhouse"],
     "access_circulation": [
-        "road", "driveway", "drop", "entry", "exit", "vehicular", "pedestrian",
-        "access", "pathway", "bus", "parking", "movement",
+        "road", "internal road", "road network", "driveway", "internal driveway", "drop", "drop-off", "drop off",
+        "entry", "entrance", "exit", "gate", "vehicular", "pedestrian", "access", "frontage",
+        "pathway", "walkway", "bus", "school bus bay", "parking", "ramp", "movement", "circulation",
+        "approach", "pickup", "pickups", "drop-offs",
     ],
     "environment_sustainability": [
         "rain", "harvesting", "stp", "sewage", "treated water", "solar", "eco", "green",
@@ -400,6 +402,8 @@ def _build_category_evidence(
         declared.extend(_matching_names([item.name for item in project.amenities], category_key))
         declared.extend(_matching_names(project.green_amenity_signals + project.open_space_signals, category_key))
         declared.extend(_matching_names([item.text for item in project.wow_factors], category_key))
+        if category_key == "access_circulation":
+            declared.extend(_extract_access_entities_from_project(project))
 
         visible = [zone.label for zone in zones if zone.zone_category == category_key and zone.source.startswith("openai")]
         legend = [item.normalized_label for item in legend_items if item.inferred_category == category_key]
@@ -423,6 +427,46 @@ def _build_category_evidence(
             )
         )
     return evidence
+
+
+def _extract_access_entities_from_project(project: ParsedProjectMetadata) -> list[str]:
+    texts = []
+    if project.master_plan:
+        texts.append(_strip_html(project.master_plan.description_html or ""))
+        texts.append(project.master_plan.name or "")
+    texts.extend(project.open_space_signals)
+
+    combined = " ".join(texts).lower()
+    entities: list[str] = []
+
+    phrase_map = {
+        "direct frontage": "Direct frontage",
+        "frontage": "Frontage",
+        "direct access": "Direct access",
+        "internal road": "Internal road network",
+        "road networks": "Internal road network",
+        "main driveway": "Main driveway",
+        "internal driveway": "Internal driveway",
+        "driveway": "Driveway",
+        "drop-off": "Drop-off zone",
+        "drop off": "Drop-off zone",
+        "entry point": "Entry point",
+        "entry points": "Entry points",
+        "entrance": "Entrance",
+        "vehicular": "Vehicular access",
+        "pedestrian": "Pedestrian access",
+        "school bus bay": "School bus bay",
+        "parking": "Parking access",
+        "ramp": "Ramp",
+        "movement": "Internal movement",
+        "circulation": "Internal circulation",
+    }
+
+    for needle, label in phrase_map.items():
+        if needle in combined:
+            entities.append(label)
+
+    return _dedupe(entities)
 
 
 def _matching_names(names: list[str], category_key: str) -> list[str]:

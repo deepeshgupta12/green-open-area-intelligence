@@ -135,8 +135,9 @@ CATEGORY_ALLOWLIST = {
 
 CATEGORY_BLOCKLIST = {
     "water_leisure": {
-        "treated water", "treated water supply", "sewage", "sewage treatment", "stp",
-        "rainwater", "rain water", "rain water harvesting", "solar", "eco", "eco friendly",
+        "treated water", "treated water supply", "24*7 water supply", "24 x 7 water supply",
+        "24/7 water supply", "water supply", "domestic water", "sewage", "sewage treatment",
+        "stp", "rainwater", "rain water", "rain water harvesting", "solar", "eco", "eco friendly",
     },
     "green_landscape": {
         "sewage treatment", "stp", "rain water", "rainwater", "treated water", "solar", "podium parking",
@@ -530,8 +531,31 @@ def _category_status(
 ) -> str:
     gap = _score_gap(winner, all_projects)
     strength = _evidence_strength(evidence, winner)
-    if winner.score < 60 or strength == "Insufficient" or len(winner.best_details) == 0:
+    category_key = evidence.category_key if evidence else ""
+
+    if strength == "Insufficient" or len(winner.best_details) == 0:
         return STATUS_INSUFFICIENT
+
+    # Access & Movement often appears as explicit entry/driveway/drop-off labels in master plans,
+    # but the legacy category score can still stay low. Do not mark it insufficient when
+    # access-specific evidence exists; mark it as a close call/weak differentiator instead.
+    if category_key == "access_circulation" and _access_has_usable_movement_evidence(winner, evidence):
+        if gap <= 3:
+            return STATUS_CLOSE
+        return STATUS_WEAK
+
+    if winner.score < 60:
+        return STATUS_INSUFFICIENT
+
+    # Frontend trust rule: when the visible score band is the same, a small raw-score lead
+    # should not be rendered as a clear win.
+    if _winner_and_runner_up_same_score_band(winner, all_projects) and gap <= 5:
+        return STATUS_CLOSE
+
+    # If all three projects are Excellent, do not show Clear Winner unless the gap is material.
+    if _all_projects_in_same_score_band(all_projects) and (winner.score_band or _score_band(winner.score)) == "85–100" and gap < 10:
+        return STATUS_CLOSE
+
     if gap <= 3:
         return STATUS_CLOSE
     if winner.score < 70 or strength == "Weak":
@@ -683,6 +707,32 @@ def _overall_advantage_copy(category_key: str, category_label: str) -> str:
 def _score_gap(winner: ProjectCategoryComparison, all_projects: list[ProjectCategoryComparison]) -> int:
     other_scores = [item.score for item in all_projects if item.project_slot != winner.project_slot]
     return int(winner.score - max(other_scores)) if other_scores else 0
+
+
+def _all_projects_in_same_score_band(all_projects: list[ProjectCategoryComparison]) -> bool:
+    bands = {item.score_band or _score_band(item.score) for item in all_projects}
+    return len(bands) == 1
+
+
+def _winner_and_runner_up_same_score_band(
+    winner: ProjectCategoryComparison,
+    all_projects: list[ProjectCategoryComparison],
+) -> bool:
+    other_projects = [item for item in all_projects if item.project_slot != winner.project_slot]
+    if not other_projects:
+        return False
+    runner_up = sorted(other_projects, key=lambda item: item.score, reverse=True)[0]
+    return (winner.score_band or _score_band(winner.score)) == (runner_up.score_band or _score_band(runner_up.score))
+
+
+def _access_has_usable_movement_evidence(winner: ProjectCategoryComparison, evidence: MasterPlanCategoryEvidence | None) -> bool:
+    if evidence is None:
+        return False
+    details = _category_clean_details(
+        "access_circulation",
+        evidence.declared_entities + evidence.visible_entities + evidence.legend_entities + winner.best_details,
+    )
+    return len(details) >= 2
 
 
 def _score_band(score: int) -> str:

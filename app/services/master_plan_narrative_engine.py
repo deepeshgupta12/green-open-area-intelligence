@@ -130,6 +130,8 @@ Your job:
 - If category_status = Clear Winner and internal_scoring.score_gap >= 8, never say the gap/difference is narrow, small, close, or slight.
 - If category_status = Clear Winner and internal_scoring.score_gap < 8, you may mention that the lead is directional, but do not call it narrow unless category_status is Close Call.
 - Do not invent parks, zones, facilities, or sustainability features that are not present in the input facts.
+- For Sustainability Signals, describe only feature availability. Do not claim verified impact, lower living costs, energy savings, or environmental performance.
+- For Water & Leisure, do not mention water-supply utilities such as 24*7 Water Supply, Treated Water Supply, STP, rainwater harvesting, or sewage treatment.
 
 For each category, write:
 1. frontend_winner_reason: Why the winner is better in buyer-friendly terms.
