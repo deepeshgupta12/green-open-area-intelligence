@@ -35,11 +35,24 @@ export type CategoryComparisonMatrixRow = {
   frontend_winner_reason: string;
   frontend_tradeoff: string;
   frontend_category_summary: string;
+  category_status: "Clear Winner" | "Close Call" | "Weak Differentiator" | "Insufficient Evidence";
+  evidence_strength: "Strong" | "Moderate" | "Weak" | "Insufficient";
+  confidence_badge: string;
+  show_as_decisive: boolean;
+  show_as_close_call: boolean;
+  show_as_insufficient: boolean;
+  declared_evidence: string[];
+  visible_evidence: string[];
+  spatial_evidence: string[];
   internal_scoring: {
     winner_score: number;
     score_gap: number;
     confidence_label: string;
     category_key: string;
+    declared_score?: number;
+    visible_score?: number;
+    spatial_score?: number;
+    confidence_score?: number;
   };
 };
 
@@ -64,8 +77,11 @@ export type InternalEvidenceQuality = {
     confidence_label?: string;
     technical_details: string[];
     technical_warnings: string[];
+    master_plan_understanding_confidence?: string;
+    manual_correction_recommended?: boolean;
   }>;
   global_notes: string[];
+  manual_correction_available?: boolean;
 };
 
 export type MasterPlanComparisonResponse = {

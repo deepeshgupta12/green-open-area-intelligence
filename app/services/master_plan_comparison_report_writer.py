@@ -35,7 +35,7 @@ def build_master_plan_comparison_report(
     )
 
     matrix_rows = "\n".join(
-        f"| {row.category_label} | {row.winner_project_name or '-'} | {row.frontend_winner_reason} | {row.frontend_tradeoff} | {row.frontend_category_summary} |"
+        f"| {row.category_label} | {row.category_status} | {row.evidence_strength} | {row.winner_project_name or '-'} | {row.frontend_winner_reason} | {row.frontend_tradeoff} | {row.frontend_category_summary} |"
         for row in comparison.category_comparison_matrix
     )
 
@@ -87,8 +87,8 @@ def build_master_plan_comparison_report(
 
 ## Frontend Category Comparison Matrix
 
-| Category | Winner | Frontend Winner Reason | Frontend Tradeoff | Frontend Category Summary |
-|---|---|---|---|---|
+| Category | Status | Evidence Strength | Winner | Frontend Winner Reason | Frontend Tradeoff | Frontend Category Summary |
+|---|---|---|---|---|---|---|
 {matrix_rows}
 
 ## Internal Evidence Quality

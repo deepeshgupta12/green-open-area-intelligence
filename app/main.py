@@ -12,6 +12,7 @@ from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
 from app.services.master_plan_narrative_engine import enhance_master_plan_comparison_with_openai
+from app.services.master_plan_understanding_engine import extract_master_plan_understanding
 from app.services.report_writer import write_final_outputs
 from app.services.segmentation_engine import run_opencv_segmentation
 from app.services.vision_analyzer import analyze_master_plan_with_openai
@@ -320,6 +321,7 @@ async def compare_master_plans(
     run_category_comparison: bool = Form(True),
     write_report: bool = Form(True),
     use_ai_narrative: bool = Form(True),
+    use_ai_structure_extraction: bool = Form(True),
 ) -> dict:
     settings = get_settings()
 
@@ -345,6 +347,7 @@ async def compare_master_plans(
             master_plan_image_file=project_a_master_plan_image_file,
             input_dir=compare_input_dir,
             output_json_dir=compare_json_dir,
+            use_ai_structure_extraction=use_ai_structure_extraction,
         )
         bundle_b = await _process_compare_project_bundle(
             slot="B",
@@ -352,6 +355,7 @@ async def compare_master_plans(
             master_plan_image_file=project_b_master_plan_image_file,
             input_dir=compare_input_dir,
             output_json_dir=compare_json_dir,
+            use_ai_structure_extraction=use_ai_structure_extraction,
         )
         bundle_c = await _process_compare_project_bundle(
             slot="C",
@@ -359,6 +363,7 @@ async def compare_master_plans(
             master_plan_image_file=project_c_master_plan_image_file,
             input_dir=compare_input_dir,
             output_json_dir=compare_json_dir,
+            use_ai_structure_extraction=use_ai_structure_extraction,
         )
 
         comparison = build_master_plan_comparison(
@@ -372,6 +377,9 @@ async def compare_master_plans(
             area_c=bundle_c["area_estimate"],
             category_c=bundle_c["category_comparison"],
             comparison_run_id=comparison_run_id,
+            understanding_a=bundle_a["master_plan_understanding"],
+            understanding_b=bundle_b["master_plan_understanding"],
+            understanding_c=bundle_c["master_plan_understanding"],
         )
 
         if use_ai_narrative:
@@ -416,6 +424,7 @@ async def _process_compare_project_bundle(
     master_plan_image_file: UploadFile,
     input_dir: Path,
     output_json_dir: Path,
+    use_ai_structure_extraction: bool = True,
 ) -> dict:
     project_json_path = input_dir / f"project_{slot.lower()}_{_safe_upload_name(project_json_file.filename or 'project.json', '.json')}"
     image_path = input_dir / f"project_{slot.lower()}_{_safe_upload_name(master_plan_image_file.filename or 'master_plan.jpg', '.jpg')}"
@@ -442,6 +451,14 @@ async def _process_compare_project_bundle(
         area_estimate=area_estimate,
     )
 
+    master_plan_understanding = extract_master_plan_understanding(
+        project=project,
+        image_metadata=image_metadata,
+        vision=vision,
+        output_dir=output_json_dir.parent / "overlays",
+        use_openai=use_ai_structure_extraction,
+    )
+
     project_prefix = f"project_{slot.lower()}_{project.project_id}"
 
     project_metadata_path = output_json_dir / f"{project_prefix}_parsed_project_metadata.json"
@@ -450,6 +467,7 @@ async def _process_compare_project_bundle(
     segmentation_path = output_json_dir / f"{project_prefix}_segmentation_result.json"
     area_path = output_json_dir / f"{project_prefix}_area_estimate.json"
     category_path = output_json_dir / f"{project_prefix}_category_comparison.json"
+    understanding_path = output_json_dir / f"{project_prefix}_master_plan_understanding.json"
 
     write_json_file(project_metadata_path, project.model_dump(mode="json"))
     write_json_file(image_metadata_path, image_metadata.model_dump(mode="json"))
@@ -457,6 +475,7 @@ async def _process_compare_project_bundle(
     write_json_file(segmentation_path, segmentation.model_dump(mode="json"))
     write_json_file(area_path, area_estimate.model_dump(mode="json"))
     write_json_file(category_path, category_comparison.model_dump(mode="json"))
+    write_json_file(understanding_path, master_plan_understanding.model_dump(mode="json"))
 
     return {
         "project": project,
@@ -465,6 +484,7 @@ async def _process_compare_project_bundle(
         "segmentation": segmentation,
         "area_estimate": area_estimate,
         "category_comparison": category_comparison,
+        "master_plan_understanding": master_plan_understanding,
         "artifacts": {
             "input_project_json_path": str(project_json_path),
             "input_master_plan_image_path": str(image_path),
@@ -474,5 +494,6 @@ async def _process_compare_project_bundle(
             "segmentation_result_json_path": str(segmentation_path),
             "area_estimate_json_path": str(area_path),
             "category_comparison_json_path": str(category_path),
+            "master_plan_understanding_json_path": str(understanding_path),
         },
     }

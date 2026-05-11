@@ -478,3 +478,69 @@ input {
     grid-template-columns: 1fr;
   }
 }
+
+.category-badge-stack {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status-badge.is-clear {
+  background: #e4f5dc;
+  color: #235e35;
+}
+
+.status-badge.is-close {
+  background: #eef1ff;
+  color: #35438a;
+}
+
+.status-badge.is-weak {
+  background: #fff6dc;
+  color: #765318;
+}
+
+.status-badge.is-insufficient {
+  background: #f1f1f1;
+  color: #5f6265;
+}
+
+.evidence-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+
+.evidence-row span {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #f3f6f1;
+  color: #516458;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.evidence-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+}
+
+.evidence-chip {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #eef5ea;
+  color: #2b6b3f;
+  font-size: 12px;
+  font-weight: 700;
+}

@@ -31,6 +31,10 @@ class CategoryInternalScoring(BaseModel):
     score_gap: int
     confidence_label: str
     category_key: str
+    declared_score: int | None = None
+    visible_score: int | None = None
+    spatial_score: int | None = None
+    confidence_score: int | None = None
 
 
 class CategoryComparisonMatrixRow(BaseModel):
@@ -50,6 +54,17 @@ class CategoryComparisonMatrixRow(BaseModel):
     frontend_winner_reason: str
     frontend_tradeoff: str
     frontend_category_summary: str
+
+    # Frontend rendering controls.
+    category_status: str = "Clear Winner"
+    evidence_strength: str = "Moderate"
+    confidence_badge: str = "Medium"
+    show_as_decisive: bool = True
+    show_as_close_call: bool = False
+    show_as_insufficient: bool = False
+    declared_evidence: list[str] = Field(default_factory=list)
+    visible_evidence: list[str] = Field(default_factory=list)
+    spatial_evidence: list[str] = Field(default_factory=list)
 
     internal_scoring: CategoryInternalScoring
 
@@ -98,6 +113,8 @@ class InternalProjectEvidenceQuality(BaseModel):
     confidence_label: str | None = None
     technical_details: list[str] = Field(default_factory=list)
     technical_warnings: list[str] = Field(default_factory=list)
+    master_plan_understanding_confidence: str | None = None
+    manual_correction_recommended: bool = False
 
 
 class InternalEvidenceQuality(BaseModel):
@@ -106,6 +123,7 @@ class InternalEvidenceQuality(BaseModel):
     technical_metrics_are_internal_only: bool = True
     project_evidence: list[InternalProjectEvidenceQuality] = Field(default_factory=list)
     global_notes: list[str] = Field(default_factory=list)
+    manual_correction_available: bool = True
 
 
 class MasterPlanComparisonResult(BaseModel):

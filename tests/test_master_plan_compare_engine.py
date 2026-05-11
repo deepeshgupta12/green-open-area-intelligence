@@ -152,6 +152,12 @@ def test_master_plan_compare_engine_builds_three_project_comparison():
         assert row.frontend_category_summary
         assert row.internal_scoring
 
+        assert row.category_status in {"Clear Winner", "Close Call", "Weak Differentiator", "Insufficient Evidence"}
+        assert row.evidence_strength in {"Strong", "Moderate", "Weak", "Insufficient"}
+        assert isinstance(row.show_as_decisive, bool)
+        assert isinstance(row.show_as_close_call, bool)
+        assert isinstance(row.show_as_insufficient, bool)
+
         assert_frontend_clean(row.winner_reason)
         assert_frontend_clean(row.tradeoff)
         assert_frontend_clean(row.frontend_winner_reason)

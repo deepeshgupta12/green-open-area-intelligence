@@ -18,6 +18,13 @@ function getWinnerClass(projectSlot?: string, winnerSlot?: string) {
   return projectSlot === winnerSlot ? "project-score is-winner" : "project-score";
 }
 
+function statusClass(status?: string) {
+  if (status === "Close Call") return "status-badge is-close";
+  if (status === "Weak Differentiator") return "status-badge is-weak";
+  if (status === "Insufficient Evidence") return "status-badge is-insufficient";
+  return "status-badge is-clear";
+}
+
 export function ResultsView({ result }: ResultsViewProps) {
   const overall = result.overall_recommendation;
   const summary = result.user_friendly_summary;
@@ -126,12 +133,29 @@ export function ResultsView({ result }: ResultsViewProps) {
             <article key={row.category_key} className="category-card">
               <div className="category-card-header">
                 <h3>{row.category_label}</h3>
-                <span className="winner-badge">
-                  Winner: {row.winner_project_name}
-                </span>
+                <div className="category-badge-stack">
+                  <span className={statusClass(row.category_status)}>{row.category_status}</span>
+                  {!row.show_as_insufficient && (
+                    <span className="winner-badge">Winner: {row.winner_project_name}</span>
+                  )}
+                </div>
               </div>
 
               <p className="winner-reason">{row.frontend_winner_reason}</p>
+
+              <div className="evidence-row">
+                <span>Evidence: {row.evidence_strength}</span>
+                <span>Gap: {row.internal_scoring.score_gap}</span>
+                <span>Confidence: {row.confidence_badge}</span>
+              </div>
+
+              {(row.visible_evidence.length > 0 || row.declared_evidence.length > 0) && (
+                <div className="evidence-chip-row">
+                  {[...row.visible_evidence, ...row.declared_evidence].slice(0, 5).map((item) => (
+                    <span key={`${row.category_key}-${item}`} className="evidence-chip">{item}</span>
+                  ))}
+                </div>
+              )}
 
               <div className="category-summary">
                 <CheckCircle2 size={18} />
@@ -182,6 +206,8 @@ export function ResultsView({ result }: ResultsViewProps) {
                 Project {project.project_slot}: {project.project_name}
               </h4>
               <p>Confidence: {project.confidence_label}</p>
+              <p>Understanding confidence: {project.master_plan_understanding_confidence || "-"}</p>
+              <p>Manual correction recommended: {String(project.manual_correction_recommended || false)}</p>
               <ul>
                 {project.technical_warnings.slice(0, 4).map((warning) => (
                   <li key={warning}>{warning}</li>
