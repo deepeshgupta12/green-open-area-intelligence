@@ -27,7 +27,6 @@ WATER_LEISURE_BLOCKED_CHIPS = [
     "24 x 7 water supply",
     "24/7 water supply",
     "water supply",
-    "domestic water",
     "sewage",
     "sewage treatment",
     "stp",
@@ -55,6 +54,35 @@ STATUS_WEAK = "Weak Differentiator"
 STATUS_INSUFFICIENT = "Insufficient Evidence"
 
 
+ACCESS_FRONTEND_ALLOWED_TOKENS = [
+    "driveway",
+    "entry",
+    "drop",
+    "drop-off",
+    "drop off",
+    "internal road",
+    "vehicular",
+    "pedestrian",
+    "access",
+    "frontage",
+    "gate",
+    "ramp",
+    "circulation",
+    "parking",
+    "movement",
+    "podium parking",
+]
+
+ACCESS_FRONTEND_BLOCKED_TOKENS = [
+    "lobby",
+    "lobbies",
+    "entrance lobby",
+    "entrance lobbies",
+    "double height",
+    "double-height",
+]
+
+
 def finalize_frontend_comparison_contract(
     comparison: MasterPlanComparisonResult,
 ) -> MasterPlanComparisonResult:
@@ -75,49 +103,7 @@ def finalize_frontend_comparison_contract(
     return comparison
 
 
-
-def _downgrade_overstated_clear_winner(row) -> None:
-    if row.category_status != STATUS_CLEAR and not row.show_as_decisive:
-        return
-
-    score_gap = row.internal_scoring.score_gap
-    bands = {item.score_band for item in row.project_scores if item.score_band}
-    winner_score = row.internal_scoring.winner_score
-    winner_band = _score_band(winner_score)
-    other_scores = [item.score for item in row.project_scores if item.project_slot != row.winner_project_slot]
-    runner_up_band = _score_band(max(other_scores)) if other_scores else winner_band
-
-    if winner_band == runner_up_band and score_gap <= 5:
-        _mark_close_call(row)
-        return
-
-    if len(bands) == 1 and winner_band == "85–100" and score_gap < 10:
-        _mark_close_call(row)
-
-
-def _mark_close_call(row) -> None:
-    row.category_status = STATUS_CLOSE
-    row.show_as_decisive = False
-    row.show_as_close_call = True
-    row.show_as_weak = False
-    row.show_as_insufficient = False
-    row.show_winner_badge = True
-    row.winner_badge_label = "Winner"
-
-
-def _score_band(score: int) -> str:
-    if score >= 85:
-        return "85–100"
-    if score >= 70:
-        return "70–84"
-    if score >= 55:
-        return "55–69"
-    return "Below 55"
-
-
 def _normalize_status_display(row) -> None:
-    _downgrade_overstated_clear_winner(row)
-
     if row.show_as_insufficient or row.category_status == STATUS_INSUFFICIENT:
         row.category_status = STATUS_INSUFFICIENT
         row.show_as_decisive = False
@@ -144,8 +130,12 @@ def _normalize_status_display(row) -> None:
         row.show_as_close_call = True
         row.show_as_weak = False
         row.show_as_insufficient = False
-        row.show_winner_badge = True
-        row.winner_badge_label = "Winner"
+        if row.internal_scoring.score_gap <= 0:
+            row.show_winner_badge = False
+            row.winner_badge_label = "No Clear Winner"
+        else:
+            row.show_winner_badge = True
+            row.winner_badge_label = "Winner"
         return
 
     row.category_status = STATUS_CLEAR
@@ -164,6 +154,8 @@ def _clean_row_evidence(row) -> None:
 
     for score in row.project_scores:
         score.best_details = _clean_evidence_list(row.category_key, score.best_details)
+
+    _sanitize_access_circulation_evidence(row)
 
 
 def _clean_evidence_list(category_key: str, values: list[str]) -> list[str]:
@@ -187,6 +179,38 @@ def _clean_evidence_list(category_key: str, values: list[str]) -> list[str]:
 
     return result
 
+
+
+def _sanitize_access_circulation_evidence(row) -> None:
+    if getattr(row, "category_key", None) != "access_circulation":
+        return
+
+    def is_allowed(value: str) -> bool:
+        lowered = str(value or "").lower()
+
+        if any(token in lowered for token in ACCESS_FRONTEND_BLOCKED_TOKENS):
+            return False
+
+        return any(token in lowered for token in ACCESS_FRONTEND_ALLOWED_TOKENS)
+
+    row.visible_evidence = [
+        item for item in getattr(row, "visible_evidence", [])
+        if is_allowed(item)
+    ]
+    row.declared_evidence = [
+        item for item in getattr(row, "declared_evidence", [])
+        if is_allowed(item)
+    ]
+    row.spatial_evidence = [
+        item for item in getattr(row, "spatial_evidence", [])
+        if is_allowed(item)
+    ]
+
+    for score in getattr(row, "project_scores", []):
+        score.best_details = [
+            item for item in getattr(score, "best_details", [])
+            if is_allowed(item)
+        ]
 
 def _sanitize_row_copy(row) -> None:
     row.frontend_winner_reason = _sanitize_text(row.frontend_winner_reason)
@@ -224,6 +248,17 @@ def _sanitize_row_copy(row) -> None:
         return
 
     if row.show_as_close_call:
+        if row.internal_scoring.score_gap <= 0:
+            row.frontend_winner_reason = (
+                f"This is a close call: no clear winner can be established for {category_label} because the compared projects are effectively tied on the available cleaned evidence."
+            )
+            row.frontend_tradeoff = (
+                "Use this category as shared context rather than a reason to prefer one project over another."
+            )
+            row.frontend_category_summary = (
+                f"{row.category_label} is useful context, but it does not create a meaningful ranking difference in this run."
+            )
+            return
         row.frontend_winner_reason = (
             f"{project_name} is marginally ahead for {category_label}"
             + (f", mainly due to {evidence}" if evidence else "")
@@ -236,15 +271,6 @@ def _sanitize_row_copy(row) -> None:
             f"{row.category_label} is useful context, but buyers should not over-index on this category alone."
         )
         return
-
-    if row.category_key == "environment_sustainability":
-        row.frontend_category_summary = (
-            "These are declared sustainability-related feature signals, not verified environmental performance claims."
-        )
-        if row.show_as_decisive:
-            row.frontend_tradeoff = (
-                "Use this as a feature-availability signal; certification, savings, or actual environmental impact should be verified from official documents."
-            )
 
     # Clear winner copy guardrail.
     if row.show_as_decisive and row.internal_scoring.score_gap >= 8:

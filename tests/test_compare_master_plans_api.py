@@ -131,7 +131,7 @@ def test_compare_master_plans_api(monkeypatch):
                 assert "treated water" not in chip.lower()
                 assert "rain" not in chip.lower()
             if row["category_key"] == "access_circulation":
-                allowed = ["driveway", "entry", "drop", "internal road", "vehicular", "pedestrian", "access", "frontage", "gate", "ramp"]
+                allowed = ["driveway", "entry", "drop", "internal road", "vehicular", "pedestrian", "access", "frontage", "gate", "ramp", "circulation", "parking", "movement"]
                 assert any(token in chip.lower() for token in allowed)
 
         if row["show_as_insufficient"]:

@@ -16,6 +16,8 @@ type ResultsViewProps = {
 
 function getWinnerClass(projectSlot?: string, row?: CategoryComparisonMatrixRow) {
   if (!row || row.show_as_insufficient) return "project-score is-muted";
+  const canHighlightWinner = row.show_winner_badge && row.internal_scoring.score_gap > 0;
+  if (!canHighlightWinner) return "project-score";
   if (row.show_as_close_call) {
     return projectSlot === row.winner_project_slot ? "project-score is-close-winner" : "project-score";
   }
