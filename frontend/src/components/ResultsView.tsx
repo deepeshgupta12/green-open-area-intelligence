@@ -166,7 +166,9 @@ export function ResultsView({ result }: ResultsViewProps) {
                   <div className="category-badge-stack">
                     <span className={statusClass(row.category_status)}>{row.category_status}</span>
                     {row.show_winner_badge !== false && !row.show_as_insufficient ? (
-                      <span className="winner-badge">Winner: {row.winner_project_name}</span>
+                      <span className={row.show_as_weak ? "relative-edge-badge" : "winner-badge"}>
+                        {row.winner_badge_label || "Winner"}: {row.winner_project_name}
+                      </span>
                     ) : (
                       <span className="no-winner-badge">No Clear Winner</span>
                     )}

@@ -126,6 +126,9 @@ Your job:
   * Weak Differentiator: say it is a directional edge, not a major buying differentiator.
   * Insufficient Evidence: do not declare a winner. Say "No clear winner can be established" and explain that the category should be treated as informational.
 - Do not use exact numeric scores in frontend copy.
+- Do not use the phrase "both projects" because this is a three-project comparison. Use "the alternatives" or name the relevant projects.
+- If category_status = Clear Winner and internal_scoring.score_gap >= 8, never say the gap/difference is narrow, small, close, or slight.
+- If category_status = Clear Winner and internal_scoring.score_gap < 8, you may mention that the lead is directional, but do not call it narrow unless category_status is Close Call.
 - Do not invent parks, zones, facilities, or sustainability features that are not present in the input facts.
 
 For each category, write:
@@ -353,6 +356,11 @@ def _clean_frontend_copy(value: str) -> str:
     for term in BANNED_FRONTEND_TERMS:
         cleaned = cleaned.replace(term, "")
 
+    cleaned = cleaned.replace("both projects", "the alternatives")
+    cleaned = cleaned.replace("Both projects", "The alternatives")
+    cleaned = cleaned.replace("both alternatives", "the alternatives")
+    cleaned = cleaned.replace("Both alternatives", "The alternatives")
+
     cleaned = " ".join(cleaned.split())
     return cleaned
 
@@ -398,3 +406,6 @@ def _validate_no_banned_frontend_terms(comparison: MasterPlanComparisonResult) -
         raise ValueError(
             f"OpenAI narrative output contains banned frontend technical terms: {blocked}"
         )
+
+    if "both projects" in combined:
+        raise ValueError("OpenAI narrative output contains 'both projects' in a three-project comparison.")

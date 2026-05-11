@@ -8,6 +8,7 @@ from app.config import get_settings
 from app.services.area_calculator import build_area_estimate
 from app.services.category_insight_engine import build_category_comparison
 from app.services.image_preprocessor import preprocess_master_plan_image
+from app.services.frontend_contract_validator import finalize_frontend_comparison_contract
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
@@ -384,6 +385,8 @@ async def compare_master_plans(
 
         if use_ai_narrative:
             comparison = enhance_master_plan_comparison_with_openai(comparison)
+
+        comparison = finalize_frontend_comparison_contract(comparison)
 
         final_outputs = None
         if write_report:

@@ -134,6 +134,10 @@ CATEGORY_ALLOWLIST = {
 }
 
 CATEGORY_BLOCKLIST = {
+    "water_leisure": {
+        "treated water", "treated water supply", "sewage", "sewage treatment", "stp",
+        "rainwater", "rain water", "rain water harvesting", "solar", "eco", "eco friendly",
+    },
     "green_landscape": {
         "sewage treatment", "stp", "rain water", "rainwater", "treated water", "solar", "podium parking",
         "driveway", "internal road", "road", "entry", "retail", "tower", "clubhouse",
@@ -536,13 +540,23 @@ def _category_status(
 
 
 def _status_flags(status: str) -> dict[str, bool | str]:
+    if status == STATUS_INSUFFICIENT:
+        winner_label = "No Clear Winner"
+        show_winner = False
+    elif status == STATUS_WEAK:
+        winner_label = "Relative Edge"
+        show_winner = True
+    else:
+        winner_label = "Winner"
+        show_winner = True
+
     return {
         "decisive": status == STATUS_CLEAR,
         "close": status == STATUS_CLOSE,
         "weak": status == STATUS_WEAK,
         "insufficient": status == STATUS_INSUFFICIENT,
-        "show_winner": status != STATUS_INSUFFICIENT,
-        "winner_label": "No Clear Winner" if status == STATUS_INSUFFICIENT else "Winner",
+        "show_winner": show_winner,
+        "winner_label": winner_label,
     }
 
 
@@ -672,21 +686,27 @@ def _score_gap(winner: ProjectCategoryComparison, all_projects: list[ProjectCate
 
 
 def _score_band(score: int) -> str:
-    if score >= 90:
-        return "90–100"
-    if score >= 80:
-        return "80–89"
+    if score >= 85:
+        return "85–100"
     if score >= 70:
-        return "70–79"
-    if score >= 60:
-        return "60–69"
-    if score >= 50:
-        return "50–59"
-    return "Below 50"
+        return "70–84"
+    if score >= 55:
+        return "55–69"
+    return "Below 55"
 
 
-def _frontend_score_label(score: int, rating: str) -> str:
-    return f"{rating} ({_score_band(score)})"
+def _frontend_rating_label(score: int) -> str:
+    if score >= 85:
+        return "Excellent"
+    if score >= 70:
+        return "Strong"
+    if score >= 55:
+        return "Moderate"
+    return "Limited"
+
+
+def _frontend_score_label(score: int, rating: str | None = None) -> str:
+    return f"{_frontend_rating_label(score)} ({_score_band(score)})"
 
 
 def _category_clean_details(category_key: str, details: list[str], allow_raw_units: bool = False) -> list[str]:

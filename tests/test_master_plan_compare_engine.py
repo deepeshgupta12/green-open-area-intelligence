@@ -182,9 +182,26 @@ def test_master_plan_compare_engine_builds_three_project_comparison():
         if row.show_as_close_call:
             assert "marginally" in row.frontend_winner_reason.lower() or "close" in row.frontend_winner_reason.lower()
         if row.show_as_weak:
+            assert row.winner_badge_label == "Relative Edge"
             assert "not a major" in row.frontend_winner_reason.lower() or "directional" in row.frontend_winner_reason.lower()
+
+        if row.show_as_decisive and row.internal_scoring.score_gap >= 8:
+            assert "gap is narrow" not in row.frontend_tradeoff.lower()
+            assert "difference is narrow" not in row.frontend_tradeoff.lower()
+            assert "gap is small" not in row.frontend_tradeoff.lower()
+
+        assert "both projects" not in row.frontend_winner_reason.lower()
+        assert "both projects" not in row.frontend_tradeoff.lower()
+        assert "both projects" not in row.frontend_category_summary.lower()
+
+        if row.category_key == "water_leisure":
+            all_chips = row.visible_evidence + row.declared_evidence + row.spatial_evidence
+            for chip in all_chips:
+                assert "treated water" not in chip.lower()
+                assert "sewage" not in chip.lower()
+                assert "rain water" not in chip.lower()
 
         for project_score in row.project_scores:
             assert_frontend_clean(project_score.user_facing_one_liner)
-            assert project_score.score_band
+            assert project_score.score_band in {"85–100", "70–84", "55–69", "Below 55"}
             assert project_score.frontend_score_label
