@@ -10,6 +10,7 @@ sys.path.append(str(ROOT_DIR))
 
 from app.config import get_settings
 from app.services.area_calculator import build_area_estimate
+from app.services.category_insight_engine import build_category_comparison
 from app.services.image_preprocessor import preprocess_master_plan_image
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.report_writer import write_final_outputs
@@ -30,6 +31,7 @@ def main() -> None:
     parser.add_argument("--run-vision", action="store_true", help="Run OpenAI Vision analysis.")
     parser.add_argument("--run-segmentation", action="store_true", help="Run OpenCV segmentation.")
     parser.add_argument("--run-area-estimate", action="store_true", help="Build final area estimate.")
+    parser.add_argument("--run-category-comparison", action="store_true", help="Build master plan category insights.")
     parser.add_argument("--write-report", action="store_true", help="Write final Markdown report and compare contract.")
 
     args = parser.parse_args()
@@ -49,14 +51,11 @@ def main() -> None:
     vision_result = None
     segmentation_result = None
     area_estimate = None
+    category_comparison = None
 
     if args.image:
         image_metadata = preprocess_master_plan_image(args.image)
-
-        image_metadata_output_path = (
-            settings.data_output_json_dir / "master_plan_image_metadata.json"
-        )
-
+        image_metadata_output_path = settings.data_output_json_dir / "master_plan_image_metadata.json"
         write_json_file(image_metadata_output_path, image_metadata.model_dump(mode="json"))
         _print_image_table(image_metadata, image_metadata_output_path)
 
@@ -71,11 +70,7 @@ def main() -> None:
             image_metadata=image_metadata,
         )
 
-        vision_output_path = (
-            settings.data_output_json_dir
-            / f"{parsed_metadata.project_id}_vision_analysis.json"
-        )
-
+        vision_output_path = settings.data_output_json_dir / f"{parsed_metadata.project_id}_vision_analysis.json"
         write_json_file(vision_output_path, vision_result.model_dump(mode="json"))
         _print_vision_table(vision_result, vision_output_path)
 
@@ -90,21 +85,15 @@ def main() -> None:
             project_id=parsed_metadata.project_id,
         )
 
-        segmentation_output_path = (
-            settings.data_output_json_dir
-            / f"{parsed_metadata.project_id}_segmentation_result.json"
-        )
-
+        segmentation_output_path = settings.data_output_json_dir / f"{parsed_metadata.project_id}_segmentation_result.json"
         write_json_file(segmentation_output_path, segmentation_result.model_dump(mode="json"))
         _print_segmentation_table(segmentation_result, segmentation_output_path)
 
     if args.run_area_estimate:
         if image_metadata is None:
             raise ValueError("--run-area-estimate requires --image.")
-
         if vision_result is None:
             raise ValueError("--run-area-estimate requires --run-vision in this step.")
-
         if segmentation_result is None:
             raise ValueError("--run-area-estimate requires --run-segmentation in this step.")
 
@@ -117,13 +106,29 @@ def main() -> None:
             segmentation=segmentation_result,
         )
 
-        area_estimate_output_path = (
-            settings.data_output_json_dir
-            / f"{parsed_metadata.project_id}_area_estimate.json"
-        )
-
+        area_estimate_output_path = settings.data_output_json_dir / f"{parsed_metadata.project_id}_area_estimate.json"
         write_json_file(area_estimate_output_path, area_estimate.model_dump(mode="json"))
         _print_area_estimate_table(area_estimate, area_estimate_output_path)
+
+    if args.run_category_comparison:
+        if image_metadata is None or vision_result is None or segmentation_result is None or area_estimate is None:
+            raise ValueError(
+                "--run-category-comparison requires --image, --run-vision, --run-segmentation, and --run-area-estimate."
+            )
+
+        console.print("[cyan]Building master plan category insights...[/cyan]")
+
+        category_comparison = build_category_comparison(
+            project=parsed_metadata,
+            image_metadata=image_metadata,
+            vision=vision_result,
+            segmentation=segmentation_result,
+            area_estimate=area_estimate,
+        )
+
+        category_output_path = settings.data_output_json_dir / f"{parsed_metadata.project_id}_category_comparison.json"
+        write_json_file(category_output_path, category_comparison.model_dump(mode="json"))
+        _print_category_comparison_table(category_comparison, category_output_path)
 
     if args.write_report:
         if image_metadata is None or vision_result is None or segmentation_result is None or area_estimate is None:
@@ -139,13 +144,15 @@ def main() -> None:
             vision=vision_result,
             segmentation=segmentation_result,
             area_estimate=area_estimate,
+            category_comparison=category_comparison,
         )
 
         report_table = Table(title="Final Output Files")
         report_table.add_column("Output", style="cyan")
         report_table.add_column("Path", style="green")
-        report_table.add_row("Markdown Report", output_paths["markdown_report_path"])
-        report_table.add_row("Compare Contract", output_paths["compare_contract_path"])
+        report_table.add_row("Markdown Report", output_paths["markdown_report_path"] or "-")
+        report_table.add_row("Compare Contract", output_paths["compare_contract_path"] or "-")
+        report_table.add_row("Category Comparison", output_paths["category_comparison_path"] or "-")
         console.print(report_table)
 
 
@@ -233,15 +240,26 @@ def _print_area_estimate_table(area_estimate, output_path: Path) -> None:
     table.add_row("Area Estimate Output", str(output_path))
     console.print(table)
 
-    if area_estimate.confidence.reasons:
-        console.print("[cyan]Confidence Reasons:[/cyan]")
-        for reason in area_estimate.confidence.reasons:
-            console.print(f"- {reason}")
 
-    if area_estimate.warnings:
-        console.print("[yellow]Area Estimate Warnings:[/yellow]")
-        for warning in area_estimate.warnings:
-            console.print(f"- {warning}")
+def _print_category_comparison_table(category_comparison, output_path: Path) -> None:
+    table = Table(title="Master Plan Category Insights")
+    table.add_column("Category", style="cyan")
+    table.add_column("Score", style="green")
+    table.add_column("Rating", style="green")
+    table.add_column("Confidence", style="green")
+    table.add_column("One-Liner", style="white")
+
+    for item in category_comparison.category_scores:
+        table.add_row(
+            item.category_label,
+            str(item.score),
+            item.rating,
+            item.confidence_label,
+            item.one_liner,
+        )
+
+    console.print(table)
+    console.print(f"[green]Category comparison output:[/green] {output_path}")
 
 
 if __name__ == "__main__":

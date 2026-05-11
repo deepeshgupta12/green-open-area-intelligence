@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from app.services.area_calculator import build_area_estimate
+from app.services.category_insight_engine import build_category_comparison
 from app.services.image_preprocessor import preprocess_master_plan_image
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.report_writer import write_final_outputs
@@ -84,12 +85,21 @@ def test_report_writer_creates_markdown_and_compare_contract():
         segmentation=segmentation,
     )
 
+    category_comparison = build_category_comparison(
+        project=project,
+        image_metadata=image_metadata,
+        vision=vision,
+        segmentation=segmentation,
+        area_estimate=area_estimate,
+    )
+
     output_paths = write_final_outputs(
         project=project,
         image_metadata=image_metadata,
         vision=vision,
         segmentation=segmentation,
         area_estimate=area_estimate,
+        category_comparison=category_comparison,
     )
 
     report_path = Path(output_paths["markdown_report_path"])
@@ -104,6 +114,8 @@ def test_report_writer_creates_markdown_and_compare_contract():
     assert "Birla Taranya" in report_text
     assert "Estimated Green Area" in report_text
     assert "Estimated Open Area" in report_text
+    assert "Master Plan Category Insights" in report_text
+    assert "Green Landscape Planning" in report_text
 
     contract = read_json_file(contract_path)
 
@@ -112,4 +124,6 @@ def test_report_writer_creates_markdown_and_compare_contract():
     assert contract["is_official_measurement"] is False
     assert contract["compare_module_display"]["green_space_value"]
     assert contract["compare_module_display"]["open_area_value"]
+    assert contract["category_comparison"] is not None
+    assert contract["category_comparison"]["category_scores"]
     assert contract["display_disclaimer"]

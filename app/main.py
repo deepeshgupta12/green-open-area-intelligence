@@ -5,6 +5,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
 from app.config import get_settings
 from app.services.area_calculator import build_area_estimate
+from app.services.category_insight_engine import build_category_comparison
 from app.services.image_preprocessor import preprocess_master_plan_image
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.report_writer import write_final_outputs
@@ -42,6 +43,7 @@ async def estimate_green_open_area(
     run_vision: bool = Form(False),
     run_segmentation: bool = Form(True),
     run_area_estimate: bool = Form(False),
+    run_category_comparison: bool = Form(False),
     write_report: bool = Form(False),
 ) -> dict:
     settings = get_settings()
@@ -56,6 +58,12 @@ async def estimate_green_open_area(
         raise HTTPException(
             status_code=400,
             detail="run_area_estimate=true requires run_segmentation=true.",
+        )
+
+    if run_category_comparison and not run_area_estimate:
+        raise HTTPException(
+            status_code=400,
+            detail="run_category_comparison=true requires run_area_estimate=true.",
         )
 
     if write_report and not run_area_estimate:
@@ -97,6 +105,7 @@ async def estimate_green_open_area(
             "vision_analysis_json_path": None,
             "segmentation_result_json_path": None,
             "area_estimate_json_path": None,
+            "category_comparison_json_path": None,
             "markdown_report_path": None,
             "compare_contract_path": None,
             "normalized_image_path": image_metadata.normalized_image_path,
@@ -120,12 +129,14 @@ async def estimate_green_open_area(
             "vision_analysis": None,
             "segmentation_result": None,
             "area_estimate": None,
+            "category_comparison": None,
             "final_outputs": None,
         }
 
         vision_result = None
         segmentation_result = None
         area_estimate = None
+        category_comparison = None
 
         if run_vision:
             vision_result = analyze_master_plan_with_openai(
@@ -172,6 +183,36 @@ async def estimate_green_open_area(
             run_artifacts["area_estimate_json_path"] = str(area_estimate_output_path)
             response["area_estimate"] = area_estimate.model_dump(mode="json")
 
+        if run_category_comparison:
+            if vision_result is None or segmentation_result is None or area_estimate is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "run_category_comparison=true requires run_vision=true, "
+                        "run_segmentation=true, and run_area_estimate=true."
+                    ),
+                )
+
+            category_comparison = build_category_comparison(
+                project=project,
+                image_metadata=image_metadata,
+                vision=vision_result,
+                segmentation=segmentation_result,
+                area_estimate=area_estimate,
+            )
+
+            category_comparison_output_path = (
+                run_json_dir / f"{project.project_id}_category_comparison.json"
+            )
+
+            write_json_file(
+                category_comparison_output_path,
+                category_comparison.model_dump(mode="json"),
+            )
+
+            run_artifacts["category_comparison_json_path"] = str(category_comparison_output_path)
+            response["category_comparison"] = category_comparison.model_dump(mode="json")
+
         if write_report:
             if vision_result is None or segmentation_result is None or area_estimate is None:
                 raise HTTPException(
@@ -188,12 +229,15 @@ async def estimate_green_open_area(
                 vision=vision_result,
                 segmentation=segmentation_result,
                 area_estimate=area_estimate,
+                category_comparison=category_comparison,
                 reports_dir=run_reports_dir,
                 json_dir=run_json_dir,
             )
 
             run_artifacts["markdown_report_path"] = final_outputs["markdown_report_path"]
             run_artifacts["compare_contract_path"] = final_outputs["compare_contract_path"]
+            if final_outputs.get("category_comparison_path"):
+                run_artifacts["category_comparison_json_path"] = final_outputs["category_comparison_path"]
             response["final_outputs"] = final_outputs
 
         run_summary_path = run_json_dir / "run_summary.json"
@@ -207,6 +251,7 @@ async def estimate_green_open_area(
                     "run_vision": run_vision,
                     "run_segmentation": run_segmentation,
                     "run_area_estimate": run_area_estimate,
+                    "run_category_comparison": run_category_comparison,
                     "write_report": write_report,
                 },
                 "run_artifacts": run_artifacts,

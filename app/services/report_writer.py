@@ -2,6 +2,7 @@ from pathlib import Path
 
 from app.config import get_settings
 from app.schemas.area_schema import AreaEstimateResult
+from app.schemas.category_insight_schema import CategoryComparisonResult
 from app.schemas.image_schema import ImageMetadata
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.segmentation_schema import SegmentationResult
@@ -15,9 +16,10 @@ def write_final_outputs(
     vision: VisionAnalysisResult,
     segmentation: SegmentationResult,
     area_estimate: AreaEstimateResult,
+    category_comparison: CategoryComparisonResult | None = None,
     reports_dir: Path | None = None,
     json_dir: Path | None = None,
-) -> dict[str, str]:
+) -> dict[str, str | None]:
     settings = get_settings()
 
     resolved_reports_dir = reports_dir or settings.data_output_reports_dir
@@ -25,6 +27,11 @@ def write_final_outputs(
 
     report_path = resolved_reports_dir / f"{project.project_id}_area_estimate_report.md"
     compare_contract_path = resolved_json_dir / f"{project.project_id}_compare_module_contract.json"
+    category_comparison_path = (
+        resolved_json_dir / f"{project.project_id}_category_comparison.json"
+        if category_comparison
+        else None
+    )
 
     report_content = build_markdown_report(
         project=project,
@@ -32,6 +39,7 @@ def write_final_outputs(
         vision=vision,
         segmentation=segmentation,
         area_estimate=area_estimate,
+        category_comparison=category_comparison,
     )
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -40,19 +48,25 @@ def write_final_outputs(
     compare_contract = build_compare_module_contract(
         project=project,
         area_estimate=area_estimate,
+        category_comparison=category_comparison,
     )
 
     write_json_file(compare_contract_path, compare_contract)
 
+    if category_comparison and category_comparison_path:
+        write_json_file(category_comparison_path, category_comparison.model_dump(mode="json"))
+
     return {
         "markdown_report_path": str(report_path),
         "compare_contract_path": str(compare_contract_path),
+        "category_comparison_path": str(category_comparison_path) if category_comparison_path else None,
     }
 
 
 def build_compare_module_contract(
     project: ParsedProjectMetadata,
     area_estimate: AreaEstimateResult,
+    category_comparison: CategoryComparisonResult | None = None,
 ) -> dict:
     return {
         "project_id": project.project_id,
@@ -62,6 +76,7 @@ def build_compare_module_contract(
         "compare_module_display": area_estimate.compare_module_display.model_dump(mode="json"),
         "green_area_percentage": area_estimate.green_area_percentage.model_dump(mode="json"),
         "open_area_percentage": area_estimate.open_area_percentage.model_dump(mode="json"),
+        "category_comparison": category_comparison.model_dump(mode="json") if category_comparison else None,
         "confidence": area_estimate.confidence.model_dump(mode="json"),
         "guardrails": area_estimate.guardrails.model_dump(mode="json"),
         "warnings": area_estimate.warnings,
@@ -82,6 +97,7 @@ def build_markdown_report(
     vision: VisionAnalysisResult,
     segmentation: SegmentationResult,
     area_estimate: AreaEstimateResult,
+    category_comparison: CategoryComparisonResult | None = None,
 ) -> str:
     confidence_reasons = "\n".join(
         f"- {reason}" for reason in area_estimate.confidence.reasons
@@ -109,6 +125,8 @@ def build_markdown_report(
         if area_estimate.guardrails.adjustments
         else "- None"
     )
+
+    category_section = build_category_markdown_section(category_comparison)
 
     return f"""# Green/Open Area Estimate Report
 
@@ -145,6 +163,8 @@ def build_markdown_report(
 | Open Area Value | {area_estimate.compare_module_display.open_area_value} |
 | Confidence Label | {area_estimate.compare_module_display.confidence_label} |
 | Tooltip | {area_estimate.compare_module_display.tooltip} |
+
+{category_section}
 
 ## 4. Image Metadata
 
@@ -199,4 +219,47 @@ def build_markdown_report(
 - OpenCV segmentation is treated as visual evidence, not a standalone source of truth.
 - OpenAI Vision qualitative output is used to adjust the range and confidence.
 - The output is designed for internal review and compare-module consumption.
+"""
+
+
+def build_category_markdown_section(
+    category_comparison: CategoryComparisonResult | None,
+) -> str:
+    if not category_comparison:
+        return ""
+
+    rows = "\n".join(
+        "| {category} | {score} | {rating} | {confidence} | {one_liner} | {details} | {risks} |".format(
+            category=item.category_label,
+            score=item.score,
+            rating=item.rating,
+            confidence=item.confidence_label,
+            one_liner=item.one_liner.replace("|", "/"),
+            details=", ".join(item.extracted_master_plan_details[:5]).replace("|", "/") or "-",
+            risks=", ".join(item.risk_signals[:3]).replace("|", "/") or "-",
+        )
+        for item in category_comparison.category_scores
+    )
+
+    overall = category_comparison.overall_master_plan_summary
+
+    return f"""## Master Plan Category Insights
+
+### Overall Master Plan Summary
+
+| Field | Value |
+|---|---|
+| Overall Score | {overall.score} |
+| Rating | {overall.rating} |
+| Confidence | {overall.confidence_label} |
+| One-Liner | {overall.one_liner} |
+| Summary | {overall.detailed_summary} |
+| Strongest Categories | {", ".join(overall.strongest_categories)} |
+| Watchouts | {", ".join(overall.watchouts) if overall.watchouts else "-"} |
+
+### Category-Level Insights
+
+| Category | Score | Rating | Confidence | One-Liner | Key Details | Risk Signals |
+|---|---:|---|---|---|---|---|
+{rows}
 """
