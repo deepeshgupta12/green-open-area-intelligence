@@ -30,7 +30,7 @@ def build_master_plan_comparison_report(
     comparison: MasterPlanComparisonResult,
 ) -> str:
     project_rows = "\n".join(
-        f"| {item.project_slot} | {item.project_name or '-'} | {item.green_area_display or '-'} | {item.open_area_display or '-'} | {item.overall_category_score or '-'} | {item.overall_category_rating or '-'} |"
+        f"| {item.project_slot} | {item.project_name or '-'} | {item.green_area_display or '-'} | {item.open_area_display or '-'} | {item.frontend_score_label or item.overall_category_rating or '-'} |"
         for item in comparison.projects
     )
 
@@ -40,7 +40,7 @@ def build_master_plan_comparison_report(
     )
 
     winner_rows = "\n".join(
-        f"| {item.category_label} | {item.winner_project_name or '-'} | {item.winner_score} | {item.winner_reason} |"
+        f"| {item.category_label} | {item.category_status} | {item.winner_project_name if item.show_winner_badge else 'No Clear Winner'} | {item.winner_reason} |"
         for item in comparison.category_winners
     )
 
@@ -56,7 +56,7 @@ def build_master_plan_comparison_report(
 | Field | Value |
 |---|---|
 | Winner | {comparison.overall_recommendation.winner_project_name or '-'} |
-| Score | {comparison.overall_recommendation.score} |
+| Frontend Score Label | {comparison.overall_recommendation.frontend_score_label or comparison.overall_recommendation.rating} |
 | Rating | {comparison.overall_recommendation.rating} |
 | Headline | {comparison.overall_recommendation.frontend_headline} |
 | Summary | {comparison.overall_recommendation.frontend_summary} |
@@ -75,14 +75,14 @@ def build_master_plan_comparison_report(
 
 ## Compared Projects
 
-| Slot | Project | Green Area | Open Area | Overall Score | Rating |
-|---|---|---|---|---:|---|
+| Slot | Project | Green Area | Open Area | Overall Rating/Band |
+|---|---|---|---|---|
 {project_rows}
 
 ## Frontend Category Winners
 
-| Category | Winner | Winner Score | Frontend Reason |
-|---|---|---:|---|
+| Category | Status | Winner Display | Frontend Reason |
+|---|---|---|---|
 {winner_rows}
 
 ## Frontend Category Comparison Matrix

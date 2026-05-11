@@ -12,14 +12,20 @@ class ComparedProjectSummary(BaseModel):
     confidence_label: str | None = None
     overall_category_score: int | None = None
     overall_category_rating: str | None = None
+    frontend_score_label: str | None = None
 
 
 class ProjectCategoryComparison(BaseModel):
     project_slot: str
     project_id: str
     project_name: str | None = None
+
+    # Exact score is retained for internal/debug use and API auditability.
     score: int
     rating: str
+    score_band: str | None = None
+    frontend_score_label: str | None = None
+
     confidence_label: str
     user_facing_one_liner: str
     best_details: list[str] = Field(default_factory=list)
@@ -61,7 +67,11 @@ class CategoryComparisonMatrixRow(BaseModel):
     confidence_badge: str = "Medium"
     show_as_decisive: bool = True
     show_as_close_call: bool = False
+    show_as_weak: bool = False
     show_as_insufficient: bool = False
+    show_winner_badge: bool = True
+    winner_badge_label: str = "Winner"
+
     declared_evidence: list[str] = Field(default_factory=list)
     visible_evidence: list[str] = Field(default_factory=list)
     spatial_evidence: list[str] = Field(default_factory=list)
@@ -77,6 +87,8 @@ class CategoryWinner(BaseModel):
     winner_project_name: str | None = None
     winner_score: int
     winner_reason: str
+    category_status: str = "Clear Winner"
+    show_winner_badge: bool = True
 
 
 class OverallMasterPlanRecommendation(BaseModel):
@@ -85,6 +97,7 @@ class OverallMasterPlanRecommendation(BaseModel):
     winner_project_name: str | None = None
     score: int
     rating: str
+    frontend_score_label: str | None = None
 
     one_liner: str
     detailed_reason: str

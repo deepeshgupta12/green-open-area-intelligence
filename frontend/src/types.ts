@@ -9,6 +9,7 @@ export type ComparedProjectSummary = {
   confidence_label?: string;
   overall_category_score?: number;
   overall_category_rating?: string;
+  frontend_score_label?: string;
 };
 
 export type ProjectCategoryComparison = {
@@ -17,6 +18,8 @@ export type ProjectCategoryComparison = {
   project_name?: string;
   score: number;
   rating: string;
+  score_band?: string;
+  frontend_score_label?: string;
   confidence_label: string;
   user_facing_one_liner: string;
   best_details: string[];
@@ -40,7 +43,10 @@ export type CategoryComparisonMatrixRow = {
   confidence_badge: string;
   show_as_decisive: boolean;
   show_as_close_call: boolean;
+  show_as_weak?: boolean;
   show_as_insufficient: boolean;
+  show_winner_badge?: boolean;
+  winner_badge_label?: string;
   declared_evidence: string[];
   visible_evidence: string[];
   spatial_evidence: string[];
@@ -64,6 +70,8 @@ export type CategoryWinner = {
   winner_project_name?: string;
   winner_score: number;
   winner_reason: string;
+  category_status?: string;
+  show_winner_badge?: boolean;
 };
 
 export type InternalEvidenceQuality = {
@@ -95,6 +103,7 @@ export type MasterPlanComparisonResponse = {
     winner_project_name?: string;
     score: number;
     rating: string;
+    frontend_score_label?: string;
     one_liner: string;
     detailed_reason: string;
     frontend_headline: string;

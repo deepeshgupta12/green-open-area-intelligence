@@ -88,6 +88,16 @@ def build_master_plan_narrative_prompt(
                     }
                     for item in row.project_scores
                 ],
+                "category_status": row.category_status,
+                "evidence_strength": row.evidence_strength,
+                "confidence_badge": row.confidence_badge,
+                "show_as_insufficient": row.show_as_insufficient,
+                "show_as_close_call": row.show_as_close_call,
+                "show_as_weak": row.show_as_weak,
+                "show_as_decisive": row.show_as_decisive,
+                "declared_evidence": row.declared_evidence,
+                "visible_evidence": row.visible_evidence,
+                "spatial_evidence": row.spatial_evidence,
                 "internal_scoring": row.internal_scoring.model_dump(mode="json"),
             }
             for row in comparison.category_comparison_matrix
@@ -110,6 +120,13 @@ Your job:
 - Avoid generic phrases like "strong planning", "multiple signals", "available evidence", "model read", "category dimensions".
 - Mention that values are directional only in the tradeoff/caution, not in every reason.
 - Keep the tone professional and clear.
+- Follow category_status strictly:
+  * Clear Winner: you may use "leads", "best", or "stronger" only when evidence supports it.
+  * Close Call: never use "superior", "excels", "clear", "strongest", or "best". Use "marginally ahead", "slightly ahead", or "close alternative".
+  * Weak Differentiator: say it is a directional edge, not a major buying differentiator.
+  * Insufficient Evidence: do not declare a winner. Say "No clear winner can be established" and explain that the category should be treated as informational.
+- Do not use exact numeric scores in frontend copy.
+- Do not invent parks, zones, facilities, or sustainability features that are not present in the input facts.
 
 For each category, write:
 1. frontend_winner_reason: Why the winner is better in buyer-friendly terms.
@@ -199,9 +216,11 @@ def apply_narrative_to_comparison(
         row.frontend_tradeoff = category_copy.frontend_tradeoff
         row.frontend_category_summary = category_copy.frontend_category_summary
 
+        _apply_status_copy_guardrails(row)
+
         # Backward-compatible fields should also stay frontend-safe.
-        row.winner_reason = category_copy.frontend_winner_reason
-        row.tradeoff = category_copy.frontend_tradeoff
+        row.winner_reason = row.frontend_winner_reason
+        row.tradeoff = row.frontend_tradeoff
 
     comparison.overall_recommendation.frontend_headline = narrative.overall_copy.frontend_headline
     comparison.overall_recommendation.frontend_summary = narrative.overall_copy.frontend_summary
@@ -228,10 +247,97 @@ def apply_narrative_to_comparison(
         if row:
             winner.winner_reason = row.frontend_winner_reason
 
+    _enforce_summary_guardrails(comparison)
     _validate_no_banned_frontend_terms(comparison)
 
     return comparison
 
+
+
+def _apply_status_copy_guardrails(row) -> None:
+    label = row.category_label.lower()
+    project_name = row.winner_project_name or "the leading project"
+    evidence = _join_for_copy((row.visible_evidence + row.declared_evidence)[:3])
+
+    if row.category_status == "Insufficient Evidence":
+        row.frontend_winner_reason = (
+            f"No clear winner can be established for {label}; the available plan details are not strong enough to rank the projects confidently."
+        )
+        row.frontend_tradeoff = (
+            "Use this category as informational only until clearer layout or official project evidence is available."
+        )
+        row.frontend_category_summary = (
+            f"{row.category_label} should not be treated as a decisive comparison factor in this run."
+        )
+        row.show_winner_badge = False
+        row.winner_badge_label = "No Clear Winner"
+        return
+
+    if row.category_status == "Close Call":
+        row.frontend_winner_reason = (
+            f"{project_name} is marginally ahead for {label}"
+            + (f", mainly due to {evidence}" if evidence else "")
+            + "; the nearest alternative should still be treated as comparable."
+        )
+        row.frontend_tradeoff = (
+            "The difference is small, so show this as a close call rather than a decisive win."
+        )
+        row.frontend_category_summary = (
+            f"{row.category_label} is useful context, but buyers should not over-index on this category alone."
+        )
+        return
+
+    if row.category_status == "Weak Differentiator":
+        row.frontend_winner_reason = (
+            f"{project_name} has a directional edge for {label}"
+            + (f" through {evidence}" if evidence else "")
+            + ", but it is not strong enough to be a major buying differentiator."
+        )
+        row.frontend_tradeoff = (
+            "Use this as a supporting signal, not as a primary reason to prefer one project over another."
+        )
+        row.frontend_category_summary = (
+            f"{row.category_label} provides some differentiation, but the evidence is moderate."
+        )
+
+
+def _enforce_summary_guardrails(comparison: MasterPlanComparisonResult) -> None:
+    rows_by_key = {row.category_key: row for row in comparison.category_comparison_matrix}
+
+    def safe_best_for(category_key: str, fallback: str | None) -> str | None:
+        row = rows_by_key.get(category_key)
+        if not row or row.show_as_insufficient:
+            return None
+        project_name = row.winner_project_name or f"Project {row.winner_project_slot}"
+        if row.show_as_close_call:
+            return f"{project_name} is marginally ahead for {row.category_label.lower()}."
+        if row.show_as_weak:
+            return f"{project_name} has a directional edge for {row.category_label.lower()}."
+        return fallback
+
+    comparison.user_friendly_summary.best_for_green_living = safe_best_for(
+        "green_landscape", comparison.user_friendly_summary.best_for_green_living
+    )
+    comparison.user_friendly_summary.best_for_amenities = safe_best_for(
+        "amenity_richness", comparison.user_friendly_summary.best_for_amenities
+    )
+    comparison.user_friendly_summary.best_for_family_living = safe_best_for(
+        "family_community", comparison.user_friendly_summary.best_for_family_living
+    )
+    comparison.user_friendly_summary.best_for_access = safe_best_for(
+        "access_circulation", comparison.user_friendly_summary.best_for_access
+    )
+
+
+def _join_for_copy(values: list[str]) -> str:
+    cleaned = [str(value).strip() for value in values if str(value).strip()]
+    if not cleaned:
+        return ""
+    if len(cleaned) == 1:
+        return cleaned[0]
+    if len(cleaned) == 2:
+        return f"{cleaned[0]} and {cleaned[1]}"
+    return f"{', '.join(cleaned[:-1])} and {cleaned[-1]}"
 
 def _clean_optional_copy(value: str | None) -> str | None:
     if value is None:

@@ -544,3 +544,75 @@ input {
   font-size: 12px;
   font-weight: 700;
 }
+
+/* Step 24: evidence hygiene and score-display hardening */
+.category-card.is-close-call {
+  border-color: rgba(98, 91, 204, 0.2);
+}
+
+.category-card.is-weak-differentiator {
+  border-color: rgba(182, 127, 34, 0.28);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.category-card.is-insufficient {
+  border-color: rgba(90, 90, 90, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.category-card.is-insufficient .winner-reason,
+.category-card.is-insufficient .score-strip {
+  opacity: 0.82;
+}
+
+.no-winner-badge {
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #eeeeee;
+  color: #555;
+}
+
+.project-score.is-close-winner {
+  background: #f1efff;
+  outline: 2px solid rgba(98, 91, 204, 0.18);
+}
+
+.project-score.is-weak-winner {
+  background: #fff6e3;
+  outline: 2px solid rgba(182, 127, 34, 0.18);
+}
+
+.project-score.is-muted {
+  background: #f4f4f2;
+  opacity: 0.78;
+}
+
+.project-score strong {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.internal-score-table {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.internal-score-row {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(5, minmax(80px, 1fr));
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f6f8f4;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .internal-score-row {
+    grid-template-columns: 1fr;
+  }
+}

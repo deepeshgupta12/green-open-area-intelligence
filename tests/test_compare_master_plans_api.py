@@ -122,8 +122,30 @@ def test_compare_master_plans_api(monkeypatch):
         assert_frontend_clean(row["frontend_tradeoff"])
         assert_frontend_clean(row["frontend_category_summary"])
 
+        forbidden_chips = {"green", "open", "landscape", "road", "pathway", "tree", "pool", "leisure"}
+        all_frontend_chips = row["visible_evidence"] + row["declared_evidence"]
+        for chip in all_frontend_chips:
+            assert chip.strip().lower() not in forbidden_chips
+            if row["category_key"] == "green_landscape":
+                assert "sewage" not in chip.lower()
+                assert "treated water" not in chip.lower()
+                assert "rain" not in chip.lower()
+            if row["category_key"] == "access_circulation":
+                allowed = ["driveway", "entry", "drop", "internal road", "vehicular", "pedestrian", "access", "frontage", "gate", "ramp"]
+                assert any(token in chip.lower() for token in allowed)
+
+        if row["show_as_insufficient"]:
+            assert row["show_winner_badge"] is False
+            assert "no clear winner" in row["frontend_winner_reason"].lower()
+        if row["show_as_close_call"]:
+            assert "marginally" in row["frontend_winner_reason"].lower() or "close" in row["frontend_winner_reason"].lower()
+        if row.get("show_as_weak"):
+            assert "not a major" in row["frontend_winner_reason"].lower() or "directional" in row["frontend_winner_reason"].lower()
+
         for project_score in row["project_scores"]:
             assert project_score["user_facing_one_liner"]
             assert project_score["score"] >= 0
             assert project_score["score"] <= 100
+            assert project_score["score_band"]
+            assert project_score["frontend_score_label"]
             assert_frontend_clean(project_score["user_facing_one_liner"])
