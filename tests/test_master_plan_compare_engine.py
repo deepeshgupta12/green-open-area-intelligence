@@ -63,6 +63,15 @@ def build_mock_vision(project_id="342956", project_name="Birla Taranya"):
                     "likely_counts_toward_open_area": True,
                     "likely_counts_as_building_footprint": False,
                 },
+                {
+                    "component_type": "road_driveway",
+                    "label": "Main driveway",
+                    "visual_description": "Internal driveway and access movement.",
+                    "confidence": "High",
+                    "likely_counts_toward_green_area": False,
+                    "likely_counts_toward_open_area": True,
+                    "likely_counts_as_building_footprint": False,
+                },
             ],
             "green_area_visual_estimate": {
                 "qualitative_estimate": "High",
@@ -77,7 +86,7 @@ def build_mock_vision(project_id="342956", project_name="Birla Taranya"):
                 "reasoning": "Building footprint is visible but not dominant.",
             },
             "visible_green_area_indicators": ["landscape"],
-            "visible_open_area_indicators": ["roads", "paved zones"],
+            "visible_open_area_indicators": ["roads", "paved zones", "main driveway"],
             "visible_built_area_indicators": ["tower footprint"],
             "warnings": ["Image may be stylized and not to scale."],
             "model_notes": ["Qualitative estimate only."],
@@ -89,13 +98,19 @@ def build_single_project_bundle():
     project = parse_datacenter_json_file("data/input/342956.json")
     image_metadata = preprocess_master_plan_image(str(find_master_plan_image()))
     vision = build_mock_vision(project.project_id, project.project_name)
-    segmentation = run_opencv_segmentation(image_metadata=image_metadata, project_id=project.project_id)
+
+    segmentation = run_opencv_segmentation(
+        image_metadata=image_metadata,
+        project_id=project.project_id,
+    )
+
     area = build_area_estimate(
         project=project,
         image_metadata=image_metadata,
         vision=vision,
         segmentation=segmentation,
     )
+
     category = build_category_comparison(
         project=project,
         image_metadata=image_metadata,
@@ -103,6 +118,7 @@ def build_single_project_bundle():
         segmentation=segmentation,
         area_estimate=area,
     )
+
     return project, area, category
 
 
@@ -152,8 +168,18 @@ def test_master_plan_compare_engine_builds_three_project_comparison():
         assert row.frontend_category_summary
         assert row.internal_scoring
 
-        assert row.category_status in {"Clear Winner", "Close Call", "Weak Differentiator", "Insufficient Evidence"}
-        assert row.evidence_strength in {"Strong", "Moderate", "Weak", "Insufficient"}
+        assert row.category_status in {
+            "Clear Winner",
+            "Close Call",
+            "Weak Differentiator",
+            "Insufficient Evidence",
+        }
+        assert row.evidence_strength in {
+            "Strong",
+            "Moderate",
+            "Weak",
+            "Insufficient",
+        }
         assert isinstance(row.show_as_decisive, bool)
         assert isinstance(row.show_as_close_call, bool)
         assert isinstance(row.show_as_insufficient, bool)
@@ -164,26 +190,61 @@ def test_master_plan_compare_engine_builds_three_project_comparison():
         assert_frontend_clean(row.frontend_tradeoff)
         assert_frontend_clean(row.frontend_category_summary)
 
-        forbidden_chips = {"green", "open", "landscape", "road", "pathway", "tree", "pool", "leisure"}
+        forbidden_chips = {
+            "green",
+            "open",
+            "landscape",
+            "road",
+            "pathway",
+            "tree",
+            "pool",
+            "leisure",
+        }
+
         all_frontend_chips = row.visible_evidence + row.declared_evidence
+
         for chip in all_frontend_chips:
             assert chip.strip().lower() not in forbidden_chips
+
             if row.category_key == "green_landscape":
                 assert "sewage" not in chip.lower()
                 assert "treated water" not in chip.lower()
                 assert "rain" not in chip.lower()
+
             if row.category_key == "access_circulation":
-                allowed = ["driveway", "entry", "drop", "internal road", "vehicular", "pedestrian", "access", "frontage", "gate", "ramp"]
+                allowed = [
+                    "driveway",
+                    "entry",
+                    "drop",
+                    "internal road",
+                    "vehicular",
+                    "pedestrian",
+                    "access",
+                    "frontage",
+                    "gate",
+                    "ramp",
+                    "circulation",
+                    "parking",
+                    "movement",
+                ]
                 assert any(token in chip.lower() for token in allowed)
 
         if row.show_as_insufficient:
             assert row.show_winner_badge is False
             assert "no clear winner" in row.frontend_winner_reason.lower()
+
         if row.show_as_close_call:
-            assert "marginally" in row.frontend_winner_reason.lower() or "close" in row.frontend_winner_reason.lower()
+            assert (
+                "marginally" in row.frontend_winner_reason.lower()
+                or "close" in row.frontend_winner_reason.lower()
+            )
+
         if row.show_as_weak:
             assert row.winner_badge_label == "Relative Edge"
-            assert "not a major" in row.frontend_winner_reason.lower() or "directional" in row.frontend_winner_reason.lower()
+            assert (
+                "not a major" in row.frontend_winner_reason.lower()
+                or "directional" in row.frontend_winner_reason.lower()
+            )
 
         if row.show_as_decisive and row.internal_scoring.score_gap >= 8:
             assert "gap is narrow" not in row.frontend_tradeoff.lower()
@@ -203,5 +264,23 @@ def test_master_plan_compare_engine_builds_three_project_comparison():
 
         for project_score in row.project_scores:
             assert_frontend_clean(project_score.user_facing_one_liner)
-            assert project_score.score_band in {"85–100", "70–84", "55–69", "Below 55"}
+            assert project_score.score_band in {
+                "85–100",
+                "70–84",
+                "55–69",
+                "Below 55",
+            }
             assert project_score.frontend_score_label
+
+    access_row = next(
+        row for row in result.category_comparison_matrix
+        if row.category_key == "access_circulation"
+    )
+
+    assert access_row.category_status != "Insufficient Evidence"
+    assert access_row.show_as_close_call is True or access_row.show_as_weak is True
+    assert (
+        access_row.declared_evidence
+        or access_row.visible_evidence
+        or access_row.spatial_evidence
+    )

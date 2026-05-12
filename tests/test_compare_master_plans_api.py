@@ -110,8 +110,18 @@ def test_compare_master_plans_api(monkeypatch):
         assert row["frontend_tradeoff"]
         assert row["frontend_category_summary"]
 
-        assert row["category_status"] in {"Clear Winner", "Close Call", "Weak Differentiator", "Insufficient Evidence"}
-        assert row["evidence_strength"] in {"Strong", "Moderate", "Weak", "Insufficient"}
+        assert row["category_status"] in {
+            "Clear Winner",
+            "Close Call",
+            "Weak Differentiator",
+            "Insufficient Evidence",
+        }
+        assert row["evidence_strength"] in {
+            "Strong",
+            "Moderate",
+            "Weak",
+            "Insufficient",
+        }
         assert isinstance(row["show_as_decisive"], bool)
         assert isinstance(row["show_as_close_call"], bool)
         assert isinstance(row["show_as_insufficient"], bool)
@@ -122,26 +132,61 @@ def test_compare_master_plans_api(monkeypatch):
         assert_frontend_clean(row["frontend_tradeoff"])
         assert_frontend_clean(row["frontend_category_summary"])
 
-        forbidden_chips = {"green", "open", "landscape", "road", "pathway", "tree", "pool", "leisure"}
+        forbidden_chips = {
+            "green",
+            "open",
+            "landscape",
+            "road",
+            "pathway",
+            "tree",
+            "pool",
+            "leisure",
+        }
+
         all_frontend_chips = row["visible_evidence"] + row["declared_evidence"]
+
         for chip in all_frontend_chips:
             assert chip.strip().lower() not in forbidden_chips
+
             if row["category_key"] == "green_landscape":
                 assert "sewage" not in chip.lower()
                 assert "treated water" not in chip.lower()
                 assert "rain" not in chip.lower()
+
             if row["category_key"] == "access_circulation":
-                allowed = ["driveway", "entry", "drop", "internal road", "vehicular", "pedestrian", "access", "frontage", "gate", "ramp", "circulation", "parking", "movement"]
+                allowed = [
+                    "driveway",
+                    "entry",
+                    "drop",
+                    "internal road",
+                    "vehicular",
+                    "pedestrian",
+                    "access",
+                    "frontage",
+                    "gate",
+                    "ramp",
+                    "circulation",
+                    "parking",
+                    "movement",
+                ]
                 assert any(token in chip.lower() for token in allowed)
 
         if row["show_as_insufficient"]:
             assert row["show_winner_badge"] is False
             assert "no clear winner" in row["frontend_winner_reason"].lower()
+
         if row["show_as_close_call"]:
-            assert "marginally" in row["frontend_winner_reason"].lower() or "close" in row["frontend_winner_reason"].lower()
+            assert (
+                "marginally" in row["frontend_winner_reason"].lower()
+                or "close" in row["frontend_winner_reason"].lower()
+            )
+
         if row.get("show_as_weak"):
             assert row["winner_badge_label"] == "Relative Edge"
-            assert "not a major" in row["frontend_winner_reason"].lower() or "directional" in row["frontend_winner_reason"].lower()
+            assert (
+                "not a major" in row["frontend_winner_reason"].lower()
+                or "directional" in row["frontend_winner_reason"].lower()
+            )
 
         if row["show_as_decisive"] and row["internal_scoring"]["score_gap"] >= 8:
             assert "gap is narrow" not in row["frontend_tradeoff"].lower()
@@ -153,7 +198,11 @@ def test_compare_master_plans_api(monkeypatch):
         assert "both projects" not in row["frontend_category_summary"].lower()
 
         if row["category_key"] == "water_leisure":
-            all_chips = row["visible_evidence"] + row["declared_evidence"] + row["spatial_evidence"]
+            all_chips = (
+                row["visible_evidence"]
+                + row["declared_evidence"]
+                + row["spatial_evidence"]
+            )
             for chip in all_chips:
                 assert "treated water" not in chip.lower()
                 assert "sewage" not in chip.lower()
@@ -163,6 +212,24 @@ def test_compare_master_plans_api(monkeypatch):
             assert project_score["user_facing_one_liner"]
             assert project_score["score"] >= 0
             assert project_score["score"] <= 100
-            assert project_score["score_band"] in {"85–100", "70–84", "55–69", "Below 55"}
+            assert project_score["score_band"] in {
+                "85–100",
+                "70–84",
+                "55–69",
+                "Below 55",
+            }
             assert project_score["frontend_score_label"]
             assert_frontend_clean(project_score["user_facing_one_liner"])
+
+    access_row = next(
+        row for row in payload["category_comparison_matrix"]
+        if row["category_key"] == "access_circulation"
+    )
+
+    assert access_row["category_status"] != "Insufficient Evidence"
+    assert access_row["show_as_close_call"] is True or access_row["show_as_weak"] is True
+    assert (
+        access_row["declared_evidence"]
+        or access_row["visible_evidence"]
+        or access_row["spatial_evidence"]
+    )

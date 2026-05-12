@@ -423,22 +423,55 @@ def _water_leisure_insight(context: dict) -> CategoryInsight:
 
 def _access_circulation_insight(context: dict) -> CategoryInsight:
     keywords = [
-        "Thane-Belapur Road",
         "direct frontage",
+        "frontage",
+        "direct access",
+        "access road",
+        "approach road",
         "main driveway",
+        "internal driveway",
+        "driveway",
         "drop-off zones",
+        "drop-off",
+        "drop off",
         "school bus bay",
         "entry points",
+        "entry point",
+        "entry / exit",
+        "entry/exit",
+        "entry",
+        "entrance",
+        "exit",
+        "security gate",
+        "gate",
         "pedestrian",
         "vehicular traffic",
+        "vehicular",
         "Internal road networks",
+        "internal road",
+        "road network",
         "Driveway and roads",
+        "parking",
+        "podium parking",
+        "ramp",
+        "circulation",
+        "internal circulation",
+        "movement",
+        "internal movement",
     ]
     details = _extract_exact_or_text_details(context, keywords)
 
     score = 45 + min(len(details) * 6, 42)
+
     if "road_driveway" in context["detected_component_types"]:
         score += 8
+
+    if len(details) >= 3:
+        score = max(score, 62)
+
+    if len(details) >= 5:
+        score = max(score, 68)
+
     score = _cap(score)
 
     return _category(

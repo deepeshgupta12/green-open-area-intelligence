@@ -57,20 +57,25 @@ STATUS_INSUFFICIENT = "Insufficient Evidence"
 ACCESS_FRONTEND_ALLOWED_TOKENS = [
     "driveway",
     "entry",
+    "entry / exit",
+    "entrance",
+    "exit",
     "drop",
     "drop-off",
     "drop off",
     "internal road",
+    "road network",
     "vehicular",
     "pedestrian",
     "access",
     "frontage",
     "gate",
+    "security gate",
     "ramp",
     "circulation",
     "parking",
-    "movement",
     "podium parking",
+    "movement",
 ]
 
 ACCESS_FRONTEND_BLOCKED_TOKENS = [
@@ -197,10 +202,12 @@ def _sanitize_access_circulation_evidence(row) -> None:
         item for item in getattr(row, "visible_evidence", [])
         if is_allowed(item)
     ]
+
     row.declared_evidence = [
         item for item in getattr(row, "declared_evidence", [])
         if is_allowed(item)
     ]
+
     row.spatial_evidence = [
         item for item in getattr(row, "spatial_evidence", [])
         if is_allowed(item)
@@ -211,6 +218,21 @@ def _sanitize_access_circulation_evidence(row) -> None:
             item for item in getattr(score, "best_details", [])
             if is_allowed(item)
         ]
+
+    access_evidence_count = (
+        len(row.visible_evidence)
+        + len(row.declared_evidence)
+        + len(row.spatial_evidence)
+    )
+
+    if access_evidence_count >= 2 and row.show_as_insufficient:
+        row.category_status = STATUS_CLOSE
+        row.show_as_decisive = False
+        row.show_as_close_call = True
+        row.show_as_weak = False
+        row.show_as_insufficient = False
+        row.show_winner_badge = False
+        row.winner_badge_label = "No Clear Winner"
 
 def _sanitize_row_copy(row) -> None:
     row.frontend_winner_reason = _sanitize_text(row.frontend_winner_reason)

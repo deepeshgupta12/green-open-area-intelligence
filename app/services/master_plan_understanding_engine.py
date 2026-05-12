@@ -431,10 +431,14 @@ def _build_category_evidence(
 
 def _extract_access_entities_from_project(project: ParsedProjectMetadata) -> list[str]:
     texts = []
+
     if project.master_plan:
         texts.append(_strip_html(project.master_plan.description_html or ""))
         texts.append(project.master_plan.name or "")
+        texts.append(project.master_plan.alt_tag or "")
+
     texts.extend(project.open_space_signals)
+    texts.extend([item.text for item in project.wow_factors])
 
     combined = " ".join(texts).lower()
     entities: list[str] = []
@@ -443,23 +447,38 @@ def _extract_access_entities_from_project(project: ParsedProjectMetadata) -> lis
         "direct frontage": "Direct frontage",
         "frontage": "Frontage",
         "direct access": "Direct access",
+        "access road": "Access road",
+        "approach road": "Approach road",
         "internal road": "Internal road network",
+        "road network": "Internal road network",
         "road networks": "Internal road network",
         "main driveway": "Main driveway",
         "internal driveway": "Internal driveway",
         "driveway": "Driveway",
+        "driveway and podium parking": "Driveway and Podium Parking",
+        "podium parking": "Podium Parking",
+        "parking access": "Parking access",
+        "parking": "Parking access",
         "drop-off": "Drop-off zone",
         "drop off": "Drop-off zone",
+        "entry / exit": "Entry / Exit",
+        "entry/exit": "Entry / Exit",
         "entry point": "Entry point",
         "entry points": "Entry points",
+        "entry": "Entry",
         "entrance": "Entrance",
+        "exit": "Exit",
+        "security gate": "Security Gate",
+        "gate": "Gate",
         "vehicular": "Vehicular access",
         "pedestrian": "Pedestrian access",
         "school bus bay": "School bus bay",
-        "parking": "Parking access",
         "ramp": "Ramp",
         "movement": "Internal movement",
         "circulation": "Internal circulation",
+        "pickup": "Pickup/drop-off access",
+        "pickups": "Pickup/drop-off access",
+        "drop-offs": "Drop-off zone",
     }
 
     for needle, label in phrase_map.items():
