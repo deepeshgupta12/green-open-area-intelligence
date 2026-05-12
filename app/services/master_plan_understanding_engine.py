@@ -5,7 +5,7 @@ import re
 from html import unescape
 from pathlib import Path
 
-from openai import OpenAI
+from google import genai
 
 from app.config import get_settings
 from app.schemas.image_schema import ImageMetadata
@@ -20,7 +20,7 @@ from app.schemas.master_plan_understanding_schema import (
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.vision_schema import VisionAnalysisResult
 from app.services.master_plan_preprocessor import create_master_plan_preprocessing_artifacts
-from app.utils.openai_utils import encode_image_to_data_url, extract_json_from_text
+from app.utils.llm_utils import extract_json_from_text, load_image_part_for_gemini
 
 
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
@@ -73,7 +73,7 @@ def extract_master_plan_understanding(
     image_metadata: ImageMetadata,
     vision: VisionAnalysisResult | None = None,
     output_dir: Path | None = None,
-    use_openai: bool = True,
+    use_gemini: bool = True,
 ) -> MasterPlanUnderstandingResult:
     artifacts = create_master_plan_preprocessing_artifacts(
         image_metadata=image_metadata,
@@ -89,22 +89,22 @@ def extract_master_plan_understanding(
     )
 
     settings = get_settings()
-    if not use_openai or not settings.openai_api_key:
+    if not use_gemini or not settings.gemini_api_key:
         deterministic.internal_processing_notes.append(
-            "OpenAI structure extraction skipped; deterministic Datacenter/vision fallback used."
+            "Gemini structure extraction skipped; deterministic Datacenter/vision fallback used."
         )
         return deterministic
 
     try:
-        openai_result = _extract_with_openai(
+        gemini_result = _extract_with_gemini(
             project=project,
             deterministic=deterministic,
             artifacts=artifacts,
         )
-        return _merge_understanding(deterministic, openai_result)
+        return _merge_understanding(deterministic, gemini_result)
     except Exception as exc:
         deterministic.technical_warnings.append(
-            f"OpenAI structure extraction failed; deterministic fallback used: {exc}"
+            f"Gemini structure extraction failed; deterministic fallback used: {exc}"
         )
         return deterministic
 
@@ -155,45 +155,45 @@ def _build_deterministic_understanding(
     )
 
 
-def _extract_with_openai(
+def _extract_with_gemini(
     project: ParsedProjectMetadata,
     deterministic: MasterPlanUnderstandingResult,
     artifacts: list[MasterPlanPreprocessingArtifact],
 ) -> MasterPlanUnderstandingResult:
     settings = get_settings()
-    client = OpenAI(api_key=settings.openai_api_key)
+
+    if not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY is missing. Cannot run Gemini structure extraction.")
+
+    client = genai.Client(api_key=settings.gemini_api_key)
 
     plan_crop = next((item.path for item in artifacts if item.artifact_type == "plan_region_crop"), None)
     legend_crop = next((item.path for item in artifacts if item.artifact_type == "legend_region_crop"), None)
-    content = [
-        {
-            "type": "text",
-            "text": _build_structure_prompt(project, deterministic),
-        }
+
+    contents = [
+        (
+            "You extract structured master-plan entities from real-estate layout images. "
+            "Return only JSON. Never invent exact measurements.\n\n"
+            + _build_structure_prompt(project, deterministic)
+        )
     ]
     if plan_crop:
-        content.append({"type": "image_url", "image_url": {"url": encode_image_to_data_url(plan_crop)}})
+        contents.append(load_image_part_for_gemini(plan_crop))
     if legend_crop:
-        content.append({"type": "image_url", "image_url": {"url": encode_image_to_data_url(legend_crop)}})
+        contents.append(load_image_part_for_gemini(legend_crop))
 
-    response = client.chat.completions.create(
-        model=settings.openai_vision_model,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You extract structured master-plan entities from real-estate layout images. "
-                    "Return only JSON. Never invent exact measurements."
-                ),
-            },
-            {"role": "user", "content": content},
-        ],
-        temperature=0.1,
+    response = client.models.generate_content(
+        model=settings.gemini_vision_model,
+        contents=contents,
+        config={
+            "temperature": 0.1,
+            "response_mime_type": "application/json",
+        },
     )
-    response_text = response.choices[0].message.content or "{}"
-    payload = extract_json_from_text(response_text)
-    return _parse_openai_understanding_payload(project, deterministic.preprocessing_artifacts, payload)
 
+    response_text = response.text or "{}"
+    payload = extract_json_from_text(response_text)
+    return _parse_gemini_understanding_payload(project, deterministic.preprocessing_artifacts, payload)
 
 def _build_structure_prompt(project: ParsedProjectMetadata, deterministic: MasterPlanUnderstandingResult) -> str:
     seed = {
@@ -229,7 +229,7 @@ Return JSON schema:
 """
 
 
-def _parse_openai_understanding_payload(
+def _parse_gemini_understanding_payload(
     project: ParsedProjectMetadata,
     artifacts: list[MasterPlanPreprocessingArtifact],
     payload: dict,
@@ -251,7 +251,7 @@ def _parse_openai_understanding_payload(
             zone_id=str(item.get("zone_id") or f"ai_zone_{idx+1}"),
             label=str(item.get("label") or "").strip(),
             zone_category=_normalize_category(item.get("zone_category")),
-            source=str(item.get("source") or "openai_vision"),
+            source=str(item.get("source") or "vision_model"),
             confidence_label=item.get("confidence_label") or "Medium",
             level=item.get("level"),
             buyer_relevance=item.get("buyer_relevance"),
@@ -284,7 +284,7 @@ def _parse_openai_understanding_payload(
         legend_items=legend_items,
         zones=zones,
         category_evidence=evidence,
-        internal_processing_notes=["OpenAI master-plan structure extraction completed."],
+        internal_processing_notes=["Gemini master-plan structure extraction completed."],
         technical_warnings=_clean_list(payload.get("technical_warnings", [])),
     )
 
@@ -383,7 +383,7 @@ def _build_zones(
                     zone_id=f"vision_{idx+1}",
                     label=component.label,
                     zone_category=category,
-                    source="openai_vision_component",
+                    source="vision_model_component",
                     confidence_label=component.confidence,
                     buyer_relevance=_buyer_relevance(category),
                 )
@@ -405,7 +405,7 @@ def _build_category_evidence(
         if category_key == "access_circulation":
             declared.extend(_extract_access_entities_from_project(project))
 
-        visible = [zone.label for zone in zones if zone.zone_category == category_key and zone.source.startswith("openai")]
+        visible = [zone.label for zone in zones if zone.zone_category == category_key and "vision" in zone.source.lower()]
         legend = [item.normalized_label for item in legend_items if item.inferred_category == category_key]
         total_count = len(set(declared + visible + legend))
         if total_count >= 6:

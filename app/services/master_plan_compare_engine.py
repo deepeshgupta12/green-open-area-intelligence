@@ -198,7 +198,7 @@ def build_master_plan_comparison(
         internal_evidence_quality=internal_evidence_quality,
         notes=[
             "This comparison is based on estimated master-plan interpretation and Datacenter signals, not official measurements.",
-            "OpenAI narrative generation may be used for frontend copy, but deterministic scoring decides winners.",
+            "LLM narrative generation may be used for frontend copy, but deterministic scoring decides winners.",
             "OpenCV and technical image-quality metrics are internal only and are not used as frontend copy.",
             "Category status controls whether the frontend should show a clear winner, close call, weak differentiator or insufficient evidence.",
             "Frontend cards should show rating/band labels; exact numeric scores are retained for internal QA only.",
@@ -494,7 +494,7 @@ def _build_internal_evidence_quality(bundles) -> InternalEvidenceQuality:
         project_evidence=project_evidence,
         global_notes=[
             "OpenCV output is retained only for internal diagnostics.",
-            "Frontend reasons are generated from deterministic winners, cleaned evidence entities and optional OpenAI narrative.",
+            "Frontend reasons are generated from deterministic winners, cleaned evidence entities and optional LLM narrative.",
             "Manual correction data can be used later to create labelled training examples.",
         ],
         manual_correction_available=True,

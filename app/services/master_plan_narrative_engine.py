@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from openai import OpenAI
+from google import genai
 
 from app.config import get_settings
 from app.schemas.master_plan_compare_schema import MasterPlanComparisonResult
@@ -11,7 +11,7 @@ from app.schemas.master_plan_narrative_schema import (
     MasterPlanNarrativeResult,
     OverallNarrativeCopy,
 )
-from app.utils.openai_utils import extract_json_from_text
+from app.utils.llm_utils import extract_json_from_text
 
 
 BANNED_FRONTEND_TERMS = [
@@ -29,37 +29,35 @@ BANNED_FRONTEND_TERMS = [
 ]
 
 
-def enhance_master_plan_comparison_with_openai(
+def enhance_master_plan_comparison_with_gemini(
     comparison: MasterPlanComparisonResult,
 ) -> MasterPlanComparisonResult:
     settings = get_settings()
 
-    if not settings.openai_api_key:
-        raise ValueError("OPENAI_API_KEY is missing. Cannot generate frontend narrative copy.")
+    if not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY is missing. Cannot generate frontend narrative copy.")
 
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = genai.Client(api_key=settings.gemini_api_key)
 
     prompt = build_master_plan_narrative_prompt(comparison)
 
-    response = client.chat.completions.create(
-        model=settings.openai_text_model,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a senior real-estate product copywriter. "
-                    "You write buyer-friendly, concise, evidence-backed frontend copy for property comparison modules."
-                ),
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            },
+    response = client.models.generate_content(
+        model=settings.gemini_text_model,
+        contents=[
+            (
+                "You are a senior real-estate product copywriter. "
+                "You write buyer-friendly, concise, evidence-backed frontend copy for property comparison modules. "
+                "Return only valid JSON.\n\n"
+                + prompt
+            )
         ],
-        temperature=0.25,
+        config={
+            "temperature": 0.25,
+            "response_mime_type": "application/json",
+        },
     )
 
-    response_text = response.choices[0].message.content or ""
+    response_text = response.text or ""
     payload = extract_json_from_text(response_text)
     narrative = parse_master_plan_narrative_payload(payload)
 
@@ -406,8 +404,8 @@ def _validate_no_banned_frontend_terms(comparison: MasterPlanComparisonResult) -
 
     if blocked:
         raise ValueError(
-            f"OpenAI narrative output contains banned frontend technical terms: {blocked}"
+            f"LLM narrative output contains banned frontend technical terms: {blocked}"
         )
 
     if "both projects" in combined:
-        raise ValueError("OpenAI narrative output contains 'both projects' in a three-project comparison.")
+        raise ValueError("LLM narrative output contains 'both projects' in a three-project comparison.")

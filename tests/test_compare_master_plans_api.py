@@ -46,11 +46,11 @@ def test_compare_master_plans_api(monkeypatch):
             project_name=project.project_name,
         )
 
-    def fake_openai_narrative(comparison):
+    def fake_gemini_narrative(comparison):
         return comparison
 
-    monkeypatch.setattr("app.main.analyze_master_plan_with_openai", fake_vision)
-    monkeypatch.setattr("app.main.enhance_master_plan_comparison_with_openai", fake_openai_narrative)
+    monkeypatch.setattr("app.main.analyze_master_plan_with_gemini", fake_vision)
+    monkeypatch.setattr("app.main.enhance_master_plan_comparison_with_gemini", fake_gemini_narrative)
 
     json_path = Path("data/input/342956.json")
     image_path = find_master_plan_image()

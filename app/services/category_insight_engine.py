@@ -61,7 +61,7 @@ def build_category_comparison(
         overall_master_plan_summary=overall,
         notes=[
             "Category insights are estimated planning signals, not official measurements.",
-            "Scores combine Datacenter JSON, master plan description, OpenAI Vision, OpenCV segmentation and final area estimate.",
+            "Scores combine Datacenter JSON, master plan description, Vision model, OpenCV segmentation and final area estimate.",
             "One-liners and details are generated from available evidence only.",
         ],
     )
@@ -139,7 +139,7 @@ def _green_landscape_insight(context: dict) -> CategoryInsight:
 
     positive = [
         f"Estimated Green Area range is {context['green_range']}.",
-        f"OpenAI Vision classified green area as {context['vision'].green_area_visual_estimate.qualitative_estimate}.",
+        f"Vision model classified green area as {context['vision'].green_area_visual_estimate.qualitative_estimate}.",
     ]
 
     if details:
@@ -163,7 +163,7 @@ def _green_landscape_insight(context: dict) -> CategoryInsight:
         positives=positive,
         risks=risks,
         details=details,
-        sources=["Datacenter JSON amenities", "Master plan description", "OpenAI Vision analysis", "OpenCV segmentation", "Area estimate"],
+        sources=["Datacenter JSON amenities", "Master plan description", "Vision model analysis", "OpenCV segmentation", "Area estimate"],
         short_label="Strong Green Planning",
         tooltip="Visible landscaped zones and multiple green-space amenities are present, with exact area shown as an estimated range.",
     )
@@ -207,12 +207,12 @@ def _open_space_insight(context: dict) -> CategoryInsight:
         ),
         positives=[
             f"Estimated Open Area range is {context['open_range']}.",
-            f"OpenAI Vision classified open area as {context['vision'].open_area_visual_estimate.qualitative_estimate}.",
+            f"Vision model classified open area as {context['vision'].open_area_visual_estimate.qualitative_estimate}.",
             "Multiple open-space and circulation signals were found.",
         ],
         risks=_standard_risks(context),
         details=details,
-        sources=["Master plan description", "OpenAI Vision analysis", "OpenCV segmentation", "Area estimate"],
+        sources=["Master plan description", "Vision model analysis", "OpenCV segmentation", "Area estimate"],
         short_label="High Openness",
         tooltip="The project appears to have strong open-space planning, but exact open area remains estimated.",
     )
@@ -251,12 +251,12 @@ def _built_density_insight(context: dict) -> CategoryInsight:
             f"{'The project has about ' + str(units_per_acre) + ' units per acre, so density should be reviewed carefully.' if units_per_acre else 'Unit density could not be calculated.'}"
         ),
         positives=[
-            f"OpenAI Vision classified building footprint as {context['vision'].building_footprint_visual_estimate.qualitative_estimate}.",
+            f"Vision model classified building footprint as {context['vision'].building_footprint_visual_estimate.qualitative_estimate}.",
             f"OpenCV detected built-structure lower-bound at {context['opencv_built']}%.",
         ],
         risks=_standard_risks(context) + (["High units per acre may indicate density pressure."] if units_per_acre and units_per_acre > 90 else []),
         details=details,
-        sources=["Datacenter JSON", "OpenAI Vision analysis", "OpenCV segmentation"],
+        sources=["Datacenter JSON", "Vision model analysis", "OpenCV segmentation"],
         short_label="Moderate Built Density",
         tooltip="Built footprint appears balanced against open and amenity zones, but density should be reviewed with official layout data.",
     )
@@ -335,11 +335,11 @@ def _sports_active_lifestyle_insight(context: dict) -> CategoryInsight:
         ),
         positives=[
             "Multiple sports and active-lifestyle amenities are present.",
-            "OpenAI Vision detected sports/play areas.",
+            "Vision model detected sports/play areas.",
         ],
         risks=_standard_risks(context),
         details=details,
-        sources=["Datacenter JSON amenities", "Master plan description", "OpenAI Vision analysis"],
+        sources=["Datacenter JSON amenities", "Master plan description", "Vision model analysis"],
         short_label="Strong Active Lifestyle",
         tooltip="The project includes multiple sports, pool and movement-oriented amenities.",
     )
@@ -415,7 +415,7 @@ def _water_leisure_insight(context: dict) -> CategoryInsight:
         positives=["Swimming pool and leisure signals are present."],
         risks=_standard_risks(context),
         details=details,
-        sources=["Datacenter JSON amenities", "Master plan description", "OpenAI Vision analysis", "OpenCV segmentation"],
+        sources=["Datacenter JSON amenities", "Master plan description", "Vision model analysis", "OpenCV segmentation"],
         short_label="Water Leisure Present",
         tooltip="Pool and leisure zones are visible/declared, with exact area treated as estimated.",
     )
@@ -456,7 +456,7 @@ def _access_circulation_insight(context: dict) -> CategoryInsight:
         positives=["Multiple access and circulation signals were found."],
         risks=_standard_risks(context),
         details=details,
-        sources=["Master plan description", "OpenAI Vision analysis"],
+        sources=["Master plan description", "Vision model analysis"],
         short_label="Clear Circulation Planning",
         tooltip="The layout includes access, driveway and movement-related planning signals.",
     )
@@ -524,11 +524,11 @@ def _evidence_reliability_insight(context: dict) -> CategoryInsight:
         positives=[
             "Project JSON is available.",
             "Image quality is usable.",
-            "OpenAI Vision boundary confidence is high.",
+            "Vision model boundary confidence is high.",
         ],
         risks=risks,
         details=details,
-        sources=["Image metadata", "OpenAI Vision analysis", "OpenCV segmentation", "Area estimate confidence"],
+        sources=["Image metadata", "Vision model analysis", "OpenCV segmentation", "Area estimate confidence"],
         short_label="Medium Evidence Reliability",
         tooltip="Evidence is good enough for estimated insights but not for official measurement.",
     )

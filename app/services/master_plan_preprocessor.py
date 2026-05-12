@@ -17,7 +17,7 @@ def create_master_plan_preprocessing_artifacts(
     """Create lightweight plan/legend crops for better downstream interpretation.
 
     This is intentionally conservative: it does not claim precise geometry. It
-    removes obvious white margins and creates two helpful crops that OpenAI can
+    removes obvious white margins and creates two helpful crops that Gemini can
     use later: a plan-focused crop and a lower legend-focused crop.
     """
     settings = get_settings()

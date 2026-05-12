@@ -89,7 +89,7 @@ def finalize_frontend_comparison_contract(
     """Final frontend contract hardening before API response/report writing.
 
     This function intentionally mutates and returns the same comparison object.
-    It is the last guardrail after deterministic scoring and optional OpenAI copy.
+    It is the last guardrail after deterministic scoring and optional LLM copy.
     """
 
     for row in comparison.category_comparison_matrix:

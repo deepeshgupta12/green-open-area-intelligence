@@ -3,7 +3,7 @@ uvicorn[standard]==0.34.0
 pydantic==2.10.4
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
-openai==1.59.7
+google-genai>=1.0.0
 opencv-python==4.10.0.84
 numpy==2.2.1
 pillow==11.1.0

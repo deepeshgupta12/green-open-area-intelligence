@@ -3,58 +3,46 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from openai import OpenAI
+from google import genai
 
 from app.config import get_settings
 from app.schemas.image_schema import ImageMetadata
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.vision_schema import VisionAnalysisResult
-from app.utils.openai_utils import encode_image_to_data_url, extract_json_from_text
+from app.utils.llm_utils import extract_json_from_text, load_image_part_for_gemini
 
 
-def analyze_master_plan_with_openai(
+def analyze_master_plan_with_gemini(
     project: ParsedProjectMetadata,
     image_metadata: ImageMetadata,
 ) -> VisionAnalysisResult:
     settings = get_settings()
 
-    if not settings.openai_api_key:
+    if not settings.gemini_api_key:
         raise ValueError(
-            "OPENAI_API_KEY is missing. Add it to .env before running --run-vision."
+            "GEMINI_API_KEY is missing. Add it to .env before running --run-vision."
         )
 
     if not image_metadata.normalized_image_path:
         raise ValueError("Normalized image path is missing. Run image preprocessing first.")
 
-    client = OpenAI(api_key=settings.openai_api_key)
-
-    data_url = encode_image_to_data_url(image_metadata.normalized_image_path)
+    client = genai.Client(api_key=settings.gemini_api_key)
 
     prompt = build_vision_prompt(project=project, image_metadata=image_metadata)
 
-    response = client.chat.completions.create(
-        model=settings.openai_vision_model,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": prompt,
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": data_url,
-                        },
-                    },
-                ],
-            }
+    response = client.models.generate_content(
+        model=settings.gemini_vision_model,
+        contents=[
+            prompt,
+            load_image_part_for_gemini(image_metadata.normalized_image_path),
         ],
-        temperature=0.1,
+        config={
+            "temperature": 0.1,
+            "response_mime_type": "application/json",
+        },
     )
 
-    response_text = response.choices[0].message.content or ""
+    response_text = response.text or ""
     parsed_json = extract_json_from_text(response_text)
     parsed_json["raw_model_response"] = {"output_text": response_text}
 
@@ -100,7 +88,7 @@ You will receive:
 2. Project Datacenter JSON signals.
 
 Your job in this step is NOT to calculate final exact percentages.
-Your job is to produce a structured visual interpretation that will later be combined with OpenCV segmentation and guardrails.
+Your job is to produce a structured visual interpretation that will later be combined with OpenCV diagnostics and guardrails.
 
 Locked definitions:
 

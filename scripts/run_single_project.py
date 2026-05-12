@@ -5,9 +5,6 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(str(ROOT_DIR))
-
 from app.config import get_settings
 from app.services.area_calculator import build_area_estimate
 from app.services.category_insight_engine import build_category_comparison
@@ -15,12 +12,13 @@ from app.services.image_preprocessor import preprocess_master_plan_image
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.report_writer import write_final_outputs
 from app.services.segmentation_engine import run_opencv_segmentation
-from app.services.vision_analyzer import analyze_master_plan_with_openai
+from app.services.vision_analyzer import analyze_master_plan_with_gemini
 from app.utils.file_utils import write_json_file
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
 
 console = Console()
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -28,7 +26,7 @@ def main() -> None:
     )
     parser.add_argument("--json", required=True, help="Path to project Datacenter JSON file.")
     parser.add_argument("--image", required=False, help="Path to project master plan image.")
-    parser.add_argument("--run-vision", action="store_true", help="Run OpenAI Vision analysis.")
+    parser.add_argument("--run-vision", action="store_true", help="Run Vision Model analysis.")
     parser.add_argument("--run-segmentation", action="store_true", help="Run OpenCV segmentation.")
     parser.add_argument("--run-area-estimate", action="store_true", help="Build final area estimate.")
     parser.add_argument("--run-category-comparison", action="store_true", help="Build master plan category insights.")
@@ -63,9 +61,9 @@ def main() -> None:
         if image_metadata is None:
             raise ValueError("--run-vision requires --image.")
 
-        console.print("[cyan]Running OpenAI Vision analysis...[/cyan]")
+        console.print("[cyan]Running Vision Model analysis...[/cyan]")
 
-        vision_result = analyze_master_plan_with_openai(
+        vision_result = analyze_master_plan_with_gemini(
             project=parsed_metadata,
             image_metadata=image_metadata,
         )
@@ -198,7 +196,7 @@ def _print_image_table(image_metadata, output_path: Path) -> None:
 
 
 def _print_vision_table(vision_result, output_path: Path) -> None:
-    table = Table(title="OpenAI Vision Analysis")
+    table = Table(title="Vision Model Analysis")
     table.add_column("Field", style="cyan")
     table.add_column("Value", style="green")
     table.add_row("Boundary Visible", str(vision_result.boundary.boundary_visible))

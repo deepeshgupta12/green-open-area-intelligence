@@ -99,7 +99,7 @@ def build_area_estimate(
         open_area_value=open_range.display,
         confidence_label=f"{confidence.label} Confidence",
         tooltip=(
-            "Estimated using the project master plan, OpenAI Vision interpretation, "
+            "Estimated using the project master plan, vision-model interpretation, "
             "OpenCV segmentation, and available Datacenter project signals. Actual values "
             "may vary from official layout or RERA disclosures."
         ),
@@ -113,7 +113,7 @@ def build_area_estimate(
     notes = [
         "Final values are range-based estimates, not official measurements.",
         "OpenCV segmentation is treated as visual evidence, not a standalone source of truth.",
-        "OpenAI Vision qualitative output is used to adjust the range and confidence.",
+        "Vision-model qualitative output is used to adjust the range and confidence.",
         "Green Area is constrained to be less than or equal to Open Area.",
     ]
 
@@ -326,17 +326,17 @@ def _build_confidence(
 
     if vision.boundary.boundary_visible:
         score += 0.08
-        reasons.append("OpenAI Vision detected a visible project boundary.")
+        reasons.append("Vision model detected a visible project boundary.")
 
     if vision.boundary.boundary_confidence == "High":
         score += 0.07
-        reasons.append("OpenAI Vision boundary confidence is high.")
+        reasons.append("Vision model boundary confidence is high.")
     elif vision.boundary.boundary_confidence == "Medium":
         score += 0.03
-        reasons.append("OpenAI Vision boundary confidence is medium.")
+        reasons.append("Vision model boundary confidence is medium.")
     else:
         score -= 0.08
-        reasons.append("OpenAI Vision boundary confidence is weak.")
+        reasons.append("Vision model boundary confidence is weak.")
 
     if cv_unknown > 70:
         score -= 0.18

@@ -12,11 +12,11 @@ from app.services.frontend_contract_validator import finalize_frontend_compariso
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
-from app.services.master_plan_narrative_engine import enhance_master_plan_comparison_with_openai
+from app.services.master_plan_narrative_engine import enhance_master_plan_comparison_with_gemini
 from app.services.master_plan_understanding_engine import extract_master_plan_understanding
 from app.services.report_writer import write_final_outputs
 from app.services.segmentation_engine import run_opencv_segmentation
-from app.services.vision_analyzer import analyze_master_plan_with_openai
+from app.services.vision_analyzer import analyze_master_plan_with_gemini
 from app.utils.file_utils import ensure_directory, write_json_file
 
 
@@ -156,7 +156,7 @@ async def estimate_green_open_area(
         category_comparison = None
 
         if run_vision:
-            vision_result = analyze_master_plan_with_openai(
+            vision_result = analyze_master_plan_with_gemini(
                 project=project,
                 image_metadata=image_metadata,
             )
@@ -384,7 +384,7 @@ async def compare_master_plans(
         )
 
         if use_ai_narrative:
-            comparison = enhance_master_plan_comparison_with_openai(comparison)
+            comparison = enhance_master_plan_comparison_with_gemini(comparison)
 
         comparison = finalize_frontend_comparison_contract(comparison)
 
@@ -438,7 +438,7 @@ async def _process_compare_project_bundle(
     project = parse_datacenter_json_file(str(project_json_path))
     image_metadata = preprocess_master_plan_image(str(image_path))
 
-    vision = analyze_master_plan_with_openai(project=project, image_metadata=image_metadata)
+    vision = analyze_master_plan_with_gemini(project=project, image_metadata=image_metadata)
     segmentation = run_opencv_segmentation(image_metadata=image_metadata, project_id=project.project_id)
     area_estimate = build_area_estimate(
         project=project,
@@ -459,7 +459,7 @@ async def _process_compare_project_bundle(
         image_metadata=image_metadata,
         vision=vision,
         output_dir=output_json_dir.parent / "overlays",
-        use_openai=use_ai_structure_extraction,
+        use_gemini=use_ai_structure_extraction,
     )
 
     project_prefix = f"project_{slot.lower()}_{project.project_id}"

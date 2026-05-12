@@ -35,7 +35,7 @@ def test_health_endpoint():
     assert payload["default_port"] == 2345
 
 
-def test_estimate_endpoint_without_openai_vision():
+def test_estimate_endpoint_without_gemini_vision():
     json_path = Path("data/input/342956.json")
     image_path = find_master_plan_image()
 

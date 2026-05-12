@@ -177,7 +177,7 @@ def build_markdown_report(
 | Quality Score | {image_metadata.quality.score} |
 | Quality Label | {image_metadata.quality.label} |
 
-## 5. OpenAI Vision Summary
+## 5. Vision Model Summary
 
 | Field | Value |
 |---|---|
@@ -217,7 +217,7 @@ def build_markdown_report(
 - This is an estimated output, not an official RERA/developer measurement.
 - Green Area is constrained to be less than or equal to Open Area.
 - OpenCV segmentation is treated as visual evidence, not a standalone source of truth.
-- OpenAI Vision qualitative output is used to adjust the range and confidence.
+- Vision-model qualitative output is used to adjust the range and confidence.
 - The output is designed for internal review and compare-module consumption.
 """
 

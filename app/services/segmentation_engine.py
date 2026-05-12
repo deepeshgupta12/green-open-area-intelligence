@@ -97,7 +97,7 @@ def run_opencv_segmentation(
     notes: list[str] = [
         "OpenCV segmentation is heuristic and color/contrast based.",
         "This step does not produce final green/open area estimates.",
-        "Final estimates will combine OpenAI Vision, segmentation, guardrails, and confidence logic.",
+        "Final estimates will combine vision model, segmentation, guardrails, and confidence logic.",
     ]
 
     unknown_percentage = _percentage(unknown_count, total_pixels)

@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     app_name: str = "Green Open Area Intelligence Engine"
     app_env: str = "local"
 
-    openai_api_key: str | None = None
-    openai_vision_model: str = "gpt-4o"
-    openai_text_model: str = "gpt-4o-mini"
+    gemini_api_key: str | None = None
+    gemini_vision_model: str = "gemini-2.5-flash"
+    gemini_text_model: str = "gemini-2.5-flash"
 
     database_url: str = "sqlite:///./goa_engine.sqlite3"
 
