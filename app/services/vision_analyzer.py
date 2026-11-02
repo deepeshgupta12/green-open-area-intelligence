@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from google import genai
-
 from app.config import get_settings
 from app.schemas.image_schema import ImageMetadata
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.vision_schema import VisionAnalysisResult
+from app.utils.gemini_client import MISSING_CREDENTIALS_MESSAGE, get_gemini_client
 from app.utils.llm_utils import extract_json_from_text, load_image_part_for_gemini
 
 
@@ -18,15 +17,13 @@ def analyze_master_plan_with_gemini(
 ) -> VisionAnalysisResult:
     settings = get_settings()
 
-    if not settings.gemini_api_key:
-        raise ValueError(
-            "GEMINI_API_KEY is missing. Add it to .env before running --run-vision."
-        )
+    if not settings.gemini_configured:
+        raise ValueError(f"{MISSING_CREDENTIALS_MESSAGE} Required before running --run-vision.")
 
     if not image_metadata.normalized_image_path:
         raise ValueError("Normalized image path is missing. Run image preprocessing first.")
 
-    client = genai.Client(api_key=settings.gemini_api_key)
+    client = get_gemini_client(settings)
 
     prompt = build_vision_prompt(project=project, image_metadata=image_metadata)
 

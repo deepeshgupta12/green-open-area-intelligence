@@ -15,6 +15,11 @@ env/
 # Environment variables
 .env
 
+# Credentials (service-account key files must never be committed)
+*service-account*.json
+*-keys-*.json
+.secrets/
+
 # Local database
 *.db
 *.sqlite

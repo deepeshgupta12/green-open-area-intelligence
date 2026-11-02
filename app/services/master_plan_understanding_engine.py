@@ -5,8 +5,6 @@ import re
 from html import unescape
 from pathlib import Path
 
-from google import genai
-
 from app.config import get_settings
 from app.schemas.image_schema import ImageMetadata
 from app.schemas.master_plan_understanding_schema import (
@@ -20,6 +18,7 @@ from app.schemas.master_plan_understanding_schema import (
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.vision_schema import VisionAnalysisResult
 from app.services.master_plan_preprocessor import create_master_plan_preprocessing_artifacts
+from app.utils.gemini_client import MISSING_CREDENTIALS_MESSAGE, get_gemini_client
 from app.utils.llm_utils import extract_json_from_text, load_image_part_for_gemini
 
 
@@ -89,7 +88,7 @@ def extract_master_plan_understanding(
     )
 
     settings = get_settings()
-    if not use_gemini or not settings.gemini_api_key:
+    if not use_gemini or not settings.gemini_configured:
         deterministic.internal_processing_notes.append(
             "Gemini structure extraction skipped; deterministic Datacenter/vision fallback used."
         )
@@ -162,10 +161,10 @@ def _extract_with_gemini(
 ) -> MasterPlanUnderstandingResult:
     settings = get_settings()
 
-    if not settings.gemini_api_key:
-        raise ValueError("GEMINI_API_KEY is missing. Cannot run Gemini structure extraction.")
+    if not settings.gemini_configured:
+        raise ValueError(f"{MISSING_CREDENTIALS_MESSAGE} Cannot run Gemini structure extraction.")
 
-    client = genai.Client(api_key=settings.gemini_api_key)
+    client = get_gemini_client(settings)
 
     plan_crop = next((item.path for item in artifacts if item.artifact_type == "plan_region_crop"), None)
     legend_crop = next((item.path for item in artifacts if item.artifact_type == "legend_region_crop"), None)

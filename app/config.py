@@ -15,7 +15,13 @@ class Settings(BaseSettings):
     app_name: str = "Green Open Area Intelligence Engine"
     app_env: str = "local"
 
+    # Gemini auth. Either a Vertex AI service-account key file (preferred when
+    # set) or a Gemini Developer API key. See app/utils/gemini_client.py.
+    google_application_credentials: str | None = None
+    google_cloud_project: str | None = None
+    google_cloud_location: str = "us-central1"
     gemini_api_key: str | None = None
+
     gemini_vision_model: str = "gemini-2.5-flash"
     gemini_text_model: str = "gemini-2.5-flash"
 
@@ -37,6 +43,11 @@ class Settings(BaseSettings):
         extra="ignore",
         case_sensitive=False,
     )
+
+    @property
+    def gemini_configured(self) -> bool:
+        """True when either Gemini auth mode has credentials available."""
+        return bool(self.google_application_credentials or self.gemini_api_key)
 
 
 @lru_cache

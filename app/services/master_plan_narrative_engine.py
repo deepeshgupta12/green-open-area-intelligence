@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import json
 
-from google import genai
-
 from app.config import get_settings
 from app.schemas.master_plan_compare_schema import MasterPlanComparisonResult
 from app.schemas.master_plan_narrative_schema import (
@@ -11,6 +9,7 @@ from app.schemas.master_plan_narrative_schema import (
     MasterPlanNarrativeResult,
     OverallNarrativeCopy,
 )
+from app.utils.gemini_client import MISSING_CREDENTIALS_MESSAGE, get_gemini_client
 from app.utils.llm_utils import extract_json_from_text
 
 
@@ -34,10 +33,10 @@ def enhance_master_plan_comparison_with_gemini(
 ) -> MasterPlanComparisonResult:
     settings = get_settings()
 
-    if not settings.gemini_api_key:
-        raise ValueError("GEMINI_API_KEY is missing. Cannot generate frontend narrative copy.")
+    if not settings.gemini_configured:
+        raise ValueError(f"{MISSING_CREDENTIALS_MESSAGE} Cannot generate frontend narrative copy.")
 
-    client = genai.Client(api_key=settings.gemini_api_key)
+    client = get_gemini_client(settings)
 
     prompt = build_master_plan_narrative_prompt(comparison)
 

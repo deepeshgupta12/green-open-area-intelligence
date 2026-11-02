@@ -171,7 +171,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# edit .env and set GEMINI_API_KEY
+# edit .env: either point GOOGLE_APPLICATION_CREDENTIALS at a Vertex AI
+# service-account JSON (kept outside the repo) or set GEMINI_API_KEY
 
 uvicorn app.main:app --reload --port 2345
 # Swagger UI: http://127.0.0.1:2345/docs
@@ -261,7 +262,10 @@ Flags are cumulative; omit later ones to stop at an earlier stage. Outputs land 
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GEMINI_API_KEY` | none | Required for vision, structure extraction and narrative |
+| `GOOGLE_APPLICATION_CREDENTIALS` | none | Path to a Vertex AI service-account JSON. When set, Gemini runs through Vertex AI |
+| `GOOGLE_CLOUD_PROJECT` | from key file | GCP project for Vertex AI; defaults to the key file's `project_id` |
+| `GOOGLE_CLOUD_LOCATION` | `us-central1` | Vertex AI region |
+| `GEMINI_API_KEY` | none | Gemini Developer API key; used only when no service-account path is set |
 | `GEMINI_VISION_MODEL` | `gemini-2.5-flash` | Vision reasoning model |
 | `GEMINI_TEXT_MODEL` | `gemini-2.5-flash` | Narrative model |
 | `APP_ENV` | `local` | Environment label |
