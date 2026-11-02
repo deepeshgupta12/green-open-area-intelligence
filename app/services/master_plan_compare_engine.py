@@ -83,6 +83,9 @@ GENERIC_EVIDENCE_TOKENS = {
     "paved zones",
     "visible landscaped zones",
     "court",
+    "internal circulation",
+    "visible master-plan components support this category",
+    "legend/datacenter entities support this category",
 }
 
 CATEGORY_ALLOWLIST = {
@@ -520,6 +523,9 @@ def _build_category_matrix(
         score_gap = _score_gap(winner, comparisons)
         category_status = _category_status(winner, comparisons, winner_evidence)
         status_flags = _status_flags(category_status)
+        if category_status == STATUS_CLOSE and score_gap <= 0:
+            status_flags["show_winner"] = False
+            status_flags["winner_label"] = "No Clear Winner"
         evidence_strength = _evidence_strength(winner_evidence, winner)
 
         winner_reason = _build_deterministic_winner_reason(
@@ -952,24 +958,33 @@ def _category_status(
     if cleaned_detail_count == 0 and strength in {"Insufficient", "Weak"}:
         return STATUS_INSUFFICIENT
 
-    if evidence and evidence.category_key == "access_circulation":
-        if strength in {"Strong", "Moderate"} and cleaned_detail_count >= 2:
+    category_key = evidence.category_key if evidence else ""
+
+    # Access/movement is often visible in master plans but scores may remain low because
+    # the category is directional. Do not call it decisive from low scores; preserve it as
+    # Close Call/Weak only when cleaned access evidence exists.
+    if category_key == "access_circulation":
+        if cleaned_detail_count >= 2 and strength in {"Strong", "Moderate"}:
             return STATUS_CLOSE
-        if strength == "Weak" and cleaned_detail_count >= 1:
+        if cleaned_detail_count >= 1:
             return STATUS_WEAK
         return STATUS_INSUFFICIENT
 
     if winner.score < 60 or strength == "Insufficient" or cleaned_detail_count == 0:
         return STATUS_INSUFFICIENT
 
-    same_band_count = sum(
-        1 for item in all_projects if item.score_band == winner.score_band
-    )
+    same_band_count = sum(1 for item in all_projects if item.score_band == winner.score_band)
 
-    if same_band_count >= 2 and gap <= 5:
+    # If the top projects are tied or effectively tied, the card must not show a clear winner.
+    if gap <= 0:
         return STATUS_CLOSE
 
+    # When all three are Excellent, require a meaningful separation before a Clear Winner badge.
     if same_band_count == 3 and winner.score_band == "85–100" and gap < 10:
+        return STATUS_CLOSE
+
+    # If the top projects share the same rating band and are within five points, downgrade.
+    if same_band_count >= 2 and gap <= 5:
         return STATUS_CLOSE
 
     if gap <= 3:
@@ -1048,7 +1063,7 @@ def _score_breakdown(
 
 
 def _winner_phrase(row: CategoryComparisonMatrixRow | None, label: str) -> str | None:
-    if not row or row.show_as_insufficient:
+    if not row or row.show_as_insufficient or not row.show_winner_badge:
         return None
 
     project_name = row.winner_project_name or f"Project {row.winner_project_slot}"
@@ -1233,7 +1248,7 @@ def _overall_advantage_copy(category_key: str, category_label: str) -> str:
         "family_community": "Stronger family and community-use planning.",
         "water_leisure": "Better pool and leisure-led recreation story.",
         "access_circulation": "Clearer access and internal movement planning.",
-        "environment_sustainability": "More sustainability-related feature signals.",
+        "environment_sustainability": "More declared sustainability-related feature signals.",
     }.get(category_key, f"Leads on {category_label.lower()}.")
 
 
@@ -1289,8 +1304,11 @@ def _category_clean_details(
     blocklist = CATEGORY_BLOCKLIST.get(category_key, set())
 
     for detail in details:
-        cleaned = _normalize_detail(detail)
+        cleaned = _normalize_category_detail(category_key, detail)
         if not cleaned:
+            continue
+
+        if len(cleaned) > 55:
             continue
 
         lowered = cleaned.lower()
@@ -1337,16 +1355,37 @@ def _filter_frontend_details(details: list[str]) -> list[str]:
 
 
 def _normalize_detail(value: str) -> str:
+    return _normalize_category_detail("", value)
+
+
+def _normalize_category_detail(category_key: str, value: str) -> str:
     cleaned = str(value or "").strip()
     cleaned = re.sub(r"\s+", " ", cleaned)
     cleaned = cleaned.strip(" -•:;,.|/")
+
+    if not cleaned:
+        return ""
 
     replacements = {
         "STP": "Sewage Treatment Plant",
         "AOS": "Amenity Open Space",
     }
 
-    return replacements.get(cleaned, cleaned)
+    cleaned = replacements.get(cleaned, cleaned)
+    cleaned = re.sub(r"\s*\(\d+\)\s*$", "", cleaned).strip()
+    cleaned = re.split(r"\s+containing\s+", cleaned, flags=re.IGNORECASE)[0].strip()
+
+    lowered = cleaned.lower()
+
+    if category_key == "built_density" and "tower" in lowered:
+        if "amenity" in lowered or lowered.startswith("amn"):
+            return "Amenity tower"
+        return "Residential tower"
+
+    if category_key == "water_leisure" and "water feature" in lowered:
+        return "Water feature zone"
+
+    return cleaned
 
 
 def _frontend_safe_risks(risks: list[str]) -> list[str]:

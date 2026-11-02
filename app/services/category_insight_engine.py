@@ -517,18 +517,18 @@ def _environment_sustainability_insight(context: dict) -> CategoryInsight:
         score=score,
         confidence="High" if len(details) >= 4 else context["confidence_label"],
         one_liner=(
-            "Shows practical sustainability features, including rainwater harvesting, STP, treated water supply, solar heaters, eco-friendly planning and large green area."
+            "Shows declared sustainability-related features, including rainwater harvesting, STP, treated water supply, solar heaters and large green area."
         ),
         detailed=(
             f"Environment planning is supported by extracted details such as {', '.join(details[:10]) if details else 'green and sustainability amenities'}. "
             "These are structured project-data signals and should be shown as feature availability rather than certified sustainability performance."
         ),
         positives=["Environment-related amenities are available in Datacenter JSON."],
-        risks=["Sustainability impact is not certified by this model."],
+        risks=["Sustainability certification, savings and actual environmental performance are not verified by this model."],
         details=details,
         sources=["Datacenter JSON amenities"],
         short_label="Sustainability Signals Present",
-        tooltip="Environment-related amenities are available, but certification/impact is not inferred.",
+        tooltip="Environment-related amenities are available, but certification, savings and actual performance are not inferred.",
     )
 
 

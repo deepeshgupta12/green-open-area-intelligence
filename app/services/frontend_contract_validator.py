@@ -47,6 +47,19 @@ CLEAR_WINNER_NARROW_PATTERNS = [
     "slightly ahead",
 ]
 
+SUSTAINABILITY_PERFORMANCE_PATTERNS = [
+    (re.compile(r"\bstronger commitment to sustainability\b", flags=re.IGNORECASE), "more declared sustainability-related features"),
+    (re.compile(r"\bcommitment to sustainability\b", flags=re.IGNORECASE), "declared sustainability-related feature availability"),
+    (re.compile(r"\bcontributes to environmental sustainability\b", flags=re.IGNORECASE), "is listed as a sustainability-related feature"),
+    (re.compile(r"\bcontributes to sustainability\b", flags=re.IGNORECASE), "is listed as a sustainability-related feature"),
+    (re.compile(r"\bpromoting eco-friendly living\b", flags=re.IGNORECASE), "showing declared sustainability-related features"),
+    (re.compile(r"\beco-conscious design\b", flags=re.IGNORECASE), "declared sustainability-related features"),
+    (re.compile(r"\benvironmental impact\b", flags=re.IGNORECASE), "declared environmental feature availability"),
+    (re.compile(r"\blower living costs\b", flags=re.IGNORECASE), "feature availability"),
+]
+
+MAX_FRONTEND_CHIP_LENGTH = 55
+
 
 STATUS_CLEAR = "Clear Winner"
 STATUS_CLOSE = "Close Call"
@@ -163,13 +176,35 @@ def _clean_row_evidence(row) -> None:
     _sanitize_access_circulation_evidence(row)
 
 
+def _normalize_evidence_chip(category_key: str, value: str) -> str:
+    cleaned = str(value or "").strip()
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = cleaned.strip(" -•:;,.|/")
+    cleaned = re.sub(r"\s*\(\d+\)\s*$", "", cleaned).strip()
+    cleaned = re.split(r"\s+containing\s+", cleaned, flags=re.IGNORECASE)[0].strip()
+
+    lowered = cleaned.lower()
+
+    if category_key == "built_density" and "tower" in lowered:
+        if "amenity" in lowered or lowered.startswith("amn"):
+            return "Amenity tower"
+        return "Residential tower"
+
+    if category_key == "water_leisure" and "water feature" in lowered:
+        return "Water feature zone"
+
+    return cleaned
+
 def _clean_evidence_list(category_key: str, values: list[str]) -> list[str]:
     result: list[str] = []
     seen: set[str] = set()
 
     for value in values:
-        cleaned = str(value or "").strip()
+        cleaned = _normalize_evidence_chip(category_key, value)
         if not cleaned:
+            continue
+
+        if len(cleaned) > MAX_FRONTEND_CHIP_LENGTH:
             continue
 
         lowered = cleaned.lower()
@@ -272,7 +307,7 @@ def _sanitize_row_copy(row) -> None:
     if row.show_as_close_call:
         if row.internal_scoring.score_gap <= 0:
             row.frontend_winner_reason = (
-                f"This is a close call: no clear winner can be established for {category_label} because the compared projects are effectively tied on the available cleaned evidence."
+                f"This is a close call: no clear winner can be established for {category_label} among the top-ranked projects from the available cleaned evidence."
             )
             row.frontend_tradeoff = (
                 "Use this category as shared context rather than a reason to prefer one project over another."
@@ -292,6 +327,21 @@ def _sanitize_row_copy(row) -> None:
         row.frontend_category_summary = (
             f"{row.category_label} is useful context, but buyers should not over-index on this category alone."
         )
+        return
+
+    if row.category_key == "environment_sustainability":
+        evidence_text = evidence
+        if row.show_as_decisive:
+            row.frontend_winner_reason = (
+                f"{project_name} has more declared sustainability-related features"
+                + (f", including {evidence_text}." if evidence_text else ".")
+            )
+            row.frontend_tradeoff = (
+                "These are feature-availability signals only; certification, savings or actual environmental performance should be verified from official documents."
+            )
+            row.frontend_category_summary = (
+                "Sustainability Signals reflects declared project features, not verified environmental performance."
+            )
         return
 
     # Clear winner copy guardrail.
@@ -339,6 +389,8 @@ def _sanitize_overall_copy(comparison: MasterPlanComparisonResult) -> None:
 def _sanitize_text(value: str) -> str:
     text = str(value or "").strip()
     for pattern, replacement in THREE_PROJECT_PHRASES:
+        text = pattern.sub(replacement, text)
+    for pattern, replacement in SUSTAINABILITY_PERFORMANCE_PATTERNS:
         text = pattern.sub(replacement, text)
     text = " ".join(text.split())
     return text
@@ -394,6 +446,19 @@ def _validate_frontend_contract(comparison: MasterPlanComparisonResult) -> None:
 
     if "both projects" in combined:
         raise ValueError("Frontend copy contains 'both projects' in a three-project comparison.")
+
+    banned_sustainability_claims = [
+        "stronger commitment to sustainability",
+        "commitment to sustainability",
+        "contributes to environmental sustainability",
+        "contributes to sustainability",
+        "promoting eco-friendly living",
+        "eco-conscious design",
+        "lower living costs",
+    ]
+    for claim in banned_sustainability_claims:
+        if claim in combined:
+            raise ValueError(f"Frontend copy contains sustainability performance claim: {claim}")
 
 
 def _join_for_copy(values: list[str]) -> str:
