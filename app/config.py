@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./goa_engine.sqlite3"
 
     max_image_size_mb: int = 15
+
+    # Backend QA agents: reviewer -> fixer -> reviewer loop after extraction,
+    # and the teacher that maintains their playbook. Nothing reaches the UI.
+    qa_agents_enabled: bool = True
+    qa_max_rounds: int = 2
+    qa_teacher_enabled: bool = True
+    qa_playbook_path: str = "data/agents/playbook.json"
     default_confidence_threshold: float = 0.65
 
     # Density benchmark dataset for the site metrics dashboards. The default

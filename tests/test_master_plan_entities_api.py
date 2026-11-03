@@ -260,3 +260,40 @@ def test_block_plan_estimate_is_low_confidence(monkeypatch):
     assert estimate["confidence"]["label"] == "Low" and estimate["confidence"]["score"] <= 0.4
     assert any("block plan" in reason for reason in estimate["confidence"]["reasons"])
     assert estimate["compare_module_display"]["confidence_label"] == "Low Confidence"
+
+
+def test_qa_loop_output_is_what_the_endpoint_returns(monkeypatch, tmp_path):
+    from app.config import get_settings
+    from app.schemas.agent_schema import QaTrail
+    from app.schemas.master_plan_entity_schema import Diagnostic
+
+    def fake_extract(image_metadata, project=None):
+        return parse_master_plan_entity_payload(
+            build_sample_payload(), image_width=image_metadata.dimensions.width, image_height=image_metadata.dimensions.height
+        )
+
+    seen: dict = {}
+
+    def fake_qa_loop(entity_map, area_estimate, *, image_path, project, run_id, output_dir, **kwargs):
+        seen["image_path"] = image_path
+        seen["output_dir"] = output_dir
+        fixed = entity_map.model_copy(update={"diagnostics": [*entity_map.diagnostics, Diagnostic(code="qa_stub_applied", count=1)]})
+        trail = QaTrail(run_id=run_id, plan_style="rendered", final_verdict="pass", final_score=1.0, adopted_round=1)
+        return fixed, area_estimate, trail
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+    monkeypatch.setattr("app.main.run_qa_loop", fake_qa_loop)
+    monkeypatch.setattr(get_settings(), "qa_agents_enabled", True)
+
+    with find_master_plan_image().open("rb") as image_file:
+        response = client.post("/master-plan/entities", files={"master_plan_image_file": ("plan.jpg", image_file, "image/jpeg")})
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert any(item["code"] == "qa_stub_applied" for item in payload["entity_map"]["diagnostics"])
+    # The agents saw the same (normalised) image the extractor used, and the stored map is the fixed one.
+    assert str(seen["image_path"]).endswith(".png") or str(seen["image_path"]).endswith(".jpg")
+    stored = json.loads(Path(payload["run_artifacts"]["master_plan_entity_map_json_path"]).read_text())
+    assert any(item["code"] == "qa_stub_applied" for item in stored["diagnostics"])
+    assert "response" not in payload or "qa" not in payload  # nothing about the agents in the API contract
+    assert "qa_trail" not in payload and "qa" not in payload

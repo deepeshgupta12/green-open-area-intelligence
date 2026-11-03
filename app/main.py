@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -15,6 +16,7 @@ from app.services.frontend_contract_validator import finalize_frontend_compariso
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
+from app.agents.orchestrator import run_qa_loop
 from app.schemas.area_schema import AreaEstimateResult
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.site_metrics_schema import SiteRecords
@@ -29,6 +31,8 @@ from app.services.vision_analyzer import analyze_master_plan_with_gemini
 from app.utils.file_utils import ensure_directory, write_json_file
 from app.utils.remote_image import IMAGE_EXTENSIONS, RemoteImageError, download_image
 
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Green Open Area Intelligence Engine",
@@ -680,6 +684,24 @@ async def analyse_master_plan(
             except Exception as exc:  # noqa: BLE001 - metrics still work without the estimate
                 diagnostics.append({"code": "area_estimate_failed", "count": 1, "items": [str(exc)[:200]]})
 
+        # Backend QA agents: review -> fix -> review, best version adopted.
+        # The trail is written beside the artifacts; nothing is added here.
+        if settings.qa_agents_enabled:
+            try:
+                entity_map, area_estimate, _ = run_qa_loop(
+                    entity_map,
+                    area_estimate,
+                    image_path=image_metadata.normalized_image_path or str(image_path),
+                    project=project,
+                    run_id=run_id,
+                    output_dir=run_output_dir,
+                )
+                write_json_file(entity_map_path, entity_map.model_dump(mode="json"))
+                if area_estimate is not None and area_estimate_path is not None:
+                    write_json_file(area_estimate_path, area_estimate.model_dump(mode="json"))
+            except Exception as exc:  # noqa: BLE001 - QA never blocks the analysis
+                logger.warning("QA agents skipped for run %s: %s", run_id, exc)
+
         site_metrics = None
         site_metrics_path: Path | None = None
         if project is not None:
@@ -753,6 +775,19 @@ async def extract_master_plan_entity_map(
         image_metadata = preprocess_master_plan_image(str(image_path))
 
         entity_map = extract_master_plan_entities(image_metadata=image_metadata, project=project)
+
+        if settings.qa_agents_enabled:
+            try:
+                entity_map, _, _ = run_qa_loop(
+                    entity_map,
+                    None,
+                    image_path=image_metadata.normalized_image_path or str(image_path),
+                    project=project,
+                    run_id=run_id,
+                    output_dir=run_output_dir,
+                )
+            except Exception as exc:  # noqa: BLE001 - QA never blocks the extraction
+                logger.warning("QA agents skipped for run %s: %s", run_id, exc)
 
         entity_map_path = run_output_dir / "master_plan_entity_map.json"
         write_json_file(entity_map_path, entity_map.model_dump(mode="json"))

@@ -45,3 +45,5 @@ logs/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+# runtime playbook maintained by the teacher agent (seed lives in code)
+data/agents/

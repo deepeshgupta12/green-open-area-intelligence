@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-75%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -137,6 +137,18 @@ Every figure is a `MetricValue` with `value`, `unit`, `source` (`project_records
 
 Entity vocabulary: `residential_block`, `commercial_block`, `clubhouse`, `security_cabin`, `utility_yard`, `entry_exit_gate`, `external_road`, `internal_road`, `driveway`, `walkway_pathway`, `parking`, `swimming_pool`, `water_feature`, `sports_court`, `kids_play_area`, `outdoor_game`, `outdoor_gym`, `plaza`, `pet_park`, `working_pods`, `other_feature`, `lawn_garden`, `tree_canopy_buffer`, `legend_marker`, `legend_block`, `title_block`, `north_arrow`, `site_boundary`. Boxes are model estimates on a stylised, not-to-scale drawing: use them to locate features, never to measure them.
 
+## Backend QA agents
+
+Every analysis is checked by three backend agents before the response is built. They run inside the API, write their trail to `qa_trail.json` beside the run artifacts, and add nothing to the API contract or the UI.
+
+| Agent | Module | What it does |
+|-------|--------|--------------|
+| **Reviewer** | `app/agents/reviewer.py` | Deterministic rule checks first (unique block labels, water needs legend/record/marker support or blue ink, no box over 35% of the sheet, legend coverage, printed records on block plans, green never above open, Low confidence on line drawings), then two model calls: an **independent count** of towers, pools and gates that sees only the drawing, and a judgement that reads the playbook, the count and the extraction summary. Produces a pass/fail verdict, a score (blocker 0.5, major 0.2, minor 0.05 off) and typed findings. |
+| **Fixer** | `app/agents/fixer.py` | Maps finding codes to recipes that reuse the extractor's verified tools: tiled footprint recovery for missed towers on block plans, blue-ink and crop checks for suspect water, crop checks for suspect blocks, duplicate-label renaming, oversized-box drops, estimate clamping and downgrading. A model opinion alone never removes a feature. |
+| **Teacher** | `app/agents/teacher.py` | Maintains the **playbook** (`app/agents/playbook.py`): acceptance rules, rejection cases and fix recipes, seeded from the Sattva Lumina, Birla Taranya, Kalpataru Vian and Mahindra Rainforest cases. After a cycle with findings it distils new entries from the trail with the text model, deduplicates them against the existing text (at most three per kind per cycle) and always records a deterministic lesson line. The runtime copy lives at `data/agents/playbook.json`; the seed in code never changes. |
+
+The orchestrator (`app/agents/orchestrator.py`) runs review -> fix -> review for at most `QA_MAX_ROUNDS` rounds and adopts the version with the best review score, so the loop can only improve an analysis or leave it as extracted. `python scripts/qa_agents.py playbook` prints the playbook; `python scripts/qa_agents.py review <run_dir>` re-reviews a stored run.
+
 ## Architecture
 
 ```text
@@ -169,12 +181,13 @@ green-open-area-intelligence/
 │   ├── main.py                   # FastAPI app: /health, /estimate, /compare-master-plans, /master-plan/entities, /master-plan/analysis
 │   ├── rules/                    # class definitions, green/open rules, guardrails, confidence rules
 │   ├── schemas/                  # Pydantic models for every stage's input and output
+│   ├── agents/                   # backend QA agents: reviewer, fixer, teacher, playbook, orchestrator
 │   ├── services/                 # pipeline stages (see table above)
 │   ├── storage/                  # SQLAlchemy scaffolding (persistence not yet wired)
 │   └── utils/                    # file, image and Gemini client helpers
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── scripts/run_single_project.py # CLI runner for a single project
-├── tests/                        # pytest suite (62 tests)
+├── tests/                        # pytest suite (75 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
@@ -330,6 +343,10 @@ Flags are cumulative; omit later ones to stop at an earlier stage. Outputs land 
 | `GEMINI_API_KEY` | none | Gemini Developer API key; used only when no service-account path is set |
 | `GEMINI_VISION_MODEL` | `gemini-3.5-flash` | Vision reasoning model |
 | `GEMINI_TEXT_MODEL` | `gemini-3.5-flash` | Narrative model |
+| `QA_AGENTS_ENABLED` | `true` | Run the reviewer -> fixer -> reviewer loop after every extraction |
+| `QA_MAX_ROUNDS` | `2` | Review rounds per analysis |
+| `QA_TEACHER_ENABLED` | `true` | Let the teacher update the playbook after cycles with findings |
+| `QA_PLAYBOOK_PATH` | `data/agents/playbook.json` | Runtime playbook (git-ignored; seeded from code) |
 | `DENSITY_BENCHMARKS_PATH` | `data/benchmarks/density_benchmarks.sample.json` | Project parcel/unit dataset for density benchmarks; the default is a labelled synthetic sample |
 | `APP_ENV` | `local` | Environment label |
 | `APP_NAME` | `Green Open Area Intelligence Engine` | Reported by `/health` |
