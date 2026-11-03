@@ -7,6 +7,7 @@ import { ChartTable, ViewToggle } from "./ChartTable";
 type SiteZoningCardProps = {
   metrics: SiteMetrics;
   imageFile: File | null;
+  imageUrl?: string | null;
   onInspect: () => void;
 };
 
@@ -20,8 +21,9 @@ function useObjectUrl(file: File | null): string | null {
   return url;
 }
 
-export function SiteZoningCard({ metrics, imageFile, onInspect }: SiteZoningCardProps) {
-  const imageUrl = useObjectUrl(imageFile);
+export function SiteZoningCard({ metrics, imageFile, imageUrl: remoteUrl, onInspect }: SiteZoningCardProps) {
+  const objectUrl = useObjectUrl(imageFile);
+  const imageUrl = objectUrl ?? remoteUrl ?? null;
   const [view, setView] = useState<"chart" | "table">("chart");
 
   const acres = metricValue(metrics.parcel_area_acres);

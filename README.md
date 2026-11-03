@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 2.5 Flash](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-42%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-48%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -105,11 +105,11 @@ Scoring starts at a base of 0.50 and adds or subtracts evidence signals: project
 - **AI narrative** (`master_plan_narrative_engine.py`): optional Gemini-written buyer summary, generated *after* the deterministic matrix and constrained by it.
 - **Frontend contract validator** (`frontend_contract_validator.py`): the last gate before the response. Rewrites over-claiming copy, enforces the tie rules, strips unsupported winner badges and keeps sustainability language to declared features.
 
-The **frontend** (`frontend/`, Vite + React + TypeScript) uploads the six files, calls the endpoint and renders the headline, per-project cards and category insight cards.
+The comparison is served by the API (`POST /compare-master-plans`) and covered by tests; the React frontend is now dedicated to single-plan analysis (next section).
 
 ## Master plan entity map and hover viewer
 
-`POST /master-plan/entities` turns one master plan image into a **spatial entity map**: every wing, commercial block, clubhouse, gate, road, parking cluster, court, pool, garden, play area, game and utility yard with a bounding box, plus the legend as printed and a few site-level facts. The React **Master plan explorer** renders those boxes over the uploaded image; hovering a region shows the feature's metadata, clicking pins it, and a sidebar lists everything by group with filters, search and legend coverage.
+`POST /master-plan/entities` turns one master plan image into a **spatial entity map**: every wing, commercial block, clubhouse, gate, road, parking cluster, court, pool, garden, play area, game and utility yard with a bounding box, plus the legend as printed and a few site-level facts. The React app (`frontend/`, Vite + React + TypeScript) takes the plan either as a **public image URL** (fetched server-side, so CDN CORS and hotlink rules never block it; the stored copy is served back from `GET /master-plan/runs/{run_id}/image`) or as an **upload**, with the project's Datacenter JSON optional. It renders the boxes over the image; hovering a region shows the feature's metadata, clicking pins it, and a sidebar lists everything by group with filters, search and legend coverage.
 
 How the extraction works (`app/services/master_plan_entity_extractor.py`):
 
@@ -169,9 +169,9 @@ green-open-area-intelligence/
 │   ├── services/                 # pipeline stages (see table above)
 │   ├── storage/                  # SQLAlchemy scaffolding (persistence not yet wired)
 │   └── utils/                    # file, image and Gemini client helpers
-├── frontend/                     # Vite + React + TypeScript comparison UI + master plan analysis dashboards
+├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── scripts/run_single_project.py # CLI runner for a single project
-├── tests/                        # pytest suite (42 tests)
+├── tests/                        # pytest suite (48 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
@@ -250,12 +250,13 @@ Entity map plus key-value site metrics for the dashboards (see [above](#site-met
 
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
-| `master_plan_image_file` | file | required | PNG / JPG / JPEG / WEBP |
+| `master_plan_image_file` | file | one of file / URL | PNG / JPG / JPEG / WEBP |
+| `master_plan_image_url` | string | one of file / URL | Public http(s) image URL, fetched server-side (size-capped, public hosts only) |
 | `project_json_file` | file | optional | Datacenter JSON; without it only the entity map is returned |
 | `run_area_estimate` | bool | `true` | Runs Gemini vision + OpenCV segmentation to estimate open and green area |
 | `site_records_json` | string | optional | JSON with any of `sanctioned_fsi`, `built_up_area_sq_m`, `clubhouse_area_sq_m`, `undivided_land_share_sq_m`, `open_area_percent`, `building_footprint_sq_m`, `homes_per_floor_min`, `homes_per_floor_max` |
 
-Response: `run_id`, `entity_map`, `site_metrics` (or `null`), `area_estimate` (or `null`), `image_metadata`, `diagnostics`, `run_artifacts`. Typical latency is 40 to 70 seconds with the area estimate, 20 to 40 without.
+Response: `run_id`, `image_url` (backend path serving the stored plan), `source_image_url`, `entity_map`, `site_metrics` (or `null`), `area_estimate` (or `null`), `image_metadata`, `diagnostics`, `run_artifacts`. Typical latency is 40 to 70 seconds with the area estimate, 20 to 40 without.
 
 ### `POST /master-plan/entities`
 
@@ -263,8 +264,13 @@ Spatial entity map for one master plan (see [above](#master-plan-entity-map-and-
 
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
-| `master_plan_image_file` | file | required | PNG / JPG / JPEG / WEBP |
+| `master_plan_image_file` | file | one of file / URL | PNG / JPG / JPEG / WEBP |
+| `master_plan_image_url` | string | one of file / URL | Public http(s) image URL, fetched server-side |
 | `project_json_file` | file | optional | Datacenter JSON; seeds the model with declared amenities and tags the result with the project id |
+
+### `GET /master-plan/runs/{run_id}/image`
+
+Serves the master plan stored for an analysis or entities run, so the UI can display a URL-sourced plan without hotlinking the original.
 
 Response: `run_id`, `entity_map`, `image_metadata`, `run_artifacts`. The `entity_map` carries `image_width`, `image_height`, `coordinate_system: "fraction_of_image"`, `extraction_confidence_label`, `site`, `legend`, `entities`, `entity_counts`, `group_counts`, `block_proximity`, `warnings` and `notes`. Each entity has `entity_type`, `entity_group`, `label`, `legend_code`, `legend_label`, `category_key`, `box {x_min, y_min, x_max, y_max}`, `center_x`, `center_y`, `relative_area`, `confidence_label`, `located_by`, `attributes`, `adjacent_to`, `nearest_residential_block` and `nearest_residential_distance`. Typical latency is 20 to 30 seconds for a 1800 px plan.
 
@@ -344,7 +350,7 @@ cd frontend && npm run build
 
 ## Status and roadmap
 
-**Implemented**: full single-project pipeline (parse, preprocess, Gemini vision, OpenCV segmentation, range estimate, guardrails, confidence, explanation, report), category insight engine, three-project master plan comparison with deterministic statuses and AI narrative, frontend contract validator, master plan spatial entity map with legend-marker reconciliation, key-value site metrics with density benchmarks, FastAPI endpoints, React comparison UI with a hover-to-inspect master plan explorer and zoning / density / allocation dashboards.
+**Implemented**: full single-project pipeline (parse, preprocess, Gemini vision, OpenCV segmentation, range estimate, guardrails, confidence, explanation, report), category insight engine, three-project master plan comparison API with deterministic statuses and AI narrative, frontend contract validator, master plan spatial entity map with legend-marker reconciliation, key-value site metrics with density benchmarks, FastAPI endpoints, and a React master plan analysis app (plan by URL or upload) with a hover-to-inspect entity viewer and zoning / density / allocation dashboards.
 
 **Planned**: reviewer UI with manual polygon correction, batch processing, a trained segmentation model to shrink the unknown share, a human-reviewed evaluation dataset, and wiring the SQLAlchemy storage layer (`scripts/init_db.py` and `scripts/generate_sample_report.py` are placeholders today).
 

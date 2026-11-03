@@ -1,37 +1,50 @@
-import type {
-  MasterPlanAnalysisResponse,
-  MasterPlanComparisonResponse,
-  MasterPlanEntityResponse,
-} from "../types";
+import type { MasterPlanAnalysisResponse, MasterPlanEntityResponse } from "../types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:2345";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:2345";
 
-export type CompareMasterPlansPayload = {
-  projectAJson: File;
-  projectAImage: File;
-  projectBJson: File;
-  projectBImage: File;
-  projectCJson: File;
-  projectCImage: File;
-  useAiNarrative: boolean;
-  useAiEntityExtraction?: boolean;
-};
+/** Absolute URL for a backend-relative path such as `/master-plan/runs/<id>/image`. */
+export function apiUrl(path: string | undefined | null): string | null {
+  if (!path) return null;
+  return path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+}
 
-export type ExtractEntitiesPayload = {
-  image: File;
-  projectJson?: File | null;
-};
+type ImageSource = { image?: File | null; imageUrl?: string | null };
 
-export type AnalyseMasterPlanPayload = {
-  image: File;
+function appendImageSource(formData: FormData, source: ImageSource): void {
+  if (source.image) {
+    formData.append("master_plan_image_file", source.image);
+  } else if (source.imageUrl && source.imageUrl.trim()) {
+    formData.append("master_plan_image_url", source.imageUrl.trim());
+  } else {
+    throw new Error("Provide a master plan image file or an image URL.");
+  }
+}
+
+async function postForm<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { method: "POST", body: formData });
+  const text = await response.text();
+  if (!response.ok) {
+    let detail = text;
+    try {
+      detail = (JSON.parse(text) as { detail?: string }).detail ?? text;
+    } catch {
+      // plain-text error body
+    }
+    throw new Error(detail || `Request failed with status ${response.status}`);
+  }
+  return JSON.parse(text) as T;
+}
+
+export type AnalyseMasterPlanPayload = ImageSource & {
   projectJson?: File | null;
   runAreaEstimate?: boolean;
   siteRecords?: Record<string, number | null> | null;
 };
 
+/** Entity map plus, when a project JSON is supplied, key-value site metrics. */
 export async function analyseMasterPlan(payload: AnalyseMasterPlanPayload): Promise<MasterPlanAnalysisResponse> {
   const formData = new FormData();
-  formData.append("master_plan_image_file", payload.image);
+  appendImageSource(formData, payload);
   if (payload.projectJson) {
     formData.append("project_json_file", payload.projectJson);
   }
@@ -39,76 +52,19 @@ export async function analyseMasterPlan(payload: AnalyseMasterPlanPayload): Prom
   if (payload.siteRecords) {
     formData.append("site_records_json", JSON.stringify(payload.siteRecords));
   }
-
-  const response = await fetch(`${API_BASE_URL}/master-plan/analysis`, {
-    method: "POST",
-    body: formData,
-  });
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(text || `Request failed with status ${response.status}`);
-  }
-
-  return JSON.parse(text) as MasterPlanAnalysisResponse;
+  return postForm<MasterPlanAnalysisResponse>("/master-plan/analysis", formData);
 }
 
-export async function extractMasterPlanEntities(
-  payload: ExtractEntitiesPayload
-): Promise<MasterPlanEntityResponse> {
+export type ExtractEntitiesPayload = ImageSource & {
+  projectJson?: File | null;
+};
+
+/** Entity map only: the fast path for the hover viewer. */
+export async function extractMasterPlanEntities(payload: ExtractEntitiesPayload): Promise<MasterPlanEntityResponse> {
   const formData = new FormData();
-  formData.append("master_plan_image_file", payload.image);
+  appendImageSource(formData, payload);
   if (payload.projectJson) {
     formData.append("project_json_file", payload.projectJson);
   }
-
-  const response = await fetch(`${API_BASE_URL}/master-plan/entities`, {
-    method: "POST",
-    body: formData,
-  });
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(text || `Request failed with status ${response.status}`);
-  }
-
-  return JSON.parse(text) as MasterPlanEntityResponse;
-}
-
-export async function compareMasterPlans(
-  payload: CompareMasterPlansPayload
-): Promise<MasterPlanComparisonResponse> {
-  const formData = new FormData();
-
-  formData.append("project_a_json_file", payload.projectAJson);
-  formData.append("project_a_master_plan_image_file", payload.projectAImage);
-
-  formData.append("project_b_json_file", payload.projectBJson);
-  formData.append("project_b_master_plan_image_file", payload.projectBImage);
-
-  formData.append("project_c_json_file", payload.projectCJson);
-  formData.append("project_c_master_plan_image_file", payload.projectCImage);
-
-  formData.append("run_vision", "true");
-  formData.append("run_segmentation", "true");
-  formData.append("run_area_estimate", "true");
-  formData.append("run_category_comparison", "true");
-  formData.append("write_report", "true");
-  formData.append("use_ai_narrative", payload.useAiNarrative ? "true" : "false");
-  formData.append("use_ai_entity_extraction", payload.useAiEntityExtraction ? "true" : "false");
-
-  const response = await fetch(`${API_BASE_URL}/compare-master-plans`, {
-    method: "POST",
-    body: formData,
-  });
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(text || `Request failed with status ${response.status}`);
-  }
-
-  return JSON.parse(text) as MasterPlanComparisonResponse;
+  return postForm<MasterPlanEntityResponse>("/master-plan/entities", formData);
 }

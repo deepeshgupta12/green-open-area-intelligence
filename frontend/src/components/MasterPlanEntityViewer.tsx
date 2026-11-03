@@ -12,6 +12,8 @@ import type {
 type MasterPlanEntityViewerProps = {
   title: string;
   imageFile: File | null;
+  /** Used when there is no local file, e.g. a plan fetched from a URL and served back by the API. */
+  imageUrl?: string | null;
   entityMap: MasterPlanEntityMap;
 };
 
@@ -117,8 +119,9 @@ function useObjectUrl(file: File | null): string | null {
   return url;
 }
 
-export function MasterPlanEntityViewer({ title, imageFile, entityMap }: MasterPlanEntityViewerProps) {
-  const imageUrl = useObjectUrl(imageFile);
+export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, entityMap }: MasterPlanEntityViewerProps) {
+  const objectUrl = useObjectUrl(imageFile);
+  const imageUrl = objectUrl ?? remoteUrl ?? null;
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
