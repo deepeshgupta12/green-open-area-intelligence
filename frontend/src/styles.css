@@ -1430,6 +1430,80 @@ input {
   cursor: pointer;
 }
 
+/* Sub-headings inside a card (e.g. evidence under an estimate) */
+.analysis-card h5 {
+  margin: 14px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--viz-muted);
+}
+
+.viz-value.is-small {
+  font-size: 11px;
+}
+
+.viz-track {
+  stroke: var(--viz-grid);
+  stroke-width: 2;
+}
+
+.viz-inlabel {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.viz-legend-note {
+  flex-basis: 100%;
+  color: var(--viz-ink-soft);
+}
+
+.viz-legend-note em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--viz-ink);
+}
+
+.reasons-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  line-height: 1.5;
+  color: var(--viz-ink-soft);
+}
+
+.heat-grid {
+  width: 100%;
+  max-width: 420px;
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.heat-grid th {
+  padding: 4px 6px;
+  color: var(--viz-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.heat-grid tbody th {
+  text-align: right;
+}
+
+.heat-grid td {
+  height: 52px;
+  border-radius: 8px;
+  background: #f6f8f4;
+  color: var(--viz-ink);
+  font-weight: 700;
+  text-align: center;
+}
+
 .hbar-row.is-active path {
   filter: brightness(0.88);
 }

@@ -58,6 +58,12 @@ const DIAGNOSTIC_LABELS: Record<string, (d: Diagnostic) => string> = {
     }.`,
   phantom_markers_discarded: (d) => `${d.count} legend markers detected on blank background were discarded.`,
   marker_tile_failed: (d) => `${d.count} marker tile${d.count === 1 ? "" : "s"} failed to return usable output.`,
+  unsupported_water_discarded: (d) =>
+    `${d.count} drawn water feature${d.count === 1 ? "" : "s"} with no legend or records support failed a second look at the crop and ${
+      d.count === 1 ? "was" : "were"
+    } discarded: ${d.items.join("; ")}.`,
+  water_verification_failed: (d) =>
+    `${d.count} drawn water feature${d.count === 1 ? "" : "s"} could not be re-checked and ${d.count === 1 ? "was" : "were"} kept.`,
   wing_pass_rerun: () => "The residential wing pass was re-run because its first boxes looked fabricated.",
   wing_pass_failed: () => "The dedicated residential wing pass failed; wings come from the structures pass.",
 };

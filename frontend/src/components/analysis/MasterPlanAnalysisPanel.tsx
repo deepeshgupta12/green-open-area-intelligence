@@ -4,11 +4,12 @@ import { apiUrl } from "../../lib/api";
 import type { MasterPlanAnalysisResponse } from "../../types";
 import { MasterPlanEntityViewer, describeDiagnostic } from "../MasterPlanEntityViewer";
 import { AmenitySection } from "./AmenitySection";
-import { BlockAccessMatrix } from "./BlockAccessMatrix";
 import { DensityProfile } from "./DensityProfile";
 import { LandAllocationSankey } from "./LandAllocationSankey";
+import { LandUseSection } from "./LandUseSection";
 import { MasterPlanCompositionCard } from "./MasterPlanCompositionCard";
 import { SiteZoningCard } from "./SiteZoningCard";
+import { SpatialAccessSection } from "./SpatialAccessSection";
 
 type MasterPlanAnalysisPanelProps = {
   title: string;
@@ -42,8 +43,8 @@ export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPl
         <div className="cta-banner">
           <FileJson size={18} aria-hidden="true" />
           <p>
-            <strong>Add the project&apos;s Datacenter JSON</strong> to unlock the site zoning, density benchmark and
-            land allocation dashboards for this plan.
+            <strong>Add the project&apos;s Datacenter JSON</strong> to unlock the green and open area estimate, site zoning,
+            home mix, density benchmark and land allocation dashboards for this plan.
           </p>
         </div>
       )}
@@ -66,6 +67,8 @@ export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPl
         <MasterPlanEntityViewer title={title} imageFile={imageFile} imageUrl={servedImageUrl} entityMap={entityMap} />
       )}
 
+      <LandUseSection entityMap={entityMap} metrics={metrics} estimate={analysis.area_estimate} />
+
       {metrics && (
         <MasterPlanCompositionCard
           entityMap={entityMap}
@@ -78,7 +81,7 @@ export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPl
       )}
 
       <AmenitySection entityMap={entityMap} />
-      <BlockAccessMatrix blocks={entityMap.block_proximity} />
+      <SpatialAccessSection entityMap={entityMap} />
 
       {metrics && <DensityProfile metrics={metrics} />}
       {metrics && <LandAllocationSankey metrics={metrics} />}

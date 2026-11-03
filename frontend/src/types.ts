@@ -228,13 +228,51 @@ export type SiteMetrics = {
   constants: Record<string, number>;
 };
 
+// --------------------------------------------------------------------------- //
+// Green / open area estimate (vision + OpenCV + project signals)
+// --------------------------------------------------------------------------- //
+
+export type EstimateRange = {
+  min: number;
+  max: number;
+  display: string;
+  basis?: string | null;
+};
+
+export type AreaEstimateEvidence = {
+  opencv_green_percentage?: number | null;
+  opencv_water_percentage?: number | null;
+  opencv_built_percentage?: number | null;
+  opencv_paved_percentage?: number | null;
+  opencv_unknown_percentage?: number | null;
+  vision_green_estimate?: string | null;
+  vision_open_estimate?: string | null;
+  vision_built_estimate?: string | null;
+  image_quality_score?: number | null;
+  image_quality_label?: string | null;
+  [key: string]: unknown;
+};
+
+export type AreaEstimate = {
+  project_id?: string | null;
+  project_name?: string | null;
+  green_area_percentage: EstimateRange;
+  open_area_percentage: EstimateRange;
+  confidence: { score: number; label: string; reasons: string[] };
+  guardrails?: { passed: boolean; warnings: string[]; adjustments: string[] };
+  compare_module_display?: { tooltip?: string | null; [key: string]: unknown };
+  evidence_summary?: AreaEstimateEvidence;
+  warnings?: string[];
+  notes?: string[];
+};
+
 export type MasterPlanAnalysisResponse = {
   run_id: string;
   image_url?: string;
   source_image_url?: string | null;
   entity_map: MasterPlanEntityMap;
   site_metrics: SiteMetrics | null;
-  area_estimate: Record<string, unknown> | null;
+  area_estimate: AreaEstimate | null;
   image_metadata: Record<string, unknown>;
   diagnostics: Diagnostic[];
   run_artifacts: Record<string, unknown>;
