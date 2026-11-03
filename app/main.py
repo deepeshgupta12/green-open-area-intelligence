@@ -1,8 +1,11 @@
+import re
 from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.services.area_calculator import build_area_estimate
@@ -22,6 +25,7 @@ from app.services.report_writer import write_final_outputs
 from app.services.segmentation_engine import run_opencv_segmentation
 from app.services.vision_analyzer import analyze_master_plan_with_gemini
 from app.utils.file_utils import ensure_directory, write_json_file
+from app.utils.remote_image import IMAGE_EXTENSIONS, RemoteImageError, download_image
 
 
 app = FastAPI(
@@ -532,20 +536,74 @@ async def _process_compare_project_bundle(
     }
 
 
+RUN_ID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+RUN_KINDS = ("analysis_runs", "entity_runs")
+
+
+async def _resolve_master_plan_image(
+    upload: UploadFile | None,
+    url: str | None,
+    run_input_dir: Path,
+) -> Path:
+    """Store the master plan from an upload or a URL and return its path."""
+    settings = get_settings()
+    if upload is not None and upload.filename:
+        image_path = run_input_dir / _safe_upload_name(upload.filename, fallback_extension=".jpg")
+        await _save_upload_file(upload, image_path)
+        return image_path
+
+    if url and url.strip():
+        try:
+            return await run_in_threadpool(
+                download_image,
+                url.strip(),
+                run_input_dir,
+                max_bytes=settings.max_image_size_mb * 1024 * 1024,
+            )
+        except RemoteImageError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:  # noqa: BLE001 - network failures are the caller's problem to retry
+            raise HTTPException(status_code=502, detail=f"Could not fetch the image URL: {exc}") from exc
+
+    raise HTTPException(
+        status_code=400,
+        detail="Provide master_plan_image_file (upload) or master_plan_image_url.",
+    )
+
+
+@app.get("/master-plan/runs/{run_id}/image")
+def master_plan_run_image(run_id: str) -> FileResponse:
+    """Serve the stored master plan for a run so the UI can display URL-sourced plans."""
+    if not RUN_ID_PATTERN.match(run_id):
+        raise HTTPException(status_code=404, detail="Unknown run.")
+
+    settings = get_settings()
+    for kind in RUN_KINDS:
+        run_dir = settings.data_input_dir / kind / run_id
+        if not run_dir.is_dir():
+            continue
+        for candidate in sorted(run_dir.iterdir()):
+            if candidate.is_file() and candidate.suffix.lower() in IMAGE_EXTENSIONS:
+                return FileResponse(candidate)
+    raise HTTPException(status_code=404, detail="No image stored for this run.")
+
+
 @app.post("/master-plan/analysis")
 async def analyse_master_plan(
-    master_plan_image_file: UploadFile = File(...),
+    master_plan_image_file: UploadFile | None = File(None),
+    master_plan_image_url: str | None = Form(None),
     project_json_file: UploadFile | None = File(None),
     run_area_estimate: bool = Form(True),
     site_records_json: str | None = Form(None),
 ) -> dict:
     """Entity map plus key-value site metrics for the analysis dashboards.
 
-    Without a project JSON only the entity map is produced. With one, the
-    open/green estimate pipeline runs (unless disabled) and the metrics engine
-    combines project records, the estimate, the entity map and the density
-    benchmark dataset. ``site_records_json`` can carry sanction figures (FSI,
-    clubhouse area, UDS) that are not in the Datacenter feed.
+    The plan comes either as an upload or as a public image URL fetched
+    server-side. Without a project JSON only the entity map is produced. With
+    one, the open/green estimate pipeline runs (unless disabled) and the
+    metrics engine combines project records, the estimate, the entity map and
+    the density benchmark dataset. ``site_records_json`` can carry sanction
+    figures (FSI, clubhouse area, UDS) that are not in the Datacenter feed.
     """
     settings = get_settings()
     run_id = str(uuid4())
@@ -553,11 +611,7 @@ async def analyse_master_plan(
     run_input_dir = ensure_directory(settings.data_input_dir / "analysis_runs" / run_id)
     run_output_dir = ensure_directory(settings.data_output_dir / "analysis_runs" / run_id)
 
-    image_path = run_input_dir / _safe_upload_name(
-        master_plan_image_file.filename or "master_plan.jpg",
-        fallback_extension=".jpg",
-    )
-    await _save_upload_file(master_plan_image_file, image_path)
+    image_path = await _resolve_master_plan_image(master_plan_image_file, master_plan_image_url, run_input_dir)
 
     project_json_path: Path | None = None
     if project_json_file is not None and project_json_file.filename:
@@ -612,6 +666,8 @@ async def analyse_master_plan(
 
         return {
             "run_id": run_id,
+            "image_url": f"/master-plan/runs/{run_id}/image",
+            "source_image_url": master_plan_image_url.strip() if master_plan_image_url else None,
             "entity_map": entity_map.model_dump(mode="json"),
             "site_metrics": site_metrics.model_dump(mode="json") if site_metrics else None,
             "area_estimate": area_estimate.model_dump(mode="json") if area_estimate else None,
@@ -635,13 +691,15 @@ async def analyse_master_plan(
 
 @app.post("/master-plan/entities")
 async def extract_master_plan_entity_map(
-    master_plan_image_file: UploadFile = File(...),
+    master_plan_image_file: UploadFile | None = File(None),
+    master_plan_image_url: str | None = Form(None),
     project_json_file: UploadFile | None = File(None),
 ) -> dict:
     """Locate every visible entity on one master plan for the hover viewer.
 
-    The project JSON is optional; when present it seeds the model with the
-    declared amenity list and tags the result with the project id.
+    The plan comes either as an upload or as a public image URL. The project
+    JSON is optional; when present it seeds the model with the declared
+    amenity list and tags the result with the project id.
     """
     settings = get_settings()
     run_id = str(uuid4())
@@ -649,11 +707,7 @@ async def extract_master_plan_entity_map(
     run_input_dir = ensure_directory(settings.data_input_dir / "entity_runs" / run_id)
     run_output_dir = ensure_directory(settings.data_output_dir / "entity_runs" / run_id)
 
-    image_path = run_input_dir / _safe_upload_name(
-        master_plan_image_file.filename or "master_plan.jpg",
-        fallback_extension=".jpg",
-    )
-    await _save_upload_file(master_plan_image_file, image_path)
+    image_path = await _resolve_master_plan_image(master_plan_image_file, master_plan_image_url, run_input_dir)
 
     project_json_path: Path | None = None
     if project_json_file is not None and project_json_file.filename:
@@ -671,6 +725,8 @@ async def extract_master_plan_entity_map(
 
         return {
             "run_id": run_id,
+            "image_url": f"/master-plan/runs/{run_id}/image",
+            "source_image_url": master_plan_image_url.strip() if master_plan_image_url else None,
             "entity_map": entity_map.model_dump(mode="json"),
             "image_metadata": image_metadata.model_dump(mode="json"),
             "run_artifacts": {

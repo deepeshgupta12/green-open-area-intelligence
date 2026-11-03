@@ -116,6 +116,65 @@ def test_master_plan_analysis_rejects_bad_site_records(monkeypatch):
     assert response.status_code == 400
 
 
+def test_master_plan_endpoints_accept_an_image_url(monkeypatch):
+    def fake_extract(image_metadata, project=None):
+        return parse_master_plan_entity_payload(
+            build_sample_payload(),
+            image_width=image_metadata.dimensions.width,
+            image_height=image_metadata.dimensions.height,
+        )
+
+    fetched: dict = {}
+
+    def fake_download(url, destination_dir, *, max_bytes):
+        # Stand in for the network: copy the fixture plan into the run folder.
+        fetched["url"] = url
+        fetched["max_bytes"] = max_bytes
+        destination = Path(destination_dir) / "plan-from-url.jpg"
+        destination.write_bytes(find_master_plan_image().read_bytes())
+        return destination
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+    monkeypatch.setattr("app.main.download_image", fake_download)
+
+    response = client.post(
+        "/master-plan/entities",
+        data={"master_plan_image_url": "https://example.com/plans/sattva-lumina.jpg"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert fetched["url"] == "https://example.com/plans/sattva-lumina.jpg"
+    assert fetched["max_bytes"] > 0
+    assert payload["source_image_url"] == "https://example.com/plans/sattva-lumina.jpg"
+    assert payload["image_url"] == f"/master-plan/runs/{payload['run_id']}/image"
+
+    # The stored copy is served back for display.
+    image = client.get(payload["image_url"])
+    assert image.status_code == 200
+    assert image.headers["content-type"].startswith("image/")
+
+    assert client.get("/master-plan/runs/not-a-run-id/image").status_code == 404
+    assert client.get("/master-plan/runs/00000000-0000-0000-0000-000000000000/image").status_code == 404
+
+
+def test_master_plan_endpoints_require_a_source(monkeypatch):
+    response = client.post("/master-plan/analysis", data={"run_area_estimate": "false"})
+    assert response.status_code == 400
+    assert "master_plan_image_url" in response.json()["detail"]
+
+
+def test_master_plan_endpoints_reject_bad_urls(monkeypatch):
+    from app.utils.remote_image import RemoteImageError
+
+    def failing_download(url, destination_dir, *, max_bytes):
+        raise RemoteImageError("Image URL must point to a public host.")
+
+    monkeypatch.setattr("app.main.download_image", failing_download)
+    response = client.post("/master-plan/entities", data={"master_plan_image_url": "http://127.0.0.1/plan.jpg"})
+    assert response.status_code == 400
+    assert "public host" in response.json()["detail"]
+
+
 def test_master_plan_entities_endpoint_without_project_json(monkeypatch):
     def fake_extract(image_metadata, project=None):
         assert project is None
