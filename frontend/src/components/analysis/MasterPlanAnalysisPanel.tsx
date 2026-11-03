@@ -4,6 +4,7 @@ import { apiUrl } from "../../lib/api";
 import type { MasterPlanAnalysisResponse } from "../../types";
 import { MasterPlanEntityViewer, describeDiagnostic } from "../MasterPlanEntityViewer";
 import { AmenitySection } from "./AmenitySection";
+import { BlockPlanSection } from "./BlockPlanSection";
 import { DensityProfile } from "./DensityProfile";
 import { LandAllocationSankey } from "./LandAllocationSankey";
 import { LandUseSection } from "./LandUseSection";
@@ -23,6 +24,7 @@ export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPl
   const entityMap = analysis.entity_map;
   const [viewerOpen, setViewerOpen] = useState(false);
   const servedImageUrl = imageFile ? null : apiUrl(analysis.image_url);
+  const isBlockPlan = entityMap.site.drawing_style === "block_plan";
   const toggleViewer = () => setViewerOpen((open) => !open);
 
   return (
@@ -80,8 +82,8 @@ export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPl
         />
       )}
 
-      <AmenitySection entityMap={entityMap} />
-      <SpatialAccessSection entityMap={entityMap} />
+      {isBlockPlan ? <BlockPlanSection entityMap={entityMap} /> : <AmenitySection entityMap={entityMap} />}
+      <SpatialAccessSection entityMap={entityMap} showPlacement={!isBlockPlan} />
 
       {metrics && <DensityProfile metrics={metrics} />}
       {metrics && <LandAllocationSankey metrics={metrics} />}

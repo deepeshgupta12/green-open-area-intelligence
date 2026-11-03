@@ -231,3 +231,32 @@ def test_master_plan_analysis_estimates_green_and_open_area_without_project_json
     # ...while the record-based metrics stay absent and the diagnostic says why.
     assert payload["site_metrics"] is None
     assert any(item["code"] == "project_json_missing" for item in payload["diagnostics"])
+
+
+def test_block_plan_estimate_is_low_confidence(monkeypatch):
+    def fake_extract(image_metadata, project=None):
+        payload = build_sample_payload()
+        payload["legend_items"] = []  # a line drawing prints no legend
+        entity_map = parse_master_plan_entity_payload(
+            payload, image_width=image_metadata.dimensions.width, image_height=image_metadata.dimensions.height
+        )
+        return entity_map.model_copy(update={"site": entity_map.site.model_copy(update={"drawing_style": "block_plan"})})
+
+    def fake_vision(project, image_metadata):
+        return build_mock_vision(project_id=project.project_id, project_name=project.project_name)
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+    monkeypatch.setattr("app.main.analyze_master_plan_with_gemini", fake_vision)
+
+    with find_master_plan_image().open("rb") as image_file:
+        response = client.post(
+            "/master-plan/analysis",
+            files={"master_plan_image_file": ("plan.jpg", image_file, "image/jpeg")},
+            data={"run_area_estimate": "true"},
+        )
+
+    assert response.status_code == 200, response.text
+    estimate = response.json()["area_estimate"]
+    assert estimate["confidence"]["label"] == "Low" and estimate["confidence"]["score"] <= 0.4
+    assert any("block plan" in reason for reason in estimate["confidence"]["reasons"])
+    assert estimate["compare_module_display"]["confidence_label"] == "Low Confidence"

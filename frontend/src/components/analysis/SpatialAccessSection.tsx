@@ -8,21 +8,27 @@ import { HBarChart, HeatGrid } from "./PlanCharts";
 
 type SpatialAccessSectionProps = {
   entityMap: MasterPlanEntityMap;
+  /** Block plans draw no amenities, so the placement grid is skipped there. */
+  showPlacement?: boolean;
 };
 
-export function SpatialAccessSection({ entityMap }: SpatialAccessSectionProps) {
+export function SpatialAccessSection({ entityMap, showPlacement = true }: SpatialAccessSectionProps) {
   const blocks = entityMap.block_proximity;
   return (
     <section className="analysis-section">
       <header className="analysis-section-header">
         <div>
           <h3>Spatial &amp; Access</h3>
-          <p className="analysis-subtitle">Where the amenities and green sit on the drawing, and what each residential block is exposed to.</p>
+          <p className="analysis-subtitle">
+            {showPlacement
+              ? "Where the amenities and green sit on the drawing, and what each residential block is exposed to."
+              : "What each tower is exposed to: roads, gates, parking and the green parcels drawn beside it."}
+          </p>
         </div>
       </header>
 
-      <div className="analysis-grid-2">
-        <PlacementHeatmapCard entityMap={entityMap} />
+      <div className={showPlacement ? "analysis-grid-2" : "analysis-section"}>
+        {showPlacement && <PlacementHeatmapCard entityMap={entityMap} />}
         <BlockExposureCard blocks={blocks} />
       </div>
       <BlockAccessMatrix blocks={blocks} />

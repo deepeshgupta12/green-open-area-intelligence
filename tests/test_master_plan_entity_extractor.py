@@ -783,3 +783,27 @@ def test_footprint_crop_verdicts_drop_only_rejected_candidates():
     raws = [{"box_2d": [1, 1, 2, 2]}, {"box_2d": [3, 3, 4, 4]}, {"box_2d": [5, 5, 6, 6]}]
     kept, rejected = keep_verified_footprints(raws, [{"is_building": True}, {"is_building": False, "what": "parcel"}, None])
     assert kept == [raws[0], raws[2]] and rejected == 1
+
+
+def test_phase_highlight_is_decided_from_measured_fill():
+    from app.schemas.master_plan_entity_schema import EntityBox
+    from app.services.master_plan_entity_extractor import HIGHLIGHT_MIN_SHARE, fill_saturation_share, mark_highlighted_blocks
+
+    image = Image.new("RGB", (200, 100), "white")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((10, 10, 90, 90), fill=(235, 150, 200))  # magenta-hatched phase tower
+    draw.rectangle((110, 10, 190, 90), outline=(40, 40, 40), width=2)  # bare outline
+    pink = fill_saturation_share(image, EntityBox(x_min=0.05, y_min=0.1, x_max=0.45, y_max=0.9))
+    outline = fill_saturation_share(image, EntityBox(x_min=0.55, y_min=0.1, x_max=0.95, y_max=0.9))
+    assert pink > HIGHLIGHT_MIN_SHARE > outline
+
+    payload = build_sample_payload()
+    payload["entities"][0]["attributes"] = [{"key": "wing", "value": "A"}, {"key": "highlighted", "value": "yes"}]  # model guess
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    wing_a = next(e for e in entity_map.entities if e.label == "Wing - A")
+    wing_b = next(e for e in entity_map.entities if e.label == "Wing - B")
+    marked = mark_highlighted_blocks(entity_map, {wing_a.entity_id: 0.02, wing_b.entity_id: 0.6})
+    by_label = {e.label: e.attributes for e in marked.entities if e.entity_type == "residential_block"}
+    assert by_label["Wing - A"] == {"wing": "A"}  # the guess is cleared by the measurement
+    assert by_label["Wing - B"] == {"highlighted": "yes"}
+    assert mark_highlighted_blocks(marked, {}) is marked

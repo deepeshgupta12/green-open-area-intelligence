@@ -40,7 +40,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 import numpy as np
 from google.genai import types
@@ -543,29 +543,7 @@ def extract_master_plan_entities(
     cols = 3 if width / max(height, 1) >= WIDE_IMAGE_ASPECT else MARKER_TILE_GRID[0]
     tiles = build_tile_specs(cols, MARKER_TILE_GRID[1], MARKER_TILE_OVERLAP)
 
-    def run_call(
-        prompt: str,
-        part: types.Part,
-        schema: type[BaseModel],
-        temperature: float = 0.0,
-        max_output_tokens: int = MAX_OUTPUT_TOKENS,
-    ) -> dict[str, Any]:
-        last_error: Exception | None = None
-        for attempt in range(CALL_ATTEMPTS):
-            attempt_temperature = temperature if attempt == 0 else max(temperature, RETRY_TEMPERATURE)
-            try:
-                response = client.models.generate_content(
-                    model=model,
-                    contents=[prompt, part],
-                    config=_generation_config(
-                        schema, temperature=attempt_temperature, max_output_tokens=max_output_tokens, model=model
-                    ),
-                )
-                return parse_model_json(response.text or "{}", schema)
-            except Exception as exc:  # noqa: BLE001 - retried once, then surfaced
-                last_error = exc
-        assert last_error is not None
-        raise last_error
+    run_call = make_runner(client, model)
 
     def run_structures() -> tuple[dict[str, Any], dict[str, Any] | None]:
         try:
@@ -654,19 +632,7 @@ def extract_master_plan_entities(
     # The wing passes sometimes shuffle names between footprints. Reading the
     # name printed inside each chosen box is cheap and settles it.
     def read_wing_label(raw: dict[str, Any]) -> str | None:
-        box = _box_from_payload(raw.get("box_2d"))
-        if box is None:
-            return None
-        try:
-            payload = run_call(
-                build_wing_label_prompt(),
-                _crop_part(image, box, pad=0.15),
-                GeminiWingLabel,
-                max_output_tokens=256,
-            )
-        except Exception:  # noqa: BLE001 - an unreadable crop just stays unverified
-            return None
-        return _clean_text(payload.get("label")) or _clean_text(payload.get("wing")) or None
+        return read_printed_label(image, raw, run_call)
 
     wing_raws = [raw for raw in structure_entities if normalize_entity_type(raw.get("entity_type")) == "residential_block"]
     if wing_raws:
@@ -821,54 +787,153 @@ def extract_master_plan_entities(
             )
         except Exception:  # noqa: BLE001 - best effort
             records = None
-        # Outline boxing varies run to run; two passes at different
-        # temperatures, merged by overlap, recover most of the sheet.
-        def run_footprints(temperature: float) -> list[dict[str, Any]]:
-            try:
-                payload = run_call(build_footprint_prompt(), full_image_part, GeminiFootprints, temperature)
-                return list(payload.get("footprints", []) or [])
-            except Exception:  # noqa: BLE001 - best effort
-                return []
-
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            footprint_passes = list(pool.map(run_footprints, (0.0, RETRY_TEMPERATURE)))
-        footprint_raws = select_footprints(
-            merge_footprint_candidates(*footprint_passes),
-            [entity for entity in entity_map.entities if entity.entity_type == "residential_block"],
+        entity_map = attach_printed_records(entity_map, records)
+        entity_map = recover_footprints(entity_map, image, full_image_part, run_call)
+        # Which towers belong to this phase is a colour fact, not a model guess.
+        entity_map = mark_highlighted_blocks(
+            entity_map,
+            {
+                entity.entity_id: fill_saturation_share(image, entity.box)
+                for entity in entity_map.entities
+                if entity.entity_type == "residential_block"
+            },
         )
 
-        # Hatched parcels are drawn at tower size too; a look at each crop
-        # keeps only real outlines (an unreadable crop keeps the candidate).
-        def check_footprint(raw: dict[str, Any]) -> dict[str, Any] | None:
-            box = _box_from_payload(raw.get("box_2d"))
-            if box is None:
-                return None
-            try:
-                return run_call(
-                    build_footprint_check_prompt(), _crop_part(image, box, pad=0.5), GeminiFootprintCheck, max_output_tokens=128
-                )
-            except Exception:  # noqa: BLE001
-                return None
-
-        rejected_footprints = 0
-        printed_names: list[str | None] = []
-        if footprint_raws:
-            with ThreadPoolExecutor(max_workers=min(8, len(footprint_raws))) as pool:
-                verdicts = list(pool.map(check_footprint, footprint_raws))
-            footprint_raws, rejected_footprints = keep_verified_footprints(footprint_raws, verdicts)
-        if footprint_raws:
-            with ThreadPoolExecutor(max_workers=min(8, len(footprint_raws))) as pool:
-                printed_names = list(pool.map(read_wing_label, footprint_raws))
-        entity_map = apply_block_plan_results(entity_map, records, footprint_raws, printed_names)
-        if rejected_footprints:
-            entity_map = entity_map.model_copy(
-                update={
-                    "diagnostics": list(entity_map.diagnostics)
-                    + [Diagnostic(code="footprint_candidates_rejected", count=rejected_footprints)]
-                }
-            )
-
     return entity_map
+
+
+# --------------------------------------------------------------------------- #
+# Reusable Gemini helpers (also used by the QA agents)
+# --------------------------------------------------------------------------- #
+
+
+ModelCall = Callable[..., dict[str, Any]]
+
+
+def make_runner(client: Any, model: str) -> ModelCall:
+    """A ``call(prompt, part, schema, temperature=0.0, max_output_tokens=...)`` with one warm retry."""
+
+    def run_call(
+        prompt: str,
+        part: types.Part,
+        schema: type[BaseModel],
+        temperature: float = 0.0,
+        max_output_tokens: int = MAX_OUTPUT_TOKENS,
+    ) -> dict[str, Any]:
+        last_error: Exception | None = None
+        for attempt in range(CALL_ATTEMPTS):
+            attempt_temperature = temperature if attempt == 0 else max(temperature, RETRY_TEMPERATURE)
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=[prompt, part],
+                    config=_generation_config(
+                        schema, temperature=attempt_temperature, max_output_tokens=max_output_tokens, model=model
+                    ),
+                )
+                return parse_model_json(response.text or "{}", schema)
+            except Exception as exc:  # noqa: BLE001 - retried once, then surfaced
+                last_error = exc
+        assert last_error is not None
+        raise last_error
+
+    return run_call
+
+
+def read_printed_label(image: Image.Image, raw: dict[str, Any], call: ModelCall) -> str | None:
+    """The building name printed inside one box, or None when nothing is printed or readable."""
+    box = _box_from_payload(raw.get("box_2d"))
+    if box is None:
+        return None
+    try:
+        payload = call(build_wing_label_prompt(), _crop_part(image, box, pad=0.15), GeminiWingLabel, 0.0, 256)
+    except Exception:  # noqa: BLE001 - an unreadable crop just stays unverified
+        return None
+    return _clean_text(payload.get("label")) or _clean_text(payload.get("wing")) or None
+
+
+def map_boxes_to_full_image(items: list[dict[str, Any]], tile: tuple[float, float, float, float]) -> list[dict[str, Any]]:
+    """Tile-local 0-1000 boxes to full-image fractional boxes, other keys kept."""
+    x0, y0, x1, y1 = tile
+    span_x, span_y = x1 - x0, y1 - y0
+    mapped: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        box = item.get("box_2d")
+        if not isinstance(box, (list, tuple)) or len(box) != 4:
+            continue
+        try:
+            ymin, xmin, ymax, xmax = (float(value) / 1000.0 for value in box)
+        except (TypeError, ValueError):
+            continue
+        mapped.append({**item, "box_2d": [y0 + ymin * span_y, x0 + xmin * span_x, y0 + ymax * span_y, x0 + xmax * span_x]})
+    return mapped
+
+
+def run_footprint_passes(image: Image.Image, full_image_part: types.Part, call: ModelCall) -> list[dict[str, Any]]:
+    """Footprint candidates from the full sheet (two temperatures) and from 2x2 tiles, merged by overlap.
+
+    Small outlines along the plot edges are missed on the full sheet and found
+    on the tiles; large ones are found on the sheet and clipped on the tiles,
+    which is why both are run and the sheet passes come first in the merge.
+    """
+
+    def run_full(temperature: float) -> list[dict[str, Any]]:
+        try:
+            payload = call(build_footprint_prompt(), full_image_part, GeminiFootprints, temperature)
+            return list(payload.get("footprints", []) or [])
+        except Exception:  # noqa: BLE001 - best effort
+            return []
+
+    def run_tile(tile: tuple[float, float, float, float]) -> list[dict[str, Any]]:
+        try:
+            payload = call(build_footprint_prompt(), _tile_part(image, tile), GeminiFootprints, 0.0)
+            return map_boxes_to_full_image(list(payload.get("footprints", []) or []), tile)
+        except Exception:  # noqa: BLE001 - best effort
+            return []
+
+    tiles = build_tile_specs(MARKER_TILE_GRID[0], MARKER_TILE_GRID[1], MARKER_TILE_OVERLAP)
+    with ThreadPoolExecutor(max_workers=2 + len(tiles)) as pool:
+        full_futures = [pool.submit(run_full, temperature) for temperature in (0.0, RETRY_TEMPERATURE)]
+        tile_futures = [pool.submit(run_tile, tile) for tile in tiles]
+        passes = [future.result() for future in full_futures] + [future.result() for future in tile_futures]
+    return merge_footprint_candidates(*passes)
+
+
+def recover_footprints(
+    entity_map: MasterPlanEntityMap, image: Image.Image, full_image_part: types.Part, call: ModelCall
+) -> MasterPlanEntityMap:
+    """Add tower footprints the earlier passes missed: candidates, size and crop checks, printed names."""
+    existing = [entity for entity in entity_map.entities if entity.entity_type == "residential_block"]
+    candidates = select_footprints(run_footprint_passes(image, full_image_part, call), existing)
+
+    # Hatched parcels are drawn at tower size too; a look at each crop keeps
+    # only real outlines (an unreadable crop keeps the candidate).
+    def check_footprint(raw: dict[str, Any]) -> dict[str, Any] | None:
+        box = _box_from_payload(raw.get("box_2d"))
+        if box is None:
+            return None
+        try:
+            return call(build_footprint_check_prompt(), _crop_part(image, box, pad=0.5), GeminiFootprintCheck, 0.0, 128)
+        except Exception:  # noqa: BLE001
+            return None
+
+    rejected = 0
+    if candidates:
+        with ThreadPoolExecutor(max_workers=min(8, len(candidates))) as pool:
+            verdicts = list(pool.map(check_footprint, candidates))
+        candidates, rejected = keep_verified_footprints(candidates, verdicts)
+    printed_names: list[str | None] = []
+    if candidates:
+        with ThreadPoolExecutor(max_workers=min(8, len(candidates))) as pool:
+            printed_names = list(pool.map(lambda raw: read_printed_label(image, raw, call), candidates))
+    result = add_footprints(entity_map, candidates, printed_names)
+    if rejected:
+        result = result.model_copy(
+            update={"diagnostics": list(result.diagnostics) + [Diagnostic(code="footprint_candidates_rejected", count=rejected)]}
+        )
+    return result
 
 
 def build_structure_prompt(project: ParsedProjectMetadata | None = None) -> str:
@@ -1481,6 +1546,46 @@ def printed_records_from_payload(payload: dict[str, Any]) -> PrintedRecords | No
     return records
 
 
+# A footprint filled with saturated colour (hatched or solid) is this phase's
+# building; measured on a stored sheet: highlighted towers 0.61-0.65, beige
+# existing towers 0.01-0.03, bare outlines 0.00.
+HIGHLIGHT_MIN_SATURATION = 0.3
+HIGHLIGHT_MIN_SHARE = 0.25
+
+
+def fill_saturation_share(image: Image.Image, box: EntityBox) -> float:
+    """Share of the box painted in saturated colour of any hue."""
+    width, height = image.size
+    left, top = int(box.x_min * width), int(box.y_min * height)
+    right, bottom = max(int(box.x_max * width), left + 1), max(int(box.y_max * height), top + 1)
+    hsv = np.asarray(image.crop((left, top, right, bottom)).convert("HSV"), dtype=np.float32)
+    saturation = hsv[..., 1] / 255.0
+    value = hsv[..., 2] / 255.0
+    return float(((saturation >= HIGHLIGHT_MIN_SATURATION) & (value > 0.3)).mean())
+
+
+def mark_highlighted_blocks(entity_map: MasterPlanEntityMap, shares: dict[str, float]) -> MasterPlanEntityMap:
+    """Set or clear the ``highlighted`` attribute of residential blocks from their measured fill."""
+    changed = False
+    entities: list[MasterPlanEntity] = []
+    for entity in entity_map.entities:
+        if entity.entity_type != "residential_block" or entity.entity_id not in shares:
+            entities.append(entity)
+            continue
+        highlighted = shares[entity.entity_id] >= HIGHLIGHT_MIN_SHARE
+        attributes = {key: value for key, value in entity.attributes.items() if key != "highlighted"}
+        if highlighted:
+            attributes["highlighted"] = "yes"
+        if attributes != entity.attributes:
+            changed = True
+            entities.append(entity.model_copy(update={"attributes": attributes}))
+        else:
+            entities.append(entity)
+    if not changed:
+        return entity_map
+    return entity_map.model_copy(update={"entities": entities})
+
+
 def merge_footprint_candidates(*passes: list[dict[str, Any]], overlap: float = 0.5) -> list[dict[str, Any]]:
     """Union of several footprint passes; a box overlapping an earlier one is the same building."""
     merged: list[tuple[dict[str, Any], EntityBox]] = []
@@ -1526,12 +1631,32 @@ def apply_block_plan_results(
     footprint_raws: list[dict[str, Any]],
     printed_names: list[str | None],
 ) -> MasterPlanEntityMap:
-    """Add footprint blocks (named from printed text, else "Footprint N") and the printed records.
+    """Printed records plus footprint blocks, in one step."""
+    return add_footprints(attach_printed_records(entity_map, records), footprint_raws, printed_names)
+
+
+def attach_printed_records(entity_map: MasterPlanEntityMap, records: PrintedRecords | None) -> MasterPlanEntityMap:
+    """Mark the map as a block plan and carry the printed records on the site summary."""
+    site = entity_map.site.model_copy(update={"drawing_style": "block_plan", "printed_records": records})
+    diagnostics = list(entity_map.diagnostics) + [
+        Diagnostic(code="block_plan_mode", count=1, items=[f"parcels:{len(records.parcels) if records else 0}"])
+    ]
+    return entity_map.model_copy(update={"site": site, "diagnostics": diagnostics})
+
+
+def add_footprints(
+    entity_map: MasterPlanEntityMap,
+    footprint_raws: list[dict[str, Any]],
+    printed_names: list[str | None],
+) -> MasterPlanEntityMap:
+    """Add footprint blocks named from printed text, else "Footprint N".
 
     A printed name that another block already carries is not trusted: the
     text on these sheets is tiny and the crop read is noisy, so the box is
     listed as an unnamed footprint rather than as a duplicate wing.
     """
+    if not footprint_raws:
+        return entity_map
     entities = list(entity_map.entities)
     used_keys = {wing_key(entity.label) for entity in entities if entity.entity_type == "residential_block"}
     used_keys.discard(None)
@@ -1568,16 +1693,11 @@ def apply_block_plan_results(
         entities.append(entity)
         added += 1
 
+    unnamed_total = sum(1 for entity in entities if entity.entity_type == "residential_block" and entity.label.startswith("Footprint "))
     diagnostics = list(entity_map.diagnostics) + [
-        Diagnostic(
-            code="block_plan_mode",
-            count=1,
-            items=[f"footprints_added:{added}", f"parcels:{len(records.parcels) if records else 0}"],
-        )
+        Diagnostic(code="footprints_added", count=added, items=[f"unnamed:{unnamed_total}"])
     ]
-    result = _with_entities(entity_map, entities, diagnostics)
-    site = result.site.model_copy(update={"drawing_style": "block_plan", "printed_records": records})
-    return result.model_copy(update={"site": site})
+    return _with_entities(entity_map, entities, diagnostics)
 
 
 _WING_KEY_RE = re.compile(r"(?:wing|tower|block|building|bldg)\s*[-–:.]?\s*([a-z]{1,2}|\d{1,3})\b")

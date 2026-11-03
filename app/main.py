@@ -15,6 +15,7 @@ from app.services.frontend_contract_validator import finalize_frontend_compariso
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
+from app.schemas.area_schema import AreaEstimateResult
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.site_metrics_schema import SiteRecords
 from app.services.density_benchmarks import load_density_benchmarks
@@ -537,6 +538,27 @@ async def _process_compare_project_bundle(
     }
 
 
+LINE_DRAWING_REASON = (
+    "The drawing is an architectural block plan (line drawing, no legend): pixel colour carries little "
+    "land-use signal, so the range rests on the vision reading alone."
+)
+
+
+def _downgrade_line_drawing_estimate(estimate: AreaEstimateResult) -> AreaEstimateResult:
+    """A block plan is a line drawing; its green/open range is Low confidence whatever the pixels say."""
+    confidence = estimate.confidence.model_copy(
+        update={
+            "label": "Low",
+            "score": round(min(estimate.confidence.score, 0.4), 2),
+            "reasons": [*estimate.confidence.reasons, LINE_DRAWING_REASON],
+        }
+    )
+    display = estimate.compare_module_display.model_copy(update={"confidence_label": "Low Confidence"})
+    return estimate.model_copy(
+        update={"confidence": confidence, "compare_module_display": display, "warnings": [*estimate.warnings, LINE_DRAWING_REASON]}
+    )
+
+
 RUN_ID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 RUN_KINDS = ("analysis_runs", "entity_runs")
 
@@ -651,6 +673,8 @@ async def analyse_master_plan(
                 area_estimate = build_area_estimate(
                     project=estimate_project, image_metadata=image_metadata, vision=vision, segmentation=segmentation
                 )
+                if entity_map.site.drawing_style == "block_plan":
+                    area_estimate = _downgrade_line_drawing_estimate(area_estimate)
                 area_estimate_path = run_output_dir / "area_estimate.json"
                 write_json_file(area_estimate_path, area_estimate.model_dump(mode="json"))
             except Exception as exc:  # noqa: BLE001 - metrics still work without the estimate
