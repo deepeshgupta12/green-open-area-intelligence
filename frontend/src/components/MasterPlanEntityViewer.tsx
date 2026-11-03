@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { AlertTriangle, Compass, MapPin, Search } from "lucide-react";
-import type {
-  Diagnostic,
-  EntityGroup,
-  MasterPlanEntity,
-  MasterPlanEntityMap,
-  ResidentialBlockProximity,
-} from "../types";
+import { AlertTriangle, MapPin, Search } from "lucide-react";
+import type { Diagnostic, EntityGroup, MasterPlanEntity, MasterPlanEntityMap, ResidentialBlockProximity } from "../types";
+import { CATEGORY_LABELS, ENTITY_GROUP_ORDER, GROUP_LABELS, humanize, isLocatedFeature } from "../lib/entityGroups";
+import { useObjectUrl } from "../lib/useObjectUrl";
+import { ChartTable } from "./analysis/ChartTable";
 
 type MasterPlanEntityViewerProps = {
   title: string;
@@ -17,45 +14,11 @@ type MasterPlanEntityViewerProps = {
   entityMap: MasterPlanEntityMap;
 };
 
-export const ENTITY_GROUP_ORDER: EntityGroup[] = [
-  "structure",
-  "circulation",
-  "amenity",
-  "landscape",
-  "water",
-  "annotation",
-];
-
-const GROUP_LABELS: Record<EntityGroup, string> = {
-  structure: "Structures",
-  circulation: "Roads & parking",
-  amenity: "Amenities",
-  landscape: "Green & landscape",
-  water: "Water",
-  annotation: "Plan annotations",
-};
-
 const LOCATED_BY_LABELS: Record<string, string> = {
   layout_model: "boxed from the drawing",
   legend_marker: "numbered legend marker",
   both: "drawing and legend marker agree",
 };
-
-const CATEGORY_LABELS: Record<string, string> = {
-  green_landscape: "Green landscape",
-  open_space: "Open space",
-  built_density: "Built density",
-  amenity_richness: "Amenity richness",
-  sports_active_lifestyle: "Sports & active lifestyle",
-  family_community: "Family & community",
-  water_leisure: "Water & leisure",
-  access_circulation: "Access & circulation",
-  environment_sustainability: "Sustainability",
-};
-
-function humanize(value: string): string {
-  return value.replace(/_/g, " ").replace(/^\w/, (char) => char.toUpperCase());
-}
 
 function joinNatural(values: string[]): string {
   if (values.length <= 1) return values.join("");
@@ -89,7 +52,10 @@ const DIAGNOSTIC_LABELS: Record<string, (d: Diagnostic) => string> = {
   marker_contradicted_boxes_discarded: (d) =>
     `${d.count} drawn boxes sat far from the legend marker for the same feature and were discarded.`,
   type_cap_trimmed: (d) => `${d.count} extra ${humanize(d.items[0] ?? "feature").toLowerCase()} boxes were trimmed.`,
-  legend_items_not_located: (d) => `${d.count} legend items were not located on the plan: ${d.items.join(", ")}.`,
+  legend_items_not_located: (d) =>
+    `${d.count} legend items were not located on the plan: ${d.items.slice(0, 8).join(", ")}${
+      d.items.length > 8 ? ` and ${d.items.length - 8} more` : ""
+    }.`,
   phantom_markers_discarded: (d) => `${d.count} legend markers detected on blank background were discarded.`,
   marker_tile_failed: (d) => `${d.count} marker tile${d.count === 1 ? "" : "s"} failed to return usable output.`,
   wing_pass_rerun: () => "The residential wing pass was re-run because its first boxes looked fabricated.",
@@ -109,14 +75,46 @@ function distanceWord(distance?: number | null): string | null {
   return "across the site from";
 }
 
-function useObjectUrl(file: File | null): string | null {
-  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
-  useEffect(() => {
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [url]);
-  return url;
+function formatFootprint(relativeArea: number): string {
+  const percent = relativeArea * 100;
+  if (percent < 0.05) return "under 0.1% of the drawing";
+  return `${percent < 1 ? percent.toFixed(2) : percent.toFixed(1)}% of the drawing`;
+}
+
+/** Where the box sits on the sheet. Plans are not north-up, so this is drawing-relative. */
+function positionWord(x: number, y: number): string {
+  const column = x < 1 / 3 ? "left" : x > 2 / 3 ? "right" : null;
+  const row = y < 1 / 3 ? "upper" : y > 2 / 3 ? "lower" : null;
+  if (!column && !row) return "centre";
+  if (!column) return `${row} middle`;
+  if (!row) return `middle ${column}`;
+  return `${row} ${column}`;
+}
+
+type Fact = { label: string; value: string };
+
+/** Every field the API returns for an entity, as label/value rows for the tooltip. */
+export function entityFacts(entity: MasterPlanEntity): Fact[] {
+  const facts: Fact[] = [];
+  if (entity.legend_label && entity.legend_label !== entity.label) {
+    facts.push({ label: "Legend", value: entity.legend_label });
+  }
+  if (entity.category_key && CATEGORY_LABELS[entity.category_key]) {
+    facts.push({ label: "Category", value: CATEGORY_LABELS[entity.category_key] });
+  }
+  facts.push({ label: "Confidence", value: entity.confidence_label });
+  facts.push({ label: "Located by", value: LOCATED_BY_LABELS[entity.located_by] ?? entity.located_by });
+  facts.push({ label: "Footprint", value: formatFootprint(entity.relative_area) });
+  facts.push({ label: "Position", value: `${positionWord(entity.center_x, entity.center_y)} of the drawing` });
+  Object.entries(entity.attributes).forEach(([key, value]) => facts.push({ label: humanize(key), value }));
+  const nearWord = distanceWord(entity.nearest_residential_distance);
+  if (entity.nearest_residential_block && nearWord) {
+    facts.push({ label: "Nearest block", value: `${nearWord} ${entity.nearest_residential_block}` });
+  }
+  if (entity.adjacent_to.length > 0) {
+    facts.push({ label: "Next to", value: entity.adjacent_to.join(", ") });
+  }
+  return facts;
 }
 
 export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, entityMap }: MasterPlanEntityViewerProps) {
@@ -146,6 +144,8 @@ export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, 
         entity.legend_label ?? "",
         entity.legend_code ?? "",
         entity.entity_type,
+        entity.nearest_residential_block ?? "",
+        ...entity.adjacent_to,
         ...Object.values(entity.attributes),
       ]
         .join(" ")
@@ -162,15 +162,26 @@ export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, 
     [visibleEntities]
   );
 
-  const groupedList = useMemo(() => {
-    const groups = new Map<EntityGroup, MasterPlanEntity[]>();
-    visibleEntities.forEach((entity) => {
-      const bucket = groups.get(entity.entity_group) ?? [];
-      bucket.push(entity);
-      groups.set(entity.entity_group, bucket);
-    });
-    groups.forEach((bucket) => bucket.sort((a, b) => a.label.localeCompare(b.label)));
-    return groups;
+  const inventoryRows = useMemo(() => {
+    const order = new Map(ENTITY_GROUP_ORDER.map((group, index) => [group, index]));
+    return visibleEntities
+      .filter(isLocatedFeature)
+      .sort(
+        (a, b) =>
+          (order.get(a.entity_group) ?? 0) - (order.get(b.entity_group) ?? 0) ||
+          a.label.localeCompare(b.label, undefined, { numeric: true })
+      )
+      .map((entity) => [
+        entity.label,
+        humanize(entity.entity_type),
+        GROUP_LABELS[entity.entity_group],
+        entity.legend_code ? `#${entity.legend_code}` : "—",
+        LOCATED_BY_LABELS[entity.located_by] ?? entity.located_by,
+        formatFootprint(entity.relative_area).replace(" of the drawing", ""),
+        positionWord(entity.center_x, entity.center_y),
+        entity.nearest_residential_block ?? "—",
+        entity.confidence_label,
+      ]);
   }, [visibleEntities]);
 
   function toggleGroup(group: EntityGroup) {
@@ -200,11 +211,13 @@ export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, 
         </div>
         <div className="entity-viewer-stats">
           <span className="status-badge is-clear">Confidence: {entityMap.extraction_confidence_label}</span>
-          <span>{entityMap.entities.length} entities</span>
-          <span>
-            {entityMap.legend.filter((item) => item.located_on_plan).length}/{entityMap.legend.length} legend
-            items located
-          </span>
+          <span>{visibleEntities.length} shown</span>
+          {activeEntity && (
+            <span className="entity-active-label">
+              {pinnedId === activeEntity.entity_id ? "Pinned: " : ""}
+              {activeEntity.label}
+            </span>
+          )}
         </div>
       </header>
 
@@ -239,11 +252,7 @@ export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, 
       </div>
 
       <div className="entity-viewer-body">
-        <div
-          className="plan-stage"
-          style={{ aspectRatio }}
-          onMouseLeave={() => setHoveredId(null)}
-        >
+        <div className="plan-stage" style={{ aspectRatio }} onMouseLeave={() => setHoveredId(null)}>
           {imageUrl ? (
             <img src={imageUrl} alt={`${title} master plan`} draggable={false} />
           ) : (
@@ -278,78 +287,14 @@ export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, 
           {activeEntity && <EntityTooltip entity={activeEntity} pinned={pinnedId === activeEntity.entity_id} />}
         </div>
 
-        <aside className="entity-sidebar">
-          <SitePanel entityMap={entityMap} />
-
-          {entityMap.block_proximity.length > 0 && (
-            <div className="entity-panel">
-              <h4>Residential blocks</h4>
-              <ul className="entity-plain-list">
-                {entityMap.block_proximity.map((block) => (
-                  <li key={block.block_label}>
-                    <strong>{block.block_label}</strong>
-                    <span>{describeProximity(block)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="entity-panel entity-list-panel">
-            <h4>Identified entities</h4>
-            {visibleEntities.length === 0 && <p className="entity-muted">Nothing matches the current filters.</p>}
-            {ENTITY_GROUP_ORDER.map((group) => {
-              const bucket = groupedList.get(group);
-              if (!bucket || bucket.length === 0) return null;
-              return (
-                <div key={group} className="entity-list-group">
-                  <p className={`entity-list-heading entity-group-${group}`}>
-                    <span className="entity-swatch" aria-hidden="true" />
-                    {GROUP_LABELS[group]} · {bucket.length}
-                  </p>
-                  <ul>
-                    {bucket.map((entity) => (
-                      <li key={entity.entity_id}>
-                        <button
-                          type="button"
-                          className={`entity-list-item${
-                            activeEntity?.entity_id === entity.entity_id ? " is-active" : ""
-                          }`}
-                          onMouseEnter={() => setHoveredId(entity.entity_id)}
-                          onMouseLeave={() => setHoveredId(null)}
-                          onFocus={() => setHoveredId(entity.entity_id)}
-                          onBlur={() => setHoveredId(null)}
-                          onClick={() => handlePin(entity)}
-                        >
-                          <span>{entity.label}</span>
-                          <small>
-                            {entity.legend_code ? `#${entity.legend_code} · ` : ""}
-                            {humanize(entity.entity_type)}
-                          </small>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
-
-          {entityMap.legend.length > 0 && (
-            <div className="entity-panel">
-              <h4>Legend coverage</h4>
-              <ul className="entity-legend-list">
-                {entityMap.legend.map((item) => (
-                  <li key={item.code} className={item.located_on_plan ? "" : "is-missing"}>
-                    <span className="entity-legend-code">{item.code}</span>
-                    <span>{item.label}</span>
-                    <small>{item.located_on_plan ? `${item.marker_count} on plan` : "not located"}</small>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </aside>
+        <details className="entity-inventory">
+          <summary>Feature inventory ({inventoryRows.length} features in the current filter)</summary>
+          <ChartTable
+            caption="Every located feature with its type, legend code, how it was placed, footprint, position, nearest residential block and confidence"
+            columns={["Feature", "Type", "Group", "Legend", "Located by", "Footprint", "Position", "Nearest block", "Confidence"]}
+            rows={inventoryRows}
+          />
+        </details>
       </div>
 
       {entityMap.diagnostics.length > 0 && (
@@ -370,59 +315,6 @@ export function MasterPlanEntityViewer({ title, imageFile, imageUrl: remoteUrl, 
   );
 }
 
-function SitePanel({ entityMap }: { entityMap: MasterPlanEntityMap }) {
-  const site = entityMap.site;
-  return (
-    <div className="entity-panel">
-      <h4>
-        <Compass size={16} /> Site overview
-      </h4>
-      <dl className="entity-facts">
-        {site.shape_class && (
-          <div>
-            <dt>Plot shape</dt>
-            <dd>{humanize(site.shape_class).replace("L shaped", "L-shaped")}</dd>
-          </div>
-        )}
-        <div>
-          <dt>Residential blocks</dt>
-          <dd>{site.residential_block_labels.length > 0 ? site.residential_block_labels.join(", ") : "none mapped"}</dd>
-        </div>
-        <div>
-          <dt>Entry / exit points</dt>
-          <dd>{site.entry_exit_count}</dd>
-        </div>
-        <div>
-          <dt>External roads</dt>
-          <dd>
-            {site.external_roads.length === 0
-              ? "none mapped"
-              : site.external_roads
-                  .map((road) => [road.label, road.width_text, road.side ? `(${road.side})` : ""].filter(Boolean).join(" "))
-                  .join("; ")}
-          </dd>
-        </div>
-        <div>
-          <dt>Parking clusters</dt>
-          <dd>{site.parking_cluster_count}</dd>
-        </div>
-        <div>
-          <dt>Utility yards</dt>
-          <dd>{site.utility_yard_count}</dd>
-        </div>
-        <div>
-          <dt>Commercial blocks</dt>
-          <dd>{site.commercial_block_count}</dd>
-        </div>
-        <div>
-          <dt>North arrow</dt>
-          <dd>{site.north_arrow_present ? "present" : "not found"}</dd>
-        </div>
-      </dl>
-    </div>
-  );
-}
-
 function EntityTooltip({ entity, pinned }: { entity: MasterPlanEntity; pinned: boolean }) {
   const anchorRight = entity.box.x_max > 0.62;
   const anchorBottom = entity.box.y_min > 0.68;
@@ -434,8 +326,7 @@ function EntityTooltip({ entity, pinned }: { entity: MasterPlanEntity; pinned: b
     bottom: anchorBottom ? `${(1 - entity.box.y_max) * 100}%` : undefined,
   };
 
-  const attributes = Object.entries(entity.attributes);
-  const nearWord = distanceWord(entity.nearest_residential_distance);
+  const facts = entityFacts(entity);
 
   return (
     <div className={`plan-tooltip entity-group-${entity.entity_group}`} style={style} role="status">
@@ -450,46 +341,12 @@ function EntityTooltip({ entity, pinned }: { entity: MasterPlanEntity; pinned: b
       </p>
 
       <dl className="plan-tooltip-facts">
-        {entity.legend_label && entity.legend_label !== entity.label && (
-          <div>
-            <dt>Legend</dt>
-            <dd>{entity.legend_label}</dd>
-          </div>
-        )}
-        {entity.category_key && CATEGORY_LABELS[entity.category_key] && (
-          <div>
-            <dt>Category</dt>
-            <dd>{CATEGORY_LABELS[entity.category_key]}</dd>
-          </div>
-        )}
-        <div>
-          <dt>Confidence</dt>
-          <dd>{entity.confidence_label}</dd>
-        </div>
-        <div>
-          <dt>Located by</dt>
-          <dd>{LOCATED_BY_LABELS[entity.located_by] ?? entity.located_by}</dd>
-        </div>
-        {attributes.map(([key, value]) => (
-          <div key={key}>
-            <dt>{humanize(key)}</dt>
-            <dd>{value}</dd>
+        {facts.map((fact, index) => (
+          <div key={`${fact.label}-${index}`}>
+            <dt>{fact.label}</dt>
+            <dd>{fact.value}</dd>
           </div>
         ))}
-        {entity.nearest_residential_block && nearWord && (
-          <div>
-            <dt>Nearest block</dt>
-            <dd>
-              {nearWord} {entity.nearest_residential_block}
-            </dd>
-          </div>
-        )}
-        {entity.adjacent_to.length > 0 && (
-          <div>
-            <dt>Next to</dt>
-            <dd>{entity.adjacent_to.join(", ")}</dd>
-          </div>
-        )}
       </dl>
       <p className="plan-tooltip-footer">
         <MapPin size={12} /> Position is a model estimate on a not-to-scale drawing.

@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { FileJson } from "lucide-react";
 import { apiUrl } from "../../lib/api";
 import type { MasterPlanAnalysisResponse } from "../../types";
 import { MasterPlanEntityViewer, describeDiagnostic } from "../MasterPlanEntityViewer";
+import { AmenitySection } from "./AmenitySection";
+import { BlockAccessMatrix } from "./BlockAccessMatrix";
 import { DensityProfile } from "./DensityProfile";
 import { LandAllocationSankey } from "./LandAllocationSankey";
+import { MasterPlanCompositionCard } from "./MasterPlanCompositionCard";
 import { SiteZoningCard } from "./SiteZoningCard";
 
 type MasterPlanAnalysisPanelProps = {
@@ -15,27 +19,32 @@ type MasterPlanAnalysisPanelProps = {
 
 export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPlanAnalysisPanelProps) {
   const metrics = analysis.site_metrics;
-  // With no project JSON the hover map is the whole result, so open it at once.
-  const [viewerOpen, setViewerOpen] = useState(!metrics);
+  const entityMap = analysis.entity_map;
+  const [viewerOpen, setViewerOpen] = useState(false);
   const servedImageUrl = imageFile ? null : apiUrl(analysis.image_url);
+  const toggleViewer = () => setViewerOpen((open) => !open);
 
   return (
     <div className="analysis-root">
       {metrics ? (
-        <SiteZoningCard
-          metrics={metrics}
+        <SiteZoningCard metrics={metrics} imageFile={imageFile} imageUrl={servedImageUrl} onInspect={toggleViewer} />
+      ) : (
+        <MasterPlanCompositionCard
+          entityMap={entityMap}
           imageFile={imageFile}
           imageUrl={servedImageUrl}
-          onInspect={() => setViewerOpen((open) => !open)}
+          viewerOpen={viewerOpen}
+          onInspect={toggleViewer}
         />
-      ) : (
-        <div className="analysis-card">
-          <p className="entity-muted">
-            Upload the project&apos;s Datacenter JSON alongside the plan to get parcel, density and allocation metrics. The entity map below works without it.
+      )}
+
+      {!metrics && (
+        <div className="cta-banner">
+          <FileJson size={18} aria-hidden="true" />
+          <p>
+            <strong>Add the project&apos;s Datacenter JSON</strong> to unlock the site zoning, density benchmark and
+            land allocation dashboards for this plan.
           </p>
-          <button type="button" className="secondary-button" onClick={() => setViewerOpen((open) => !open)}>
-            {viewerOpen ? "Hide master plan" : "Inspect master plan"}
-          </button>
         </div>
       )}
 
@@ -54,8 +63,22 @@ export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPl
       )}
 
       {viewerOpen && (
-        <MasterPlanEntityViewer title={title} imageFile={imageFile} imageUrl={servedImageUrl} entityMap={analysis.entity_map} />
+        <MasterPlanEntityViewer title={title} imageFile={imageFile} imageUrl={servedImageUrl} entityMap={entityMap} />
       )}
+
+      {metrics && (
+        <MasterPlanCompositionCard
+          entityMap={entityMap}
+          imageFile={imageFile}
+          imageUrl={servedImageUrl}
+          viewerOpen={viewerOpen}
+          onInspect={toggleViewer}
+          showPlan={false}
+        />
+      )}
+
+      <AmenitySection entityMap={entityMap} />
+      <BlockAccessMatrix blocks={entityMap.block_proximity} />
 
       {metrics && <DensityProfile metrics={metrics} />}
       {metrics && <LandAllocationSankey metrics={metrics} />}
