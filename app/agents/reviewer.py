@@ -288,10 +288,23 @@ def run_model_review(
     seen = observed["towers_seen"]
 
     # A1 from the model's count: the count decides the severity, not the model's
-    # wording. A single tower of difference is within the count's own noise.
+    # wording. On a block plan every gap is worth a repair round because the
+    # footprint recovery is cheap and only adds verified outlines; on a
+    # rendered plan, with no recipe, a single tower is within the count's noise.
     if seen > 0 and boxed < seen:
         gap = seen - boxed
-        severity = "blocker" if gap >= 3 or (seen >= 5 and boxed < 0.7 * seen) else "major" if gap == 2 else "minor"
+        if gap >= 3 or (seen >= 5 and boxed < 0.7 * seen):
+            severity = "blocker"
+        elif gap == 2 or scope == "block_plan":
+            severity = "major"
+        else:
+            severity = "minor"
+        # A count the recovery pass has already been sent after twice, and
+        # could not satisfy, is more likely the count's error than a missing
+        # tower: it is no longer a blocker.
+        attempts = sum(1 for diagnostic in entity_map.diagnostics if diagnostic.code == "footprint_recovery_attempted")
+        if severity == "blocker" and attempts >= 2:
+            severity = "major"
         findings.append(Finding(
             code="missed_blocks", severity=severity, source="model",
             detail=f"The reviewer sees {seen} towers; {boxed} are boxed ({gap} missing).",

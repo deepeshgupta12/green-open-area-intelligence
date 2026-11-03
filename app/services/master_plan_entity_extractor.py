@@ -813,6 +813,17 @@ def extract_master_plan_entities(
             records = None
         entity_map = attach_printed_records(entity_map, records)
         entity_map = recover_footprints(entity_map, image, full_image_part, run_call)
+
+        # A wing box that spans two towers is dropped or split once the
+        # footprint pass has boxed what it covers.
+        def remainder_is_building(box: EntityBox) -> bool:
+            try:
+                verdict = run_call(build_footprint_check_prompt(), _crop_part(image, box, pad=0.15), GeminiFootprintCheck, 0.0, 128)
+            except Exception:  # noqa: BLE001
+                return False
+            return bool(verdict.get("is_building"))
+
+        entity_map = split_umbrella_blocks(entity_map, verify=remainder_is_building)
         # Which towers belong to this phase is a colour fact, not a model guess.
         entity_map = mark_highlighted_blocks(
             entity_map,
@@ -1082,31 +1093,48 @@ def recover_footprints(
     candidates = select_footprints(run_footprint_passes(image, full_image_part, call), existing)
 
     # Hatched parcels are drawn at tower size too; a look at each crop keeps
-    # only real outlines (an unreadable crop keeps the candidate).
-    def check_footprint(raw: dict[str, Any]) -> dict[str, Any] | None:
+    # only real outlines. One check alone rejects real towers now and then,
+    # so a rejection must be confirmed by a second, wider look, and a
+    # rejected outline that sits in a row of accepted towers is kept anyway.
+    def check_footprint(raw: dict[str, Any], pad: float, temperature: float) -> dict[str, Any] | None:
         box = _box_from_payload(raw.get("box_2d"))
         if box is None:
             return None
         try:
-            return call(build_footprint_check_prompt(), _crop_part(image, box, pad=0.5), GeminiFootprintCheck, 0.0, 128)
+            return call(build_footprint_check_prompt(), _crop_part(image, box, pad=pad), GeminiFootprintCheck, temperature, 128)
         except Exception:  # noqa: BLE001
             return None
 
     rejected = 0
     if candidates:
         with ThreadPoolExecutor(max_workers=min(8, len(candidates))) as pool:
-            verdicts = list(pool.map(check_footprint, candidates))
-        candidates, rejected = keep_verified_footprints(candidates, verdicts)
+            first = list(pool.map(lambda raw: check_footprint(raw, 0.5, 0.0), candidates))
+        doubtful = [raw for raw, verdict in zip(candidates, first) if verdict is not None and not verdict.get("is_building")]
+        second: dict[int, dict[str, Any] | None] = {}
+        if doubtful:
+            with ThreadPoolExecutor(max_workers=min(8, len(doubtful))) as pool:
+                second = dict(zip((id(raw) for raw in doubtful), pool.map(lambda raw: check_footprint(raw, 1.0, RETRY_TEMPERATURE), doubtful)))
+        verdicts: list[dict[str, Any] | None] = []
+        for raw, verdict in zip(candidates, first):
+            if verdict is None or verdict.get("is_building"):
+                verdicts.append(verdict)
+                continue
+            confirmation = second.get(id(raw))
+            verdicts.append(verdict if confirmation is not None and not confirmation.get("is_building") else {"is_building": True, "what": "building"})
+        kept, rejected = keep_verified_footprints(candidates, verdicts)
+        rejected_raws = [raw for raw in candidates if raw not in kept]
+        rescued = rescue_aligned_footprints(kept, rejected_raws, existing)
+        rejected -= len(rescued)
+        candidates = dedupe_footprints(kept + rescued, existing)
     printed_names: list[str | None] = []
     if candidates:
         with ThreadPoolExecutor(max_workers=min(8, len(candidates))) as pool:
             printed_names = list(pool.map(lambda raw: read_printed_label(image, raw, call), candidates))
     result = add_footprints(entity_map, candidates, printed_names)
+    extra = [Diagnostic(code="footprint_recovery_attempted", count=len(candidates))]
     if rejected:
-        result = result.model_copy(
-            update={"diagnostics": list(result.diagnostics) + [Diagnostic(code="footprint_candidates_rejected", count=rejected)]}
-        )
-    return result
+        extra.append(Diagnostic(code="footprint_candidates_rejected", count=rejected))
+    return result.model_copy(update={"diagnostics": list(result.diagnostics) + extra})
 
 
 def build_structure_prompt(project: ParsedProjectMetadata | None = None) -> str:
@@ -1810,6 +1838,167 @@ def select_footprints(raws: list[dict[str, Any]], existing_blocks: list[MasterPl
         ]
     fresh.sort(key=lambda item: (round(item[1].center[1] * 8), item[1].center[0]))
     return [raw for raw, _ in fresh]
+
+
+def dedupe_footprints(raws: list[dict[str, Any]], existing_blocks: list[MasterPlanEntity]) -> list[dict[str, Any]]:
+    """Collapse boxes whose centres sit within a fraction of a tower of each other.
+
+    IoU alone misses offset duplicates. This runs only on candidates that
+    passed the crop checks: deduplicating earlier lets a parcel candidate
+    that is about to be rejected erase the real tower beside it.
+    """
+    boxed = [(raw, box) for raw in raws if (box := _box_from_payload(raw.get("box_2d"))) is not None]
+    if not boxed:
+        return []
+    widths = sorted(box.width for _, box in boxed)
+    heights = sorted(box.height for _, box in boxed)
+    median_w, median_h = widths[len(widths) // 2], heights[len(heights) // 2]
+    fixed = [block.box.center for block in existing_blocks]
+    kept: list[tuple[dict[str, Any], EntityBox]] = []
+
+    def same_tower(a: tuple[float, float], b: tuple[float, float]) -> bool:
+        return abs(a[0] - b[0]) < 0.85 * median_w and abs(a[1] - b[1]) < 0.75 * median_h
+
+    for raw, box in boxed:
+        centre = box.center
+        if any(same_tower(centre, other) for other in fixed):
+            continue
+        twin = next((index for index, (_, other) in enumerate(kept) if same_tower(centre, other.center)), None)
+        if twin is None:
+            kept.append((raw, box))
+        elif abs(box.width - median_w) < abs(kept[twin][1].width - median_w):
+            kept[twin] = (raw, box)  # the box sized like a tower wins over a loose one
+    return [raw for raw, _ in kept]
+
+
+def rescue_aligned_footprints(
+    kept: list[dict[str, Any]],
+    rejected: list[dict[str, Any]],
+    existing_blocks: list[MasterPlanEntity],
+    *,
+    row_tolerance: float = 0.03,
+) -> list[dict[str, Any]]:
+    """Rejected candidates that sit in a row with two accepted towers are towers.
+
+    Block plans lay towers out in rows; a crop check that says "not a
+    building" for one outline in the middle of a row of accepted outlines is
+    the check being wrong, not the drawing.
+    """
+    accepted = [box for raw in kept if (box := _box_from_payload(raw.get("box_2d"))) is not None]
+    accepted += [block.box for block in existing_blocks]
+    rescued: list[dict[str, Any]] = []
+    for raw in rejected:
+        box = _box_from_payload(raw.get("box_2d"))
+        if box is None:
+            continue
+        cy = box.center[1]
+        peers = [other for other in accepted if abs(other.center[1] - cy) <= row_tolerance and other is not box]
+        if len(peers) >= 2:
+            rescued.append(raw)
+    return rescued
+
+
+def split_umbrella_blocks(
+    entity_map: MasterPlanEntityMap, verify: Callable[[EntityBox], bool] | None = None
+) -> MasterPlanEntityMap:
+    """Resolve a block box that spans two towers.
+
+    If it contains two or more separately boxed blocks it is an umbrella and
+    is dropped. If it contains exactly one, the uncovered remainder is the
+    other tower: it replaces the wide box (keeping its label) when ``verify``
+    accepts the remainder as a building outline. If it contains none and is
+    about two towers wide, it is cut in half and each half kept when
+    ``verify`` accepts it (the left half keeps the label).
+    """
+    blocks = [entity for entity in entity_map.entities if entity.entity_type == "residential_block"]
+    if len(blocks) < 3:
+        return entity_map
+    widths = sorted(block.box.width for block in blocks)
+    median_w = widths[len(widths) // 2]
+    doomed: set[str] = set()
+    replacements: dict[str, MasterPlanEntity] = {}
+    additions: list[MasterPlanEntity] = []
+    unnamed = sum(1 for block in blocks if block.label.startswith("Footprint "))
+
+    def credible(box: EntityBox, exclude: set[str]) -> bool:
+        """A crop check that says building, or a tower-sized box in a row with two other towers."""
+        if verify is not None and verify(box):
+            return True
+        cy = box.center[1]
+        peers = [other for other in blocks if other.entity_id not in exclude and abs(other.center_y - cy) <= 0.03]
+        # A remainder inherits the wide box's slack, so it may run to almost two widths.
+        return len(peers) >= 2 and 0.6 * median_w <= box.width <= 1.8 * median_w
+
+    for block in blocks:
+        if block.box.width < 1.6 * median_w:
+            continue
+        inner = [
+            other for other in blocks
+            if other.entity_id != block.entity_id and _containment(other.box, block.box) >= 0.7 and other.box.width < 1.3 * median_w
+        ]
+        if len(inner) >= 2:
+            doomed.add(block.entity_id)
+            continue
+        if len(inner) == 0 and block.box.width >= 1.8 * median_w:
+            middle = (block.box.x_min + block.box.x_max) / 2
+            left = EntityBox(x_min=block.box.x_min, y_min=block.box.y_min, x_max=middle, y_max=block.box.y_max)
+            right = EntityBox(x_min=middle, y_min=block.box.y_min, x_max=block.box.x_max, y_max=block.box.y_max)
+            if credible(left, {block.entity_id}) and credible(right, {block.entity_id}):
+                lx, ly = left.center
+                rx, ry = right.center
+                replacements[block.entity_id] = block.model_copy(
+                    update={"box": left, "center_x": round(lx, 4), "center_y": round(ly, 4), "relative_area": round(left.width * left.height, 5)}
+                )
+                unnamed += 1
+                additions.append(
+                    block.model_copy(
+                        update={
+                            "entity_id": f"{block.entity_id}-r",
+                            "label": f"Footprint {unnamed}",
+                            "attributes": {key: value for key, value in block.attributes.items() if key != "wing"},
+                            "box": right,
+                            "center_x": round(rx, 4),
+                            "center_y": round(ry, 4),
+                            "relative_area": round(right.width * right.height, 5),
+                        }
+                    )
+                )
+            continue
+        if len(inner) == 1:
+            single = inner[0].box
+            left_room = single.x_min - block.box.x_min
+            right_room = block.box.x_max - single.x_max
+            if right_room >= left_room:
+                remainder = EntityBox(x_min=single.x_max, y_min=block.box.y_min, x_max=block.box.x_max, y_max=block.box.y_max)
+            else:
+                remainder = EntityBox(x_min=block.box.x_min, y_min=block.box.y_min, x_max=single.x_min, y_max=block.box.y_max)
+            if remainder.width < 0.6 * median_w:
+                continue
+            if not credible(remainder, {block.entity_id, inner[0].entity_id}):
+                continue
+            center_x, center_y = remainder.center
+            replacements[block.entity_id] = block.model_copy(
+                update={
+                    "box": remainder,
+                    "center_x": round(center_x, 4),
+                    "center_y": round(center_y, 4),
+                    "relative_area": round(remainder.width * remainder.height, 5),
+                }
+            )
+    if not doomed and not replacements:
+        return entity_map
+    entities = [replacements.get(entity.entity_id, entity) for entity in entity_map.entities if entity.entity_id not in doomed] + additions
+    diagnostics = list(entity_map.diagnostics) + [
+        Diagnostic(code="umbrella_blocks_resolved", count=len(doomed) + len(replacements), items=[f"dropped:{len(doomed)}", f"split:{len(replacements)}"])
+    ]
+    return _with_entities(entity_map, entities, diagnostics)
+
+
+def _containment(inner: EntityBox, outer: EntityBox) -> float:
+    """Share of ``inner``'s area that lies inside ``outer``."""
+    w = max(0.0, min(inner.x_max, outer.x_max) - max(inner.x_min, outer.x_min))
+    h = max(0.0, min(inner.y_max, outer.y_max) - max(inner.y_min, outer.y_min))
+    return (w * h) / max(inner.width * inner.height, 1e-9)
 
 
 def apply_block_plan_results(

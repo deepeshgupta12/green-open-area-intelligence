@@ -424,3 +424,30 @@ def test_marker_only_finding_is_minor_once_an_expansion_was_attempted():
     attempted = entity_map.model_copy(update={"diagnostics": [*entity_map.diagnostics, Diagnostic(code="marker_expansion_attempted", count=1)]})
     minor = next(f for f in run_rule_checks(attempted, None, None, None)[0] if f.code == "marker_only_area_features")
     assert minor.severity == "minor" and "after an expansion attempt" in minor.detail
+
+
+def test_any_tower_gap_is_major_on_a_block_plan():
+    def fake_call(prompt, part, schema, temperature=0.0, max_tokens=0):
+        if schema.__name__ == "GeminiCount":
+            return {"towers_seen": 3, "pools_seen": 0, "gates_seen": 1}
+        return {"findings": []}
+
+    block_plan = build_map(legend=[], drawing_style="block_plan")
+    report = review_analysis(block_plan, None, project=None, image=None, image_part=object(), playbook=seed_playbook(), call=fake_call)
+    assert next(f for f in report.findings if f.code == "missed_blocks").severity == "major"
+
+
+def test_count_blocker_relaxes_after_two_recovery_attempts():
+    from app.schemas.master_plan_entity_schema import Diagnostic
+
+    def fake_call(prompt, part, schema, temperature=0.0, max_tokens=0):
+        if schema.__name__ == "GeminiCount":
+            return {"towers_seen": 6, "pools_seen": 0, "gates_seen": 1}
+        return {"findings": []}
+
+    block_plan = build_map(legend=[], drawing_style="block_plan")
+    first = review_analysis(block_plan, None, project=None, image=None, image_part=object(), playbook=seed_playbook(), call=fake_call)
+    assert next(f for f in first.findings if f.code == "missed_blocks").severity == "blocker"
+    attempted = block_plan.model_copy(update={"diagnostics": [*block_plan.diagnostics, Diagnostic(code="footprint_recovery_attempted", count=3), Diagnostic(code="footprint_recovery_attempted", count=0)]})
+    second = review_analysis(attempted, None, project=None, image=None, image_part=object(), playbook=seed_playbook(), call=fake_call)
+    assert next(f for f in second.findings if f.code == "missed_blocks").severity == "major" and second.verdict == "pass"

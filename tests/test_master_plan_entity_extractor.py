@@ -894,3 +894,94 @@ def test_entry_ornaments_building_doors_and_pool_decks_are_not_gates_or_water():
     assert normalize_entity_type("Entry/Exit") == "entry_exit_gate"
     assert normalize_entity_type("Swimming pool") == "swimming_pool"
     assert normalize_entity_type("Kids pool") == "swimming_pool"
+
+
+def test_offset_duplicates_rows_and_umbrellas_are_resolved():
+    from app.schemas.master_plan_entity_schema import EntityBox
+    from app.services.master_plan_entity_extractor import dedupe_footprints, rescue_aligned_footprints, select_footprints, split_umbrella_blocks
+
+    # Two boxes of one tower, offset by a third of a width, collapse to one,
+    # but only after the crop checks: selection keeps both.
+    raws = [
+        {"box_2d": [775, 510, 857, 590]},
+        {"box_2d": [775, 540, 857, 620]},  # same tower, shifted
+        {"box_2d": [775, 100, 857, 180]},
+        {"box_2d": [775, 300, 857, 380]},
+    ]
+    chosen = select_footprints(raws, [])
+    assert [raw["box_2d"][1] for raw in chosen] == [100, 300, 510, 540]
+    assert [raw["box_2d"][1] for raw in dedupe_footprints(chosen, [])] == [100, 300, 510]
+
+    # A rejected outline in a row with two accepted ones is a tower.
+    kept = [{"box_2d": [775, 100, 857, 180]}, {"box_2d": [775, 300, 857, 380]}]
+    rejected = [{"box_2d": [778, 500, 860, 580]}, {"box_2d": [300, 500, 380, 580]}]  # second sits in no row
+    assert rescue_aligned_footprints(kept, rejected, []) == [rejected[0]]
+
+    # A wide block covering two boxed towers is dropped; one covering a single
+    # boxed tower is replaced by its remainder when the check accepts it.
+    payload = build_sample_payload()
+    payload["legend_items"] = []
+    payload["entities"] = [
+        {"entity_id": "u", "entity_type": "residential_block", "label": "WING - G", "box_2d": [556, 96, 641, 255]},
+        {"entity_id": "a", "entity_type": "residential_block", "label": "Footprint 1", "box_2d": [560, 100, 640, 160]},
+        {"entity_id": "b", "entity_type": "residential_block", "label": "Footprint 2", "box_2d": [560, 180, 640, 250]},
+        {"entity_id": "c", "entity_type": "residential_block", "label": "Footprint 3", "box_2d": [800, 500, 880, 570]},
+        {"entity_id": "d", "entity_type": "residential_block", "label": "Footprint 4", "box_2d": [800, 600, 880, 670]},
+    ]
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    resolved = split_umbrella_blocks(entity_map, verify=lambda box: True)
+    assert sorted(e.label for e in resolved.entities if e.entity_type == "residential_block") == ["Footprint 1", "Footprint 2", "Footprint 3", "Footprint 4"]
+    assert resolved.diagnostics[-1].items == ["dropped:1", "split:0"]
+
+    payload["entities"].pop(2)  # only Footprint 1 is boxed inside the wide box
+    single = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    split = split_umbrella_blocks(single, verify=lambda box: True)
+    wing_g = next(e for e in split.entities if e.label == "WING - G")
+    assert abs(wing_g.box.x_min - 0.16) < 0.01 and abs(wing_g.box.x_max - 0.255) < 0.01  # the remainder, right of Footprint 1
+    assert split_umbrella_blocks(single, verify=lambda box: False) is single
+
+
+def test_a_double_width_block_with_nothing_inside_is_cut_into_verified_halves():
+    from app.services.master_plan_entity_extractor import split_umbrella_blocks
+
+    payload = build_sample_payload()
+    payload["legend_items"] = []
+    payload["entities"] = [
+        {"entity_id": "u", "entity_type": "residential_block", "label": "WING - G", "box_2d": [556, 96, 641, 255], "attributes": [{"key": "wing", "value": "G"}]},
+        # Varied sizes and spacing, so the parser's even-run filter leaves them alone.
+        {"entity_id": "c", "entity_type": "residential_block", "label": "Footprint 1", "box_2d": [800, 500, 880, 570]},
+        {"entity_id": "d", "entity_type": "residential_block", "label": "Footprint 2", "box_2d": [790, 615, 876, 692]},
+        {"entity_id": "e", "entity_type": "residential_block", "label": "Footprint 3", "box_2d": [805, 740, 882, 818]},
+    ]
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    assert sum(1 for e in entity_map.entities if e.entity_type == "residential_block") == 4
+    halves = split_umbrella_blocks(entity_map, verify=lambda box: True)
+    blocks = {e.label: e for e in halves.entities if e.entity_type == "residential_block"}
+    assert set(blocks) == {"WING - G", "Footprint 1", "Footprint 2", "Footprint 3", "Footprint 4"}
+    assert abs(blocks["WING - G"].box.x_max - 0.1755) < 0.001 and abs(blocks["Footprint 4"].box.x_min - 0.1755) < 0.001
+    assert blocks["Footprint 4"].attributes == {} and blocks["WING - G"].attributes == {"wing": "G"}
+    assert halves.site.residential_block_labels == ["Footprint 1", "Footprint 2", "Footprint 3", "Footprint 4", "WING - G"]
+    # A half the check rejects keeps the wide box whole.
+    assert split_umbrella_blocks(entity_map, verify=lambda box: box.x_min < 0.15) is entity_map
+
+
+def test_umbrella_remainder_is_accepted_from_row_alignment_when_the_crop_check_declines():
+    from app.services.master_plan_entity_extractor import split_umbrella_blocks
+
+    payload = build_sample_payload()
+    payload["legend_items"] = []
+    payload["entities"] = [
+        # Wide box over the west pair, with only the left tower boxed inside it.
+        {"entity_id": "u", "entity_type": "residential_block", "label": "WING - G", "box_2d": [556, 100, 641, 260]},
+        {"entity_id": "a", "entity_type": "residential_block", "label": "Footprint 1", "box_2d": [560, 87, 640, 153]},
+        # Three more towers in the same row make the remainder credible without a model.
+        {"entity_id": "b", "entity_type": "residential_block", "label": "Footprint 2", "box_2d": [562, 500, 641, 566]},
+        {"entity_id": "c", "entity_type": "residential_block", "label": "Footprint 3", "box_2d": [558, 600, 640, 668]},
+        {"entity_id": "d", "entity_type": "residential_block", "label": "Footprint 4", "box_2d": [561, 690, 643, 758]},
+    ]
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    assert sum(1 for e in entity_map.entities if e.entity_type == "residential_block") == 5
+    split = split_umbrella_blocks(entity_map, verify=lambda box: False)
+    wing_g = next(e for e in split.entities if e.label == "WING - G")
+    assert abs(wing_g.box.x_min - 0.153) < 0.002 and abs(wing_g.box.x_max - 0.26) < 0.002
+    assert split.diagnostics[-1].items == ["dropped:0", "split:1"]
