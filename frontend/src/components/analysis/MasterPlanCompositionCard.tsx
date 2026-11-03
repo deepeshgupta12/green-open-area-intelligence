@@ -19,6 +19,8 @@ type MasterPlanCompositionCardProps = {
 
 type GroupSummary = { group: EntityGroup; count: number; topTypes: string };
 
+const SQ_M_PER_ACRE = 4046.8564;
+
 function summariseGroups(entityMap: MasterPlanEntityMap): GroupSummary[] {
   const byGroup = new Map<EntityGroup, Map<string, number>>();
   entityMap.entities.filter(isLocatedFeature).forEach((entity) => {
@@ -70,6 +72,10 @@ export function MasterPlanCompositionCard({
 
   const roads = site.external_roads.map((road) => [road.label, road.width_text].filter(Boolean).join(" "));
   const blockNames = blocks.length > 6 ? `${blocks.slice(0, 6).join(", ")} and ${blocks.length - 6} more` : blocks.join(", ");
+  const records = site.printed_records ?? null;
+  const plot = records?.plot_area_sq_m ?? null;
+  const bua = records?.sanctioned_bua_sq_m ?? null;
+  const isBlockPlan = site.drawing_style === "block_plan";
 
   return (
     <section className="analysis-card zoning-card">
@@ -92,6 +98,7 @@ export function MasterPlanCompositionCard({
         <strong>{fmt(site.entry_exit_count)} entry/exit points</strong> and{" "}
         <strong>{fmt(site.parking_cluster_count)} parking clusters</strong>.{" "}
         <span className="provenance-chip">Counted on the master plan</span>
+        {isBlockPlan && <span className="provenance-chip">Architectural block plan, no legend printed</span>}
       </p>
 
       <div className={`zoning-body${showPlan ? "" : " is-single"}`}>
@@ -120,6 +127,35 @@ export function MasterPlanCompositionCard({
             />
           )}
           <p className="viz-legend">Colours match the overlay on the master plan.</p>
+
+          {records && (plot !== null || bua !== null || records.fsi_text) && (
+            <>
+              <h5>Printed on the plan{records.title ? ` · ${records.title}` : ""}</h5>
+              <dl className="stat-row">
+                <div>
+                  <dt>Plot area</dt>
+                  <dd>
+                    <strong>{plot !== null ? fmt(plot, 2) : "—"}</strong> {plot !== null && <span>sq.m</span>}
+                  </dd>
+                  <small>{plot !== null ? `${fmt(plot / SQ_M_PER_ACRE, 2)} acres` : records.plot_area_text ?? "not printed"}</small>
+                </div>
+                <div>
+                  <dt>Sanctioned BUA</dt>
+                  <dd>
+                    <strong>{bua !== null ? fmt(bua, 2) : "—"}</strong> {bua !== null && <span>sq.m</span>}
+                  </dd>
+                  <small>{records.sanctioned_bua_text ?? "not printed"}</small>
+                </div>
+                <div>
+                  <dt>FSI</dt>
+                  <dd>
+                    <strong>{records.derived_fsi ? fmt(records.derived_fsi, 2) : records.fsi_text ?? "—"}</strong>
+                  </dd>
+                  <small>{records.derived_fsi ? "Sanctioned BUA ÷ plot area" : records.fsi_text ? "As printed" : "not printed"}</small>
+                </div>
+              </dl>
+            </>
+          )}
 
           <dl className="stat-row">
             <div>

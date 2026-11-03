@@ -128,6 +128,29 @@ class ExternalRoad(BaseModel):
     side: str | None = None
 
 
+class PrintedParcel(BaseModel):
+    """A labelled land parcel with the area printed on the sheet."""
+
+    label: str
+    area_text: str | None = None
+    area_sq_m: float | None = None
+    box: EntityBox | None = None
+
+
+class PrintedRecords(BaseModel):
+    """Figures printed on the drawing itself (architectural block plans)."""
+
+    title: str | None = None
+    plot_area_text: str | None = None
+    plot_area_sq_m: float | None = None
+    sanctioned_bua_text: str | None = None
+    sanctioned_bua_sq_m: float | None = None
+    fsi_text: str | None = None
+    derived_fsi: float | None = Field(default=None, description="sanctioned_bua_sq_m / plot_area_sq_m when both are printed.")
+    scale_text: str | None = None
+    parcels: list[PrintedParcel] = Field(default_factory=list)
+
+
 SHAPE_CLASSES: tuple[str, ...] = (
     "rectangular",
     "square",
@@ -150,6 +173,10 @@ class SiteSummary(BaseModel):
     commercial_block_count: int = 0
     parking_cluster_count: int = 0
     utility_yard_count: int = 0
+    drawing_style: str | None = Field(
+        default=None, description="'block_plan' when no legend is printed and the block-plan passes ran."
+    )
+    printed_records: PrintedRecords | None = None
 
 
 class ResidentialBlockProximity(BaseModel):

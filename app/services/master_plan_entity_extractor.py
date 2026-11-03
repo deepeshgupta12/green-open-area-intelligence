@@ -50,6 +50,8 @@ from pydantic import BaseModel, Field
 from app.config import get_settings
 from app.schemas.image_schema import ImageMetadata
 from app.schemas.master_plan_entity_schema import (
+    PrintedParcel,
+    PrintedRecords,
     ENTITY_TYPES,
     SHAPE_CLASSES,
     Diagnostic,
@@ -390,6 +392,50 @@ class GeminiKeyNotes(BaseModel):
     )
 
 
+class GeminiPrintedParcel(BaseModel):
+    label: str = Field(
+        description="Printed parcel label, e.g. 'R.G. Area', 'Amenity Open Space', 'Municipal School', 'Future Development', 'Setback 1 Area'."
+    )
+    area_text: str | None = Field(default=None, description="Printed area exactly as written, e.g. '2,668.67 SQ.MT'.")
+    area_sq_m: float | None = Field(default=None, description="The printed area as a number in square metres.")
+    box_2d: list[int] = Field(description=BOX_DESCRIPTION)
+
+
+class GeminiPrintedRecords(BaseModel):
+    """Figures printed on an architectural block plan."""
+
+    title: str | None = Field(default=None, description="Project or phase title as printed.")
+    plot_area_text: str | None = None
+    plot_area_sq_m: float | None = None
+    sanctioned_bua_text: str | None = None
+    sanctioned_bua_sq_m: float | None = None
+    fsi_text: str | None = None
+    scale_text: str | None = None
+    parcels: list[GeminiPrintedParcel] = Field(default_factory=list)
+
+
+class GeminiFootprint(BaseModel):
+    label: str | None = Field(default=None, description="Name printed on or beside the building, or null.")
+    highlighted: bool = Field(
+        default=False, description="True when the footprint is colour-filled or hatched to mark it as part of this phase."
+    )
+    box_2d: list[int] = Field(description=BOX_DESCRIPTION)
+
+
+class GeminiFootprints(BaseModel):
+    footprints: list[GeminiFootprint] = Field(default_factory=list)
+
+
+class GeminiFootprintCheck(BaseModel):
+    """Whether a crop of one candidate footprint box really shows a building outline."""
+
+    is_building: bool = Field(
+        default=False,
+        description="True only when the centre of the crop shows a building footprint: a tower or wing outline with internal walls.",
+    )
+    what: str | None = Field(default=None, description="One of: building, parcel, road, text, other.")
+
+
 class GeminiSiteEntity(BaseModel):
     entity_type: SiteTypeEnum
     label: str
@@ -607,23 +653,23 @@ def extract_master_plan_entities(
 
     # The wing passes sometimes shuffle names between footprints. Reading the
     # name printed inside each chosen box is cheap and settles it.
+    def read_wing_label(raw: dict[str, Any]) -> str | None:
+        box = _box_from_payload(raw.get("box_2d"))
+        if box is None:
+            return None
+        try:
+            payload = run_call(
+                build_wing_label_prompt(),
+                _crop_part(image, box, pad=0.15),
+                GeminiWingLabel,
+                max_output_tokens=256,
+            )
+        except Exception:  # noqa: BLE001 - an unreadable crop just stays unverified
+            return None
+        return _clean_text(payload.get("label")) or _clean_text(payload.get("wing")) or None
+
     wing_raws = [raw for raw in structure_entities if normalize_entity_type(raw.get("entity_type")) == "residential_block"]
     if wing_raws:
-        def read_wing_label(raw: dict[str, Any]) -> str | None:
-            box = _box_from_payload(raw.get("box_2d"))
-            if box is None:
-                return None
-            try:
-                payload = run_call(
-                    build_wing_label_prompt(),
-                    _crop_part(image, box, pad=0.15),
-                    GeminiWingLabel,
-                    max_output_tokens=256,
-                )
-            except Exception:  # noqa: BLE001 - an unreadable crop just stays unverified
-                return None
-            return _clean_text(payload.get("label")) or _clean_text(payload.get("wing")) or None
-
         with ThreadPoolExecutor(max_workers=min(8, len(wing_raws))) as pool:
             printed = list(pool.map(read_wing_label, wing_raws))
         wing_raws, wing_label_diagnostic = reconcile_wing_labels(wing_raws, printed)
@@ -762,6 +808,65 @@ def extract_master_plan_entities(
             notes = {}
         if notes:
             entity_map = apply_key_notes(entity_map, notes)
+
+    # Architectural block plans print no legend. They carry their facts as
+    # text (plot area, sanctioned BUA, reservations with areas) and draw the
+    # towers as unlabelled outlines, so two more focused calls read those.
+    # Marketing renders always print a legend and never enter this branch.
+    if is_block_plan(entity_map):
+        records: PrintedRecords | None = None
+        try:
+            records = printed_records_from_payload(
+                run_call(build_printed_records_prompt(), full_image_part, GeminiPrintedRecords, max_output_tokens=SITE_MAX_OUTPUT_TOKENS)
+            )
+        except Exception:  # noqa: BLE001 - best effort
+            records = None
+        # Outline boxing varies run to run; two passes at different
+        # temperatures, merged by overlap, recover most of the sheet.
+        def run_footprints(temperature: float) -> list[dict[str, Any]]:
+            try:
+                payload = run_call(build_footprint_prompt(), full_image_part, GeminiFootprints, temperature)
+                return list(payload.get("footprints", []) or [])
+            except Exception:  # noqa: BLE001 - best effort
+                return []
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            footprint_passes = list(pool.map(run_footprints, (0.0, RETRY_TEMPERATURE)))
+        footprint_raws = select_footprints(
+            merge_footprint_candidates(*footprint_passes),
+            [entity for entity in entity_map.entities if entity.entity_type == "residential_block"],
+        )
+
+        # Hatched parcels are drawn at tower size too; a look at each crop
+        # keeps only real outlines (an unreadable crop keeps the candidate).
+        def check_footprint(raw: dict[str, Any]) -> dict[str, Any] | None:
+            box = _box_from_payload(raw.get("box_2d"))
+            if box is None:
+                return None
+            try:
+                return run_call(
+                    build_footprint_check_prompt(), _crop_part(image, box, pad=0.5), GeminiFootprintCheck, max_output_tokens=128
+                )
+            except Exception:  # noqa: BLE001
+                return None
+
+        rejected_footprints = 0
+        printed_names: list[str | None] = []
+        if footprint_raws:
+            with ThreadPoolExecutor(max_workers=min(8, len(footprint_raws))) as pool:
+                verdicts = list(pool.map(check_footprint, footprint_raws))
+            footprint_raws, rejected_footprints = keep_verified_footprints(footprint_raws, verdicts)
+        if footprint_raws:
+            with ThreadPoolExecutor(max_workers=min(8, len(footprint_raws))) as pool:
+                printed_names = list(pool.map(read_wing_label, footprint_raws))
+        entity_map = apply_block_plan_results(entity_map, records, footprint_raws, printed_names)
+        if rejected_footprints:
+            entity_map = entity_map.model_copy(
+                update={
+                    "diagnostics": list(entity_map.diagnostics)
+                    + [Diagnostic(code="footprint_candidates_rejected", count=rejected_footprints)]
+                }
+            )
 
     return entity_map
 
@@ -1259,6 +1364,220 @@ def apply_key_notes(entity_map: MasterPlanEntityMap, notes: dict[str, KeyNote]) 
         )
     ]
     return _with_entities(entity_map, entities, diagnostics)
+
+
+# --------------------------------------------------------------------------- #
+# Architectural block plans: printed records and footprint outlines
+# --------------------------------------------------------------------------- #
+
+# A new footprint must not sit on a block the earlier passes already boxed.
+FOOTPRINT_OVERLAP_IOU = 0.3
+# Towers on one sheet are drawn at one scale: a "footprint" much larger or
+# thinner than the median is a plot outline or a strip, not a building.
+FOOTPRINT_SIZE_BAND = (0.6, 1.6)
+
+
+def is_block_plan(entity_map: MasterPlanEntityMap) -> bool:
+    """Architectural block plans print no legend; marketing renders always do."""
+    return not entity_map.legend
+
+
+def build_printed_records_prompt() -> str:
+    return (
+        "This is an architectural block plan of a real-estate project. Transcribe the printed site figures: the "
+        "project or phase title, total plot area, sanctioned built-up area (BUA), FSI if printed, and the drawing "
+        "scale. Then list every labelled land parcel that has a printed area (reservations such as R.G. area, "
+        "amenity open space, municipal school, cultural centre, garden/park, future development, setback areas), "
+        "each with its label, the area text as printed, the area as a number in square metres, and its bounding "
+        "box in box_2d as [ymin, xmin, ymax, xmax] on a 0-1000 scale. Transcribe numbers exactly; do not invent "
+        "values. Return JSON only."
+    )
+
+
+def build_footprint_prompt() -> str:
+    return (
+        "This is an architectural block plan drawn as a line drawing. Box every residential building footprint: "
+        "the cross- or butterfly-shaped tower outlines, including the unlabelled ones along the plot edges and the "
+        "colour-filled or hatched ones. One box per building, tight to its outline. Do not box roads, parcels, "
+        "text or the title block. Return each with its printed name when there is one (null otherwise) and "
+        "whether it is highlighted. Return JSON only."
+    )
+
+
+def build_footprint_check_prompt() -> str:
+    return (
+        "This crop is cut from an architectural block plan; the candidate sits in the centre. Does it show a "
+        "building footprint, i.e. a tower or wing outline with internal walls and room partitions? Hatched or "
+        "shaded land parcels, roads, setback strips and text blocks are not buildings. Return \"is_building\" and "
+        "\"what\" as one of building, parcel, road, text, other. Return JSON only."
+    )
+
+
+def keep_verified_footprints(
+    raws: list[dict[str, Any]], verdicts: list[dict[str, Any] | None]
+) -> tuple[list[dict[str, Any]], int]:
+    """Drop candidates whose crop check said "not a building"; unverifiable ones stay."""
+    kept: list[dict[str, Any]] = []
+    rejected = 0
+    for position, raw in enumerate(raws):
+        verdict = verdicts[position] if position < len(verdicts) else None
+        if verdict is not None and not bool(verdict.get("is_building")):
+            rejected += 1
+            continue
+        kept.append(raw)
+    return kept, rejected
+
+
+def _as_positive_float(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) and number > 0 else None
+
+
+_PRINTED_NUMBER_RE = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
+
+
+def _area_from_text(text: str | None) -> float | None:
+    """First number printed in an area string: '2,668.67 SQ.MT.' -> 2668.67."""
+    match = _PRINTED_NUMBER_RE.search(text or "")
+    return _as_positive_float(match.group(0).replace(",", "")) if match else None
+
+
+def printed_records_from_payload(payload: dict[str, Any]) -> PrintedRecords | None:
+    """Typed printed records from the model payload; None when nothing was printed."""
+    parcels: list[PrintedParcel] = []
+    for raw in payload.get("parcels", []) or []:
+        if not isinstance(raw, dict):
+            continue
+        label = _clean_text(raw.get("label"))
+        if not label:
+            continue
+        area_text = _clean_text(raw.get("area_text")) or None
+        parcels.append(
+            PrintedParcel(
+                label=label,
+                area_text=area_text,
+                area_sq_m=_as_positive_float(raw.get("area_sq_m")) or _area_from_text(area_text),
+                box=_box_from_payload(raw.get("box_2d")),
+            )
+        )
+    plot = _as_positive_float(payload.get("plot_area_sq_m")) or _area_from_text(_clean_text(payload.get("plot_area_text")))
+    bua = _as_positive_float(payload.get("sanctioned_bua_sq_m")) or _area_from_text(_clean_text(payload.get("sanctioned_bua_text")))
+    records = PrintedRecords(
+        title=_clean_text(payload.get("title")) or None,
+        plot_area_text=_clean_text(payload.get("plot_area_text")) or None,
+        plot_area_sq_m=plot,
+        sanctioned_bua_text=_clean_text(payload.get("sanctioned_bua_text")) or None,
+        sanctioned_bua_sq_m=bua,
+        fsi_text=_clean_text(payload.get("fsi_text")) or None,
+        derived_fsi=round(bua / plot, 2) if plot and bua else None,
+        scale_text=_clean_text(payload.get("scale_text")) or None,
+        parcels=parcels,
+    )
+    if not any([records.title, plot, bua, records.fsi_text, parcels]):
+        return None
+    return records
+
+
+def merge_footprint_candidates(*passes: list[dict[str, Any]], overlap: float = 0.5) -> list[dict[str, Any]]:
+    """Union of several footprint passes; a box overlapping an earlier one is the same building."""
+    merged: list[tuple[dict[str, Any], EntityBox]] = []
+    for raws in passes:
+        for raw in raws:
+            if not isinstance(raw, dict):
+                continue
+            box = _box_from_payload(raw.get("box_2d"))
+            if box is None:
+                continue
+            if all(_iou(box, seen) <= overlap for _, seen in merged):
+                merged.append((raw, box))
+    return [raw for raw, _ in merged]
+
+
+def select_footprints(raws: list[dict[str, Any]], existing_blocks: list[MasterPlanEntity]) -> list[dict[str, Any]]:
+    """Footprint boxes that are new and sized like the other towers, in reading order."""
+    boxed = [
+        (raw, box)
+        for raw in raws
+        if isinstance(raw, dict) and (box := _box_from_payload(raw.get("box_2d"))) is not None
+    ]
+    fresh = [
+        (raw, box) for raw, box in boxed if all(_iou(box, block.box) <= FOOTPRINT_OVERLAP_IOU for block in existing_blocks)
+    ]
+    if len(fresh) >= 3:
+        widths = sorted(box.width for _, box in fresh)
+        heights = sorted(box.height for _, box in fresh)
+        median_w, median_h = widths[len(widths) // 2], heights[len(heights) // 2]
+        low, high = FOOTPRINT_SIZE_BAND
+        fresh = [
+            (raw, box)
+            for raw, box in fresh
+            if low * median_w <= box.width <= high * median_w and low * median_h <= box.height <= high * median_h
+        ]
+    fresh.sort(key=lambda item: (round(item[1].center[1] * 8), item[1].center[0]))
+    return [raw for raw, _ in fresh]
+
+
+def apply_block_plan_results(
+    entity_map: MasterPlanEntityMap,
+    records: PrintedRecords | None,
+    footprint_raws: list[dict[str, Any]],
+    printed_names: list[str | None],
+) -> MasterPlanEntityMap:
+    """Add footprint blocks (named from printed text, else "Footprint N") and the printed records.
+
+    A printed name that another block already carries is not trusted: the
+    text on these sheets is tiny and the crop read is noisy, so the box is
+    listed as an unnamed footprint rather than as a duplicate wing.
+    """
+    entities = list(entity_map.entities)
+    used_keys = {wing_key(entity.label) for entity in entities if entity.entity_type == "residential_block"}
+    used_keys.discard(None)
+    added = 0
+    unnamed = 0
+    for position, raw in enumerate(footprint_raws):
+        printed = _clean_text(printed_names[position]) if position < len(printed_names) and printed_names[position] else ""
+        key = wing_key(printed) if printed else None
+        attributes: list[dict[str, str]] = []
+        if key and key not in used_keys:
+            label = printed
+            used_keys.add(key)
+            attributes.append({"key": "wing", "value": key.upper()})
+        else:
+            unnamed += 1
+            label = f"Footprint {unnamed}"
+        if raw.get("highlighted"):
+            attributes.append({"key": "highlighted", "value": "yes"})
+        entity = _build_entity(
+            {
+                "entity_id": f"fp{added + 1}",
+                "entity_type": "residential_block",
+                "label": label,
+                "box_2d": raw.get("box_2d"),
+                "confidence": "Medium",
+                "located_by": "layout_model",
+                "attributes": attributes,
+            },
+            index=len(entities),
+            legend_lookup={},
+        )
+        if entity is None:
+            continue
+        entities.append(entity)
+        added += 1
+
+    diagnostics = list(entity_map.diagnostics) + [
+        Diagnostic(
+            code="block_plan_mode",
+            count=1,
+            items=[f"footprints_added:{added}", f"parcels:{len(records.parcels) if records else 0}"],
+        )
+    ]
+    result = _with_entities(entity_map, entities, diagnostics)
+    site = result.site.model_copy(update={"drawing_style": "block_plan", "printed_records": records})
+    return result.model_copy(update={"site": site})
 
 
 _WING_KEY_RE = re.compile(r"(?:wing|tower|block|building|bldg)\s*[-–:.]?\s*([a-z]{1,2}|\d{1,3})\b")

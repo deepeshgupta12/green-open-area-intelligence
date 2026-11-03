@@ -683,3 +683,103 @@ def test_blocks_are_named_from_key_notes_and_the_umbrella_box_is_dropped():
 
     # Notes without any wing mapping leave the map untouched.
     assert apply_key_notes(entity_map, parse_key_notes(["A Tower 1 Drop Off"])) is entity_map
+
+
+def test_block_plan_mode_only_for_plans_without_a_legend():
+    from app.services.master_plan_entity_extractor import is_block_plan
+
+    assert not is_block_plan(parse_master_plan_entity_payload(build_sample_payload(), image_width=1000, image_height=1000))
+    payload = build_sample_payload()
+    payload["legend_items"] = []
+    assert is_block_plan(parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000))
+
+
+def test_printed_records_are_typed_and_fsi_is_derived():
+    from app.services.master_plan_entity_extractor import printed_records_from_payload
+
+    records = printed_records_from_payload(
+        {
+            "title": "Mahindra Rainforest Phase-2",
+            "plot_area_text": "2,835.56 sq.m.",
+            "plot_area_sq_m": 2835.56,
+            "sanctioned_bua_text": "51,683.45 sq.m.",
+            "sanctioned_bua_sq_m": "51683.45",
+            "scale_text": "1 : 1000",
+            "parcels": [
+                {"label": "RE. 1.1 MUNICIPAL SCHOOL AREA", "area_text": "REQ. 2668.10 Sq.Mt.", "area_sq_m": 2668.1, "box_2d": [408, 763, 556, 843]},
+                {"label": "R. ZONE A.O.S.", "area_text": "629.10 / 366.73", "area_sq_m": None, "box_2d": [189, 661, 257, 691]},
+                {"label": "", "area_sq_m": 5},
+                "junk",
+            ],
+        }
+    )
+    assert records is not None
+    assert records.plot_area_sq_m == 2835.56 and records.sanctioned_bua_sq_m == 51683.45
+    assert records.derived_fsi == 18.23
+    assert [parcel.label for parcel in records.parcels] == ["RE. 1.1 MUNICIPAL SCHOOL AREA", "R. ZONE A.O.S."]
+    assert records.parcels[0].box is not None
+    # A missing number falls back to the first figure printed in the area text.
+    assert records.parcels[1].area_sq_m == 629.1
+    assert printed_records_from_payload({"parcels": [], "plot_area_sq_m": -3}) is None
+
+
+def test_footprints_skip_known_blocks_and_odd_sizes_and_keep_reading_order():
+    from app.services.master_plan_entity_extractor import apply_block_plan_results, select_footprints
+
+    payload = build_sample_payload()
+    payload["legend_items"] = []
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    known = [entity for entity in entity_map.entities if entity.entity_type == "residential_block"]
+    assert [entity.label for entity in known] == ["Wing - A", "Wing - B"]
+
+    raws = [
+        {"label": "BLDG. 3", "highlighted": False, "box_2d": [775, 510, 857, 590]},  # bottom row, middle
+        {"label": "BLDG. 7", "highlighted": False, "box_2d": [775, 97, 857, 180]},  # bottom row, left
+        {"label": "Wing - A", "highlighted": False, "box_2d": [100, 100, 300, 250]},  # already boxed by the wing pass
+        {"label": "BLDG. 1", "highlighted": False, "box_2d": [209, 510, 354, 740]},  # plot outline, far too wide
+        {"label": "BLDG. 2", "highlighted": False, "box_2d": [272, 467, 300, 540]},  # thin strip
+        {"label": "TOWER 1", "highlighted": True, "box_2d": [560, 589, 640, 670]},  # middle row, highlighted
+        {"label": "BLDG. 8", "highlighted": False, "box_2d": [555, 174, 640, 260]},  # middle row, left
+    ]
+    chosen = select_footprints(raws, known)
+    assert [raw["label"] for raw in chosen] == ["BLDG. 8", "TOWER 1", "BLDG. 7", "BLDG. 3"]
+
+    printed = [None, "WING-E", None, "garbage text"]
+    result = apply_block_plan_results(entity_map, None, chosen, printed)
+    blocks = [entity for entity in result.entities if entity.entity_type == "residential_block"]
+    assert [entity.label for entity in blocks] == ["Wing - A", "Wing - B", "Footprint 1", "WING-E", "Footprint 2", "Footprint 3"]
+    highlighted = next(entity for entity in blocks if entity.label == "WING-E")
+    assert highlighted.attributes == {"wing": "E", "highlighted": "yes"}
+    assert result.site.drawing_style == "block_plan" and result.site.printed_records is None
+    assert result.site.residential_block_labels == ["Footprint 1", "Footprint 2", "Footprint 3", "WING-E", "Wing - A", "Wing - B"]
+    assert result.entity_counts["residential_block"] == 6
+    assert {diagnostic.code for diagnostic in result.diagnostics} >= {"block_plan_mode"}
+
+
+def test_footprint_passes_merge_by_overlap_and_duplicate_names_become_footprints():
+    from app.services.master_plan_entity_extractor import apply_block_plan_results, merge_footprint_candidates
+
+    first = [{"label": None, "box_2d": [775, 510, 857, 590]}, {"label": None, "box_2d": [560, 589, 640, 670]}, "junk"]
+    second = [
+        {"label": None, "box_2d": [778, 512, 860, 592]},  # same building as the first pass, slightly shifted
+        {"label": None, "box_2d": [775, 97, 857, 180]},  # new
+        {"label": None, "box_2d": [10, 10]},  # unusable box
+    ]
+    merged = merge_footprint_candidates(first, second)
+    assert [raw["box_2d"] for raw in merged] == [[775, 510, 857, 590], [560, 589, 640, 670], [775, 97, 857, 180]]
+
+    payload = build_sample_payload()
+    payload["legend_items"] = []
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    # "Wing - A" is already a block: a footprint whose crop also reads "WING-A" is not a second Wing A.
+    result = apply_block_plan_results(entity_map, None, merged, ["WING-A", "WING - F", "Wing F"])
+    blocks = [entity.label for entity in result.entities if entity.entity_type == "residential_block"]
+    assert blocks == ["Wing - A", "Wing - B", "Footprint 1", "WING - F", "Footprint 2"]
+
+
+def test_footprint_crop_verdicts_drop_only_rejected_candidates():
+    from app.services.master_plan_entity_extractor import keep_verified_footprints
+
+    raws = [{"box_2d": [1, 1, 2, 2]}, {"box_2d": [3, 3, 4, 4]}, {"box_2d": [5, 5, 6, 6]}]
+    kept, rejected = keep_verified_footprints(raws, [{"is_building": True}, {"is_building": False, "what": "parcel"}, None])
+    assert kept == [raws[0], raws[2]] and rejected == 1

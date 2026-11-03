@@ -52,6 +52,26 @@ export type ExternalRoad = {
   side?: string | null;
 };
 
+export type PrintedParcel = {
+  label: string;
+  area_text?: string | null;
+  area_sq_m?: number | null;
+  box?: EntityBox | null;
+};
+
+/** Figures printed on the drawing itself (architectural block plans). */
+export type PrintedRecords = {
+  title?: string | null;
+  plot_area_text?: string | null;
+  plot_area_sq_m?: number | null;
+  sanctioned_bua_text?: string | null;
+  sanctioned_bua_sq_m?: number | null;
+  fsi_text?: string | null;
+  derived_fsi?: number | null;
+  scale_text?: string | null;
+  parcels: PrintedParcel[];
+};
+
 export type SiteSummary = {
   shape_class?: string | null;
   north_arrow_present: boolean;
@@ -61,6 +81,8 @@ export type SiteSummary = {
   commercial_block_count: number;
   parking_cluster_count: number;
   utility_yard_count: number;
+  drawing_style?: string | null;
+  printed_records?: PrintedRecords | null;
 };
 
 export type ResidentialBlockProximity = {

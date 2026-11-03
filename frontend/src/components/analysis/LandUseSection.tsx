@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import type { AreaEstimate, MasterPlanEntityMap, SiteMetrics, UnitMixRow } from "../../types";
+import type { AreaEstimate, MasterPlanEntityMap, PrintedParcel, SiteMetrics, UnitMixRow } from "../../types";
 import { ENTITY_GROUP_ORDER, GROUP_COLOURS, GROUP_LABELS, isLocatedFeature } from "../../lib/entityGroups";
-import { fmt, fmtPercent, fmtSqMWithFt, metricValue, sourceLabel } from "../../lib/format";
+import { fmt, fmtPercent, fmtSqM, fmtSqMWithFt, metricValue, sourceLabel } from "../../lib/format";
 import { ChartTable, ViewToggle } from "./ChartTable";
-import { RangeChart, StackedBar } from "./PlanCharts";
+import { HBarChart, RangeChart, StackedBar } from "./PlanCharts";
 import type { StackedSegment } from "./PlanCharts";
 
 type LandUseSectionProps = {
@@ -15,6 +15,8 @@ type LandUseSectionProps = {
 export function LandUseSection({ entityMap, metrics, estimate }: LandUseSectionProps) {
   const hasEstimate = Boolean(estimate?.green_area_percentage && estimate?.open_area_percentage);
   const hasUnitMix = Boolean(metrics && metrics.unit_mix.length > 0);
+  const parcels = entityMap.site.printed_records?.parcels ?? [];
+  const cardCount = 1 + (hasUnitMix ? 1 : 0) + (parcels.length > 0 ? 1 : 0);
 
   return (
     <section className="analysis-section">
@@ -29,10 +31,72 @@ export function LandUseSection({ entityMap, metrics, estimate }: LandUseSectionP
         </div>
       </header>
 
-      <div className={hasUnitMix ? "analysis-grid-2" : "analysis-section"}>
+      <div className={cardCount > 1 ? "analysis-grid-2" : "analysis-section"}>
         {hasEstimate && estimate ? <GreenOpenEstimateCard estimate={estimate} /> : <DrawingLandUseCard entityMap={entityMap} />}
         {hasUnitMix && metrics && <HomeMixCard metrics={metrics} entityMap={entityMap} />}
+        {parcels.length > 0 && <PrintedParcelsCard parcels={parcels} />}
       </div>
+    </section>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Reservations and parcels printed on an architectural block plan
+// ----------------------------------------------------------------------------
+
+function shortLabel(label: string, max = 30): string {
+  return label.length > max ? `${label.slice(0, max - 1)}…` : label;
+}
+
+function PrintedParcelsCard({ parcels }: { parcels: PrintedParcel[] }) {
+  const [view, setView] = useState<"chart" | "table">("chart");
+  const measured = parcels.filter((parcel) => parcel.area_sq_m !== null && parcel.area_sq_m !== undefined);
+  const unmeasured = parcels.filter((parcel) => parcel.area_sq_m === null || parcel.area_sq_m === undefined);
+  const total = measured.reduce((sum, parcel) => sum + (parcel.area_sq_m ?? 0), 0);
+
+  return (
+    <section className="analysis-card">
+      <div className="chart-card-header">
+        <h4>Reservations printed on the plan</h4>
+        {measured.length > 0 && <ViewToggle view={view} onChange={setView} />}
+      </div>
+      <p className="zoning-lead">
+        The sheet labels <strong>{fmt(parcels.length)} parcels</strong>
+        {measured.length > 0 && (
+          <>
+            , {fmt(measured.length)} with a printed area totalling <strong>{fmtSqM(total, 0)}</strong>
+          </>
+        )}
+        . <span className="provenance-chip">Transcribed from the drawing</span>
+      </p>
+      {measured.length === 0 ? null : view === "table" ? (
+        <ChartTable
+          caption="Parcels with a printed area"
+          columns={["Parcel", "Printed area", "sq.m"]}
+          rows={measured.map((parcel) => [parcel.label, parcel.area_text ?? "—", fmt(parcel.area_sq_m, 2)])}
+        />
+      ) : (
+        <HBarChart
+          ariaLabel="Printed area per parcel"
+          unit="sq.m"
+          rows={[...measured]
+            .sort((a, b) => (b.area_sq_m ?? 0) - (a.area_sq_m ?? 0))
+            .map((parcel, index) => ({
+              key: `${index}-${parcel.label}`,
+              label: shortLabel(parcel.label),
+              value: parcel.area_sq_m ?? 0,
+              detail: `${parcel.label}${parcel.area_text ? ` · printed "${parcel.area_text}"` : ""}`,
+            }))}
+        />
+      )}
+      {unmeasured.length > 0 && (
+        <p className="entity-muted">
+          Without a readable area: {unmeasured.map((parcel) => parcel.label).join("; ")}.
+        </p>
+      )}
+      <p className="entity-muted">
+        Areas are as printed on the sheet; parcels may belong to the wider layout rather than this phase's plot.
+      </p>
     </section>
   );
 }
