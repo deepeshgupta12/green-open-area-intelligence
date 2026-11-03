@@ -1,0 +1,137 @@
+import json
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.services.master_plan_entity_extractor import parse_master_plan_entity_payload
+from tests.test_compare_master_plans_api import find_master_plan_image
+from tests.test_master_plan_compare_engine import build_mock_vision
+from tests.test_master_plan_entity_extractor import build_sample_payload
+
+
+client = TestClient(app)
+
+
+def test_master_plan_entities_endpoint(monkeypatch):
+    captured: dict = {}
+
+    def fake_extract(image_metadata, project=None):
+        captured["project"] = project
+        return parse_master_plan_entity_payload(
+            build_sample_payload(),
+            image_width=image_metadata.dimensions.width,
+            image_height=image_metadata.dimensions.height,
+            project_id=project.project_id if project else None,
+            project_name=project.project_name if project else None,
+        )
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+
+    image_path = find_master_plan_image()
+    json_path = Path("data/input/342956.json")
+
+    with image_path.open("rb") as image_file, json_path.open("rb") as json_file:
+        response = client.post(
+            "/master-plan/entities",
+            files={
+                "master_plan_image_file": ("plan.jpg", image_file, "image/jpeg"),
+                "project_json_file": ("project.json", json_file, "application/json"),
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+
+    assert payload["run_id"]
+    assert captured["project"] is not None
+    entity_map = payload["entity_map"]
+    assert entity_map["project_id"] == captured["project"].project_id
+    assert entity_map["coordinate_system"] == "fraction_of_image"
+    assert entity_map["image_width"] > 0
+    assert len(entity_map["entities"]) == 6
+    assert entity_map["entities"][0]["box"]["x_min"] <= entity_map["entities"][0]["box"]["x_max"]
+    assert Path(payload["run_artifacts"]["master_plan_entity_map_json_path"]).exists()
+
+
+def test_master_plan_analysis_endpoint_returns_key_value_metrics(monkeypatch):
+    def fake_extract(image_metadata, project=None):
+        return parse_master_plan_entity_payload(
+            build_sample_payload(),
+            image_width=image_metadata.dimensions.width,
+            image_height=image_metadata.dimensions.height,
+            project_id=project.project_id if project else None,
+            project_name=project.project_name if project else None,
+        )
+
+    def fake_vision(project, image_metadata):
+        return build_mock_vision(project_id=project.project_id, project_name=project.project_name)
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+    monkeypatch.setattr("app.main.analyze_master_plan_with_gemini", fake_vision)
+
+    records = {"sanctioned_fsi": 3.24, "clubhouse_area_sq_m": 5368, "undivided_land_share_sq_m": 27.6}
+
+    with find_master_plan_image().open("rb") as image_file, Path("data/input/342956.json").open("rb") as json_file:
+        response = client.post(
+            "/master-plan/analysis",
+            files={
+                "master_plan_image_file": ("plan.jpg", image_file, "image/jpeg"),
+                "project_json_file": ("project.json", json_file, "application/json"),
+            },
+            data={"run_area_estimate": "true", "site_records_json": json.dumps(records)},
+        )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+
+    assert payload["entity_map"]["coordinate_system"] == "fraction_of_image"
+    assert payload["area_estimate"] is not None
+    metrics = payload["site_metrics"]
+    assert metrics is not None
+
+    # Every figure is a typed key-value with provenance; no prose fields.
+    for key in ("parcel_area_acres", "total_units", "units_per_acre", "open_area_percent", "land_per_home_sq_m"):
+        assert set(metrics[key]) == {"value", "unit", "source", "confidence_label", "basis"}
+    assert metrics["parcel_area_acres"]["value"] == 13.74
+    assert metrics["total_units"]["value"] == 1339
+    assert metrics["open_area_percent"]["source"] == "master_plan_estimate"
+    assert metrics["sanctioned_fsi"] == {"value": 3.24, "unit": "ratio", "source": "project_records", "confidence_label": None, "basis": None}
+    assert metrics["built_up_area_sq_m"]["basis"] == "parcel_area_sq_m * sanctioned_fsi"
+    assert metrics["residential_block_count"]["value"] == 2
+    assert metrics["density_benchmarks"]["is_sample"] is True
+    assert {scope["scope"] for scope in metrics["density_benchmarks"]["scopes"]} == {"micromarket", "city"}
+    assert metrics["allocation_links"]
+    assert all("basis" in link for link in metrics["allocation_links"])
+    assert Path(payload["run_artifacts"]["site_metrics_json_path"]).exists()
+
+
+def test_master_plan_analysis_rejects_bad_site_records(monkeypatch):
+    with find_master_plan_image().open("rb") as image_file:
+        response = client.post(
+            "/master-plan/analysis",
+            files={"master_plan_image_file": ("plan.jpg", image_file, "image/jpeg")},
+            data={"site_records_json": "{not json"},
+        )
+    assert response.status_code == 400
+
+
+def test_master_plan_entities_endpoint_without_project_json(monkeypatch):
+    def fake_extract(image_metadata, project=None):
+        assert project is None
+        return parse_master_plan_entity_payload(
+            build_sample_payload(),
+            image_width=image_metadata.dimensions.width,
+            image_height=image_metadata.dimensions.height,
+        )
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+
+    with find_master_plan_image().open("rb") as image_file:
+        response = client.post(
+            "/master-plan/entities",
+            files={"master_plan_image_file": ("plan.jpg", image_file, "image/jpeg")},
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["entity_map"]["project_id"] is None

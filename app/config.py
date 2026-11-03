@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     max_image_size_mb: int = 15
     default_confidence_threshold: float = 0.65
 
+    # Density benchmark dataset for the site metrics dashboards. The default
+    # is a clearly labelled synthetic sample; point this at a Datacenter export.
+    density_benchmarks_path: str = "data/benchmarks/density_benchmarks.sample.json"
+
     project_root: Path = Path(__file__).resolve().parent.parent
     data_input_dir: Path = project_root / "data" / "input"
     data_output_dir: Path = project_root / "data" / "output"

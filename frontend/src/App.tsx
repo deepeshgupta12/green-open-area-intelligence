@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { Loader2, RefreshCcw, UploadCloud } from "lucide-react";
+import { MasterPlanExplorer } from "./components/MasterPlanExplorer";
+import type { ExplorerSlot } from "./components/MasterPlanExplorer";
 import { ProjectUploadCard } from "./components/ProjectUploadCard";
 import { ResultsView } from "./components/ResultsView";
 import { compareMasterPlans } from "./lib/api";
@@ -17,6 +19,7 @@ export default function App() {
   const [projectCImage, setProjectCImage] = useState<File | null>(null);
 
   const [useAiNarrative, setUseAiNarrative] = useState(true);
+  const [useAiEntityExtraction, setUseAiEntityExtraction] = useState(false);
   const [result, setResult] = useState<MasterPlanComparisonResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +43,15 @@ export default function App() {
     projectCImage,
     isLoading,
   ]);
+
+  const explorerSlots = useMemo<ExplorerSlot[]>(
+    () => [
+      { slot: "A", title: "First project", imageFile: projectAImage, jsonFile: projectAJson },
+      { slot: "B", title: "Second project", imageFile: projectBImage, jsonFile: projectBJson },
+      { slot: "C", title: "Third project", imageFile: projectCImage, jsonFile: projectCJson },
+    ],
+    [projectAImage, projectAJson, projectBImage, projectBJson, projectCImage, projectCJson]
+  );
 
   async function handleSubmit() {
     if (
@@ -67,6 +79,7 @@ export default function App() {
         projectCJson,
         projectCImage,
         useAiNarrative,
+        useAiEntityExtraction,
       });
 
       setResult(response);
@@ -130,14 +143,24 @@ export default function App() {
       </section>
 
       <section className="control-bar">
-        <label className="toggle-row">
-          <input
-            type="checkbox"
-            checked={useAiNarrative}
-            onChange={(event) => setUseAiNarrative(event.target.checked)}
-          />
-          <span>Use OpenAI narrative for frontend copy</span>
-        </label>
+        <div className="toggle-stack">
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={useAiNarrative}
+              onChange={(event) => setUseAiNarrative(event.target.checked)}
+            />
+            <span>Use Gemini narrative for frontend copy</span>
+          </label>
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={useAiEntityExtraction}
+              onChange={(event) => setUseAiEntityExtraction(event.target.checked)}
+            />
+            <span>Map master plan entities during compare (slower; adds a hover map per project)</span>
+          </label>
+        </div>
 
         <div className="button-row">
           <button className="secondary-button" onClick={handleReset}>
@@ -158,6 +181,8 @@ export default function App() {
       {error && <section className="error-box">{error}</section>}
 
       {result && <ResultsView result={result} />}
+
+      <MasterPlanExplorer slots={explorerSlots} prefilled={result?.project_entity_maps} />
     </main>
   );
 }

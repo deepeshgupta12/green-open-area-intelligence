@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 2.5 Flash](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-13%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-39%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -23,17 +23,18 @@ The engine is deliberately honest: it returns ranges, never fake precision; it n
 4. [Guardrails](#guardrails)
 5. [Confidence scoring](#confidence-scoring)
 6. [Three-project master plan comparison](#three-project-master-plan-comparison)
-7. [Architecture](#architecture)
-8. [Repository structure](#repository-structure)
-9. [Getting started](#getting-started)
-10. [API reference](#api-reference)
-11. [CLI](#cli)
-12. [Output example](#output-example)
-13. [Environment variables](#environment-variables)
-14. [Testing](#testing)
-15. [Status and roadmap](#status-and-roadmap)
-16. [Disclaimer](#disclaimer)
-17. [License](#license)
+7. [Master plan entity map and hover viewer](#master-plan-entity-map-and-hover-viewer)
+8. [Architecture](#architecture)
+9. [Repository structure](#repository-structure)
+10. [Getting started](#getting-started)
+11. [API reference](#api-reference)
+12. [CLI](#cli)
+13. [Output example](#output-example)
+14. [Environment variables](#environment-variables)
+15. [Testing](#testing)
+16. [Status and roadmap](#status-and-roadmap)
+17. [Disclaimer](#disclaimer)
+18. [License](#license)
 
 ---
 
@@ -106,6 +107,33 @@ Scoring starts at a base of 0.50 and adds or subtracts evidence signals: project
 
 The **frontend** (`frontend/`, Vite + React + TypeScript) uploads the six files, calls the endpoint and renders the headline, per-project cards and category insight cards.
 
+## Master plan entity map and hover viewer
+
+`POST /master-plan/entities` turns one master plan image into a **spatial entity map**: every wing, commercial block, clubhouse, gate, road, parking cluster, court, pool, garden, play area, game and utility yard with a bounding box, plus the legend as printed and a few site-level facts. The React **Master plan explorer** renders those boxes over the uploaded image; hovering a region shows the feature's metadata, clicking pins it, and a sidebar lists everything by group with filters, search and legend coverage.
+
+How the extraction works (`app/services/master_plan_entity_extractor.py`):
+
+- **Focused Gemini calls run in parallel**, each with a strict `response_schema` and thinking disabled: a *wings* call for residential building footprints (re-asked once if the boxes look fabricated), a *structures* call for the other large features, a *site* call for the legend text, plot shape, external roads and drawing annotations, and a *marker* call per image tile (2x2 with overlap) for the small numbered circles that key features to the legend.
+- **Numbered legend markers are treated as ground truth.** A marker whose code matches a legend row becomes that feature at that spot. A drawn box that agrees with a marker is merged with it (`located_by: both`); a drawn box far from the marker for the same feature is discarded.
+- **Known model failure modes are filtered**: identical boxes reused across features, evenly spaced same-size runs, boxes covering most of the drawing, and circles detected on blank paper (a pixel check).
+- **Derived metadata**: category key for the nine comparison categories, nearest residential block and distance, per-block proximity notes ("Wing E sits closest to Entry Plaza, Outdoor Gym and Obstacle Park; ..."), legend coverage, entity and group counts.
+
+All coordinates are **fractions of the image** (0 to 1), so the frontend overlays them on the original upload without any server-side image serving. The same map can be produced for all three projects during a compare run with `use_ai_entity_extraction=true`; the explorer then shows the maps without a second call.
+
+The entity map carries **no model-written prose**: the plot shape is an enum (`shape_class`), per-block proximity is a set of lists and flags, and processing notes are machine-readable `diagnostics` (`code`, `count`, `items`) that the frontend turns into sentences.
+
+### Site metrics dashboards
+
+`POST /master-plan/analysis` adds **key-value site metrics** (`app/services/site_metrics_engine.py`) on top of the entity map and renders three dashboards in the explorer:
+
+- **Master Plan & Site Zoning**: parcel area, open realm and building footprint, homes per acre against micro-market and city medians, sanctioned FSI, land and open realm per home, with the plan thumbnail opening the hover viewer.
+- **Density & Spaciousness Profile**: density curves (kernel density of homes per acre) for the micro-market and the city with the project marked, privacy stat tiles, a land-area-versus-unit-count scatter with a least-squares trendline, and a density-parity callout.
+- **Land & Open Space Allocation**: a flow diagram from site parcel to open realm and building plinth and on to land per home, outdoor amenities and built-up envelope; hovering a flow shows how the figure is derived.
+
+Every figure is a `MetricValue` with `value`, `unit`, `source` (`project_records`, `master_plan_estimate`, `master_plan_entities`, `derived`, `benchmark_dataset`, `unavailable`), an optional `confidence_label` and a `basis` formula key. Figures that only exist in sanction records (FSI, UDS, clubhouse area) stay `unavailable` unless supplied via `site_records_json`. Benchmarks come from a JSON dataset at `DENSITY_BENCHMARKS_PATH`; the repository ships a **synthetic sample** (`data/benchmarks/density_benchmarks.sample.json`, `is_sample: true`) that the UI badges as sample data. Every chart has a table view, hover tooltips with hit targets larger than the marks, and a colour set validated for colour-vision safety.
+
+Entity vocabulary: `residential_block`, `commercial_block`, `clubhouse`, `security_cabin`, `utility_yard`, `entry_exit_gate`, `external_road`, `internal_road`, `driveway`, `walkway_pathway`, `parking`, `swimming_pool`, `water_feature`, `sports_court`, `kids_play_area`, `outdoor_game`, `outdoor_gym`, `plaza`, `pet_park`, `working_pods`, `other_feature`, `lawn_garden`, `tree_canopy_buffer`, `legend_marker`, `legend_block`, `title_block`, `north_arrow`, `site_boundary`. Boxes are model estimates on a stylised, not-to-scale drawing: use them to locate features, never to measure them.
+
 ## Architecture
 
 ```text
@@ -135,16 +163,17 @@ Vision and segmentation are deliberately separate sources of evidence. The visio
 green-open-area-intelligence/
 ├── app/
 │   ├── config.py                 # pydantic-settings; reads .env
-│   ├── main.py                   # FastAPI app: /health, /estimate, /compare-master-plans
+│   ├── main.py                   # FastAPI app: /health, /estimate, /compare-master-plans, /master-plan/entities, /master-plan/analysis
 │   ├── rules/                    # class definitions, green/open rules, guardrails, confidence rules
 │   ├── schemas/                  # Pydantic models for every stage's input and output
 │   ├── services/                 # pipeline stages (see table above)
 │   ├── storage/                  # SQLAlchemy scaffolding (persistence not yet wired)
-│   └── utils/                    # file and image helpers
-├── frontend/                     # Vite + React + TypeScript comparison UI
+│   └── utils/                    # file, image and Gemini client helpers
+├── frontend/                     # Vite + React + TypeScript comparison UI + master plan analysis dashboards
 ├── scripts/run_single_project.py # CLI runner for a single project
-├── tests/                        # pytest suite (13 tests)
+├── tests/                        # pytest suite (39 tests)
 ├── data/
+│   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
 │   └── output/                   # json/, overlays/, reports/, api_runs/, compare_runs/ (git-ignored)
 ├── PRODUCT_BIBLE.md              # vision, definitions, guardrails, roadmap
@@ -161,7 +190,7 @@ green-open-area-intelligence/
 
 - Python 3.10+
 - Node.js 18+ (frontend only)
-- A Google Gemini API key
+- Gemini access: a Google Cloud service account with Vertex AI enabled (preferred) or an AI Studio API key
 
 ### Backend
 
@@ -211,9 +240,33 @@ Response: `run_id`, `run_artifacts` (paths to every JSON / overlay / report writ
 
 ### `POST /compare-master-plans`
 
-Three-project comparison. `multipart/form-data` with `project_{a,b,c}_json_file` and `project_{a,b,c}_master_plan_image_file`, plus `use_ai_narrative` and `use_ai_structure_extraction` (both default `true`). All pipeline stages run for each project.
+Three-project comparison. `multipart/form-data` with `project_{a,b,c}_json_file` and `project_{a,b,c}_master_plan_image_file`, plus `use_ai_narrative` and `use_ai_structure_extraction` (both default `true`) and `use_ai_entity_extraction` (default `false`; adds a spatial entity map per project at the cost of extra Gemini calls). All pipeline stages run for each project.
 
-Response: `comparison_run_id`, `projects`, `category_comparison_matrix`, `category_winners`, `overall_recommendation`, `user_friendly_summary`, `internal_evidence_quality`, `run_artifacts`, `notes`.
+Response: `comparison_run_id`, `projects`, `category_comparison_matrix`, `category_winners`, `overall_recommendation`, `user_friendly_summary`, `internal_evidence_quality`, `project_entity_maps` (`{"A": map | null, "B": ..., "C": ...}`), `run_artifacts`, `notes`.
+
+### `POST /master-plan/analysis`
+
+Entity map plus key-value site metrics for the dashboards (see [above](#site-metrics-dashboards)). `multipart/form-data`.
+
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `master_plan_image_file` | file | required | PNG / JPG / JPEG / WEBP |
+| `project_json_file` | file | optional | Datacenter JSON; without it only the entity map is returned |
+| `run_area_estimate` | bool | `true` | Runs Gemini vision + OpenCV segmentation to estimate open and green area |
+| `site_records_json` | string | optional | JSON with any of `sanctioned_fsi`, `built_up_area_sq_m`, `clubhouse_area_sq_m`, `undivided_land_share_sq_m`, `open_area_percent`, `building_footprint_sq_m`, `homes_per_floor_min`, `homes_per_floor_max` |
+
+Response: `run_id`, `entity_map`, `site_metrics` (or `null`), `area_estimate` (or `null`), `image_metadata`, `diagnostics`, `run_artifacts`. Typical latency is 40 to 70 seconds with the area estimate, 20 to 40 without.
+
+### `POST /master-plan/entities`
+
+Spatial entity map for one master plan (see [above](#master-plan-entity-map-and-hover-viewer)). `multipart/form-data`.
+
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `master_plan_image_file` | file | required | PNG / JPG / JPEG / WEBP |
+| `project_json_file` | file | optional | Datacenter JSON; seeds the model with declared amenities and tags the result with the project id |
+
+Response: `run_id`, `entity_map`, `image_metadata`, `run_artifacts`. The `entity_map` carries `image_width`, `image_height`, `coordinate_system: "fraction_of_image"`, `extraction_confidence_label`, `site`, `legend`, `entities`, `entity_counts`, `group_counts`, `block_proximity`, `warnings` and `notes`. Each entity has `entity_type`, `entity_group`, `label`, `legend_code`, `legend_label`, `category_key`, `box {x_min, y_min, x_max, y_max}`, `center_x`, `center_y`, `relative_area`, `confidence_label`, `located_by`, `attributes`, `adjacent_to`, `nearest_residential_block` and `nearest_residential_distance`. Typical latency is 20 to 30 seconds for a 1800 px plan.
 
 ## CLI
 
@@ -268,6 +321,7 @@ Flags are cumulative; omit later ones to stop at an earlier stage. Outputs land 
 | `GEMINI_API_KEY` | none | Gemini Developer API key; used only when no service-account path is set |
 | `GEMINI_VISION_MODEL` | `gemini-2.5-flash` | Vision reasoning model |
 | `GEMINI_TEXT_MODEL` | `gemini-2.5-flash` | Narrative model |
+| `DENSITY_BENCHMARKS_PATH` | `data/benchmarks/density_benchmarks.sample.json` | Project parcel/unit dataset for density benchmarks; the default is a labelled synthetic sample |
 | `APP_ENV` | `local` | Environment label |
 | `APP_NAME` | `Green Open Area Intelligence Engine` | Reported by `/health` |
 | `DATABASE_URL` | `sqlite:///./goa_engine.sqlite3` | Reserved for the storage layer |
@@ -280,11 +334,17 @@ Flags are cumulative; omit later ones to stop at an earlier stage. Outputs land 
 pytest -q
 ```
 
-The suite covers the JSON parser, image preprocessor, vision analyzer, segmentation engine, area calculator, confidence engine, validation engine, report writer, category insight engine, master plan compare engine, the two API endpoints and the compare endpoint contract. Vision tests run without network access.
+The suite covers the JSON parser, image preprocessor, vision analyzer, segmentation engine, area calculator, confidence engine, validation engine, report writer, category insight engine, master plan compare engine, the master plan entity extractor (payload parsing, marker reconciliation, pattern filters, tiling, truncated-response salvage), the site metrics engine (unit conversions, provenance, allocation flow, density benchmarks) and all API endpoints. No test needs network access; Gemini calls are stubbed.
+
+Frontend type-check and build:
+
+```bash
+cd frontend && npm run build
+```
 
 ## Status and roadmap
 
-**Implemented**: full single-project pipeline (parse, preprocess, Gemini vision, OpenCV segmentation, range estimate, guardrails, confidence, explanation, report), category insight engine, three-project master plan comparison with deterministic statuses and AI narrative, frontend contract validator, FastAPI endpoints, React comparison UI.
+**Implemented**: full single-project pipeline (parse, preprocess, Gemini vision, OpenCV segmentation, range estimate, guardrails, confidence, explanation, report), category insight engine, three-project master plan comparison with deterministic statuses and AI narrative, frontend contract validator, master plan spatial entity map with legend-marker reconciliation, key-value site metrics with density benchmarks, FastAPI endpoints, React comparison UI with a hover-to-inspect master plan explorer and zoning / density / allocation dashboards.
 
 **Planned**: reviewer UI with manual polygon correction, batch processing, a trained segmentation model to shrink the unknown share, a human-reviewed evaluation dataset, and wiring the SQLAlchemy storage layer (`scripts/init_db.py` and `scripts/generate_sample_report.py` are placeholders today).
 

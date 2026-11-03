@@ -12,7 +12,11 @@ from app.services.frontend_contract_validator import finalize_frontend_compariso
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
+from app.schemas.site_metrics_schema import SiteRecords
+from app.services.density_benchmarks import load_density_benchmarks
+from app.services.master_plan_entity_extractor import extract_master_plan_entities
 from app.services.master_plan_narrative_engine import enhance_master_plan_comparison_with_gemini
+from app.services.site_metrics_engine import area_inputs_from_estimate, build_site_metrics
 from app.services.master_plan_understanding_engine import extract_master_plan_understanding
 from app.services.report_writer import write_final_outputs
 from app.services.segmentation_engine import run_opencv_segmentation
@@ -323,6 +327,7 @@ async def compare_master_plans(
     write_report: bool = Form(True),
     use_ai_narrative: bool = Form(True),
     use_ai_structure_extraction: bool = Form(True),
+    use_ai_entity_extraction: bool = Form(False),
 ) -> dict:
     settings = get_settings()
 
@@ -349,6 +354,7 @@ async def compare_master_plans(
             input_dir=compare_input_dir,
             output_json_dir=compare_json_dir,
             use_ai_structure_extraction=use_ai_structure_extraction,
+            use_ai_entity_extraction=use_ai_entity_extraction,
         )
         bundle_b = await _process_compare_project_bundle(
             slot="B",
@@ -357,6 +363,7 @@ async def compare_master_plans(
             input_dir=compare_input_dir,
             output_json_dir=compare_json_dir,
             use_ai_structure_extraction=use_ai_structure_extraction,
+            use_ai_entity_extraction=use_ai_entity_extraction,
         )
         bundle_c = await _process_compare_project_bundle(
             slot="C",
@@ -365,6 +372,7 @@ async def compare_master_plans(
             input_dir=compare_input_dir,
             output_json_dir=compare_json_dir,
             use_ai_structure_extraction=use_ai_structure_extraction,
+            use_ai_entity_extraction=use_ai_entity_extraction,
         )
 
         comparison = build_master_plan_comparison(
@@ -403,6 +411,11 @@ async def compare_master_plans(
             "overall_recommendation": comparison.overall_recommendation,
             "user_friendly_summary": comparison.user_friendly_summary,
             "internal_evidence_quality": comparison.internal_evidence_quality,
+            "project_entity_maps": {
+                "A": bundle_a["entity_map"],
+                "B": bundle_b["entity_map"],
+                "C": bundle_c["entity_map"],
+            },
             "run_artifacts": {
                 "compare_input_dir": str(compare_input_dir),
                 "compare_output_dir": str(compare_output_dir),
@@ -428,6 +441,7 @@ async def _process_compare_project_bundle(
     input_dir: Path,
     output_json_dir: Path,
     use_ai_structure_extraction: bool = True,
+    use_ai_entity_extraction: bool = False,
 ) -> dict:
     project_json_path = input_dir / f"project_{slot.lower()}_{_safe_upload_name(project_json_file.filename or 'project.json', '.json')}"
     image_path = input_dir / f"project_{slot.lower()}_{_safe_upload_name(master_plan_image_file.filename or 'master_plan.jpg', '.jpg')}"
@@ -464,6 +478,20 @@ async def _process_compare_project_bundle(
 
     project_prefix = f"project_{slot.lower()}_{project.project_id}"
 
+    # Spatial entity map is optional: it adds a Gemini call per project, and a
+    # failure here must not sink the whole comparison.
+    entity_map = None
+    entity_map_path = None
+    if use_ai_entity_extraction:
+        try:
+            entity_map = extract_master_plan_entities(image_metadata=image_metadata, project=project)
+            entity_map_path = output_json_dir / f"{project_prefix}_master_plan_entity_map.json"
+            write_json_file(entity_map_path, entity_map.model_dump(mode="json"))
+        except Exception as exc:  # noqa: BLE001
+            master_plan_understanding.technical_warnings.append(
+                f"Master-plan entity extraction failed for project {slot}: {exc}"
+            )
+
     project_metadata_path = output_json_dir / f"{project_prefix}_parsed_project_metadata.json"
     image_metadata_path = output_json_dir / f"{project_prefix}_image_metadata.json"
     vision_path = output_json_dir / f"{project_prefix}_vision_analysis.json"
@@ -488,6 +516,7 @@ async def _process_compare_project_bundle(
         "area_estimate": area_estimate,
         "category_comparison": category_comparison,
         "master_plan_understanding": master_plan_understanding,
+        "entity_map": entity_map.model_dump(mode="json") if entity_map else None,
         "artifacts": {
             "input_project_json_path": str(project_json_path),
             "input_master_plan_image_path": str(image_path),
@@ -498,5 +527,161 @@ async def _process_compare_project_bundle(
             "area_estimate_json_path": str(area_path),
             "category_comparison_json_path": str(category_path),
             "master_plan_understanding_json_path": str(understanding_path),
+            "master_plan_entity_map_json_path": str(entity_map_path) if entity_map_path else None,
         },
     }
+
+
+@app.post("/master-plan/analysis")
+async def analyse_master_plan(
+    master_plan_image_file: UploadFile = File(...),
+    project_json_file: UploadFile | None = File(None),
+    run_area_estimate: bool = Form(True),
+    site_records_json: str | None = Form(None),
+) -> dict:
+    """Entity map plus key-value site metrics for the analysis dashboards.
+
+    Without a project JSON only the entity map is produced. With one, the
+    open/green estimate pipeline runs (unless disabled) and the metrics engine
+    combines project records, the estimate, the entity map and the density
+    benchmark dataset. ``site_records_json`` can carry sanction figures (FSI,
+    clubhouse area, UDS) that are not in the Datacenter feed.
+    """
+    settings = get_settings()
+    run_id = str(uuid4())
+
+    run_input_dir = ensure_directory(settings.data_input_dir / "analysis_runs" / run_id)
+    run_output_dir = ensure_directory(settings.data_output_dir / "analysis_runs" / run_id)
+
+    image_path = run_input_dir / _safe_upload_name(
+        master_plan_image_file.filename or "master_plan.jpg",
+        fallback_extension=".jpg",
+    )
+    await _save_upload_file(master_plan_image_file, image_path)
+
+    project_json_path: Path | None = None
+    if project_json_file is not None and project_json_file.filename:
+        project_json_path = run_input_dir / _safe_upload_name(project_json_file.filename, ".json")
+        await _save_upload_file(project_json_file, project_json_path)
+
+    try:
+        records = SiteRecords.model_validate_json(site_records_json) if site_records_json else None
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"site_records_json is invalid: {exc}") from exc
+
+    try:
+        project = parse_datacenter_json_file(str(project_json_path)) if project_json_path else None
+        image_metadata = preprocess_master_plan_image(str(image_path))
+
+        entity_map = extract_master_plan_entities(image_metadata=image_metadata, project=project)
+        entity_map_path = run_output_dir / "master_plan_entity_map.json"
+        write_json_file(entity_map_path, entity_map.model_dump(mode="json"))
+
+        diagnostics: list[dict] = []
+        area_estimate = None
+        area_estimate_path: Path | None = None
+        if project is not None and run_area_estimate:
+            try:
+                vision = analyze_master_plan_with_gemini(project=project, image_metadata=image_metadata)
+                segmentation = run_opencv_segmentation(image_metadata=image_metadata, project_id=project.project_id)
+                area_estimate = build_area_estimate(
+                    project=project, image_metadata=image_metadata, vision=vision, segmentation=segmentation
+                )
+                area_estimate_path = run_output_dir / "area_estimate.json"
+                write_json_file(area_estimate_path, area_estimate.model_dump(mode="json"))
+            except Exception as exc:  # noqa: BLE001 - metrics still work without the estimate
+                diagnostics.append({"code": "area_estimate_failed", "count": 1, "items": [str(exc)[:200]]})
+
+        site_metrics = None
+        site_metrics_path: Path | None = None
+        if project is not None:
+            open_pct, green_pct, confidence = area_inputs_from_estimate(area_estimate)
+            site_metrics = build_site_metrics(
+                project,
+                open_area_percent=open_pct,
+                green_area_percent=green_pct,
+                area_confidence_label=confidence,
+                entity_map=entity_map,
+                benchmarks=load_density_benchmarks(),
+                records=records,
+            )
+            site_metrics_path = run_output_dir / "site_metrics.json"
+            write_json_file(site_metrics_path, site_metrics.model_dump(mode="json"))
+        else:
+            diagnostics.append({"code": "project_json_missing", "count": 1})
+
+        return {
+            "run_id": run_id,
+            "entity_map": entity_map.model_dump(mode="json"),
+            "site_metrics": site_metrics.model_dump(mode="json") if site_metrics else None,
+            "area_estimate": area_estimate.model_dump(mode="json") if area_estimate else None,
+            "image_metadata": image_metadata.model_dump(mode="json"),
+            "diagnostics": diagnostics,
+            "run_artifacts": {
+                "input_master_plan_image_path": str(image_path),
+                "input_project_json_path": str(project_json_path) if project_json_path else None,
+                "normalized_image_path": image_metadata.normalized_image_path,
+                "master_plan_entity_map_json_path": str(entity_map_path),
+                "area_estimate_json_path": str(area_estimate_path) if area_estimate_path else None,
+                "site_metrics_json_path": str(site_metrics_path) if site_metrics_path else None,
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/master-plan/entities")
+async def extract_master_plan_entity_map(
+    master_plan_image_file: UploadFile = File(...),
+    project_json_file: UploadFile | None = File(None),
+) -> dict:
+    """Locate every visible entity on one master plan for the hover viewer.
+
+    The project JSON is optional; when present it seeds the model with the
+    declared amenity list and tags the result with the project id.
+    """
+    settings = get_settings()
+    run_id = str(uuid4())
+
+    run_input_dir = ensure_directory(settings.data_input_dir / "entity_runs" / run_id)
+    run_output_dir = ensure_directory(settings.data_output_dir / "entity_runs" / run_id)
+
+    image_path = run_input_dir / _safe_upload_name(
+        master_plan_image_file.filename or "master_plan.jpg",
+        fallback_extension=".jpg",
+    )
+    await _save_upload_file(master_plan_image_file, image_path)
+
+    project_json_path: Path | None = None
+    if project_json_file is not None and project_json_file.filename:
+        project_json_path = run_input_dir / _safe_upload_name(project_json_file.filename, ".json")
+        await _save_upload_file(project_json_file, project_json_path)
+
+    try:
+        project = parse_datacenter_json_file(str(project_json_path)) if project_json_path else None
+        image_metadata = preprocess_master_plan_image(str(image_path))
+
+        entity_map = extract_master_plan_entities(image_metadata=image_metadata, project=project)
+
+        entity_map_path = run_output_dir / "master_plan_entity_map.json"
+        write_json_file(entity_map_path, entity_map.model_dump(mode="json"))
+
+        return {
+            "run_id": run_id,
+            "entity_map": entity_map.model_dump(mode="json"),
+            "image_metadata": image_metadata.model_dump(mode="json"),
+            "run_artifacts": {
+                "input_master_plan_image_path": str(image_path),
+                "input_project_json_path": str(project_json_path) if project_json_path else None,
+                "normalized_image_path": image_metadata.normalized_image_path,
+                "master_plan_entity_map_json_path": str(entity_map_path),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

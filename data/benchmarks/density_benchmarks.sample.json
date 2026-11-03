@@ -1,0 +1,1089 @@
+{
+  "name": "Synthetic density benchmark sample",
+  "version": "sample-2026-11",
+  "as_of": "2026-11-03",
+  "is_sample": true,
+  "notes": "SYNTHETIC. Generated for UI development only; replace with a Datacenter export of real project parcel sizes and unit counts. Every figure derived from this file must be labelled as sample data.",
+  "projects": [
+    {
+      "project_id": "SAMPLE-001",
+      "project_name": "Sample Project 001",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 1.72,
+      "total_units": 120
+    },
+    {
+      "project_id": "SAMPLE-002",
+      "project_name": "Sample Project 002",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 8.91,
+      "total_units": 662
+    },
+    {
+      "project_id": "SAMPLE-003",
+      "project_name": "Sample Project 003",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 7.53,
+      "total_units": 586
+    },
+    {
+      "project_id": "SAMPLE-004",
+      "project_name": "Sample Project 004",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.92,
+      "total_units": 468
+    },
+    {
+      "project_id": "SAMPLE-005",
+      "project_name": "Sample Project 005",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.62,
+      "total_units": 531
+    },
+    {
+      "project_id": "SAMPLE-006",
+      "project_name": "Sample Project 006",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 2.51,
+      "total_units": 196
+    },
+    {
+      "project_id": "SAMPLE-007",
+      "project_name": "Sample Project 007",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.15,
+      "total_units": 433
+    },
+    {
+      "project_id": "SAMPLE-008",
+      "project_name": "Sample Project 008",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.93,
+      "total_units": 551
+    },
+    {
+      "project_id": "SAMPLE-009",
+      "project_name": "Sample Project 009",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 3.72,
+      "total_units": 274
+    },
+    {
+      "project_id": "SAMPLE-010",
+      "project_name": "Sample Project 010",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 1.94,
+      "total_units": 98
+    },
+    {
+      "project_id": "SAMPLE-011",
+      "project_name": "Sample Project 011",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 1.59,
+      "total_units": 107
+    },
+    {
+      "project_id": "SAMPLE-012",
+      "project_name": "Sample Project 012",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 1.91,
+      "total_units": 166
+    },
+    {
+      "project_id": "SAMPLE-013",
+      "project_name": "Sample Project 013",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 3.92,
+      "total_units": 282
+    },
+    {
+      "project_id": "SAMPLE-014",
+      "project_name": "Sample Project 014",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 7.27,
+      "total_units": 494
+    },
+    {
+      "project_id": "SAMPLE-015",
+      "project_name": "Sample Project 015",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 5.7,
+      "total_units": 392
+    },
+    {
+      "project_id": "SAMPLE-016",
+      "project_name": "Sample Project 016",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 1.87,
+      "total_units": 115
+    },
+    {
+      "project_id": "SAMPLE-017",
+      "project_name": "Sample Project 017",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 2.68,
+      "total_units": 168
+    },
+    {
+      "project_id": "SAMPLE-018",
+      "project_name": "Sample Project 018",
+      "city": "Thane",
+      "locality": "Kalwa",
+      "micromarket": "Thane City",
+      "project_area_acres": 4.83,
+      "total_units": 222
+    },
+    {
+      "project_id": "SAMPLE-019",
+      "project_name": "Sample Project 019",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 13.7,
+      "total_units": 2079
+    },
+    {
+      "project_id": "SAMPLE-020",
+      "project_name": "Sample Project 020",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 11.65,
+      "total_units": 703
+    },
+    {
+      "project_id": "SAMPLE-021",
+      "project_name": "Sample Project 021",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 3.57,
+      "total_units": 377
+    },
+    {
+      "project_id": "SAMPLE-022",
+      "project_name": "Sample Project 022",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 3.18,
+      "total_units": 107
+    },
+    {
+      "project_id": "SAMPLE-023",
+      "project_name": "Sample Project 023",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 7.81,
+      "total_units": 655
+    },
+    {
+      "project_id": "SAMPLE-024",
+      "project_name": "Sample Project 024",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 8.06,
+      "total_units": 598
+    },
+    {
+      "project_id": "SAMPLE-025",
+      "project_name": "Sample Project 025",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 9.05,
+      "total_units": 925
+    },
+    {
+      "project_id": "SAMPLE-026",
+      "project_name": "Sample Project 026",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 9.67,
+      "total_units": 790
+    },
+    {
+      "project_id": "SAMPLE-027",
+      "project_name": "Sample Project 027",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 12.57,
+      "total_units": 1224
+    },
+    {
+      "project_id": "SAMPLE-028",
+      "project_name": "Sample Project 028",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 13.15,
+      "total_units": 911
+    },
+    {
+      "project_id": "SAMPLE-029",
+      "project_name": "Sample Project 029",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.83,
+      "total_units": 754
+    },
+    {
+      "project_id": "SAMPLE-030",
+      "project_name": "Sample Project 030",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 12.46,
+      "total_units": 1047
+    },
+    {
+      "project_id": "SAMPLE-031",
+      "project_name": "Sample Project 031",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 12.48,
+      "total_units": 684
+    },
+    {
+      "project_id": "SAMPLE-032",
+      "project_name": "Sample Project 032",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 8.58,
+      "total_units": 447
+    },
+    {
+      "project_id": "SAMPLE-033",
+      "project_name": "Sample Project 033",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 12.95,
+      "total_units": 1025
+    },
+    {
+      "project_id": "SAMPLE-034",
+      "project_name": "Sample Project 034",
+      "city": "Thane",
+      "locality": "Thane West",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.69,
+      "total_units": 331
+    },
+    {
+      "project_id": "SAMPLE-035",
+      "project_name": "Sample Project 035",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 4.46,
+      "total_units": 593
+    },
+    {
+      "project_id": "SAMPLE-036",
+      "project_name": "Sample Project 036",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 7.37,
+      "total_units": 832
+    },
+    {
+      "project_id": "SAMPLE-037",
+      "project_name": "Sample Project 037",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 2.95,
+      "total_units": 376
+    },
+    {
+      "project_id": "SAMPLE-038",
+      "project_name": "Sample Project 038",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 7.93,
+      "total_units": 1000
+    },
+    {
+      "project_id": "SAMPLE-039",
+      "project_name": "Sample Project 039",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 10.26,
+      "total_units": 935
+    },
+    {
+      "project_id": "SAMPLE-040",
+      "project_name": "Sample Project 040",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 5.23,
+      "total_units": 450
+    },
+    {
+      "project_id": "SAMPLE-041",
+      "project_name": "Sample Project 041",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 5.63,
+      "total_units": 410
+    },
+    {
+      "project_id": "SAMPLE-042",
+      "project_name": "Sample Project 042",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 10.19,
+      "total_units": 912
+    },
+    {
+      "project_id": "SAMPLE-043",
+      "project_name": "Sample Project 043",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 11.56,
+      "total_units": 912
+    },
+    {
+      "project_id": "SAMPLE-044",
+      "project_name": "Sample Project 044",
+      "city": "Thane",
+      "locality": "Majiwada",
+      "micromarket": "Thane City",
+      "project_area_acres": 4.75,
+      "total_units": 586
+    },
+    {
+      "project_id": "SAMPLE-045",
+      "project_name": "Sample Project 045",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.95,
+      "total_units": 645
+    },
+    {
+      "project_id": "SAMPLE-046",
+      "project_name": "Sample Project 046",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 15.52,
+      "total_units": 1025
+    },
+    {
+      "project_id": "SAMPLE-047",
+      "project_name": "Sample Project 047",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 11.58,
+      "total_units": 1183
+    },
+    {
+      "project_id": "SAMPLE-048",
+      "project_name": "Sample Project 048",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.93,
+      "total_units": 172
+    },
+    {
+      "project_id": "SAMPLE-049",
+      "project_name": "Sample Project 049",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 5.11,
+      "total_units": 414
+    },
+    {
+      "project_id": "SAMPLE-050",
+      "project_name": "Sample Project 050",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 17.98,
+      "total_units": 844
+    },
+    {
+      "project_id": "SAMPLE-051",
+      "project_name": "Sample Project 051",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 14.24,
+      "total_units": 1232
+    },
+    {
+      "project_id": "SAMPLE-052",
+      "project_name": "Sample Project 052",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 19.32,
+      "total_units": 1356
+    },
+    {
+      "project_id": "SAMPLE-053",
+      "project_name": "Sample Project 053",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 18.9,
+      "total_units": 1358
+    },
+    {
+      "project_id": "SAMPLE-054",
+      "project_name": "Sample Project 054",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 16.24,
+      "total_units": 577
+    },
+    {
+      "project_id": "SAMPLE-055",
+      "project_name": "Sample Project 055",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 6.12,
+      "total_units": 660
+    },
+    {
+      "project_id": "SAMPLE-056",
+      "project_name": "Sample Project 056",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 9.28,
+      "total_units": 637
+    },
+    {
+      "project_id": "SAMPLE-057",
+      "project_name": "Sample Project 057",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 5.53,
+      "total_units": 522
+    },
+    {
+      "project_id": "SAMPLE-058",
+      "project_name": "Sample Project 058",
+      "city": "Thane",
+      "locality": "Ghodbunder Road",
+      "micromarket": "Thane City",
+      "project_area_acres": 16.57,
+      "total_units": 1080
+    },
+    {
+      "project_id": "SAMPLE-059",
+      "project_name": "Sample Project 059",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 5.22,
+      "total_units": 123
+    },
+    {
+      "project_id": "SAMPLE-060",
+      "project_name": "Sample Project 060",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 7.01,
+      "total_units": 181
+    },
+    {
+      "project_id": "SAMPLE-061",
+      "project_name": "Sample Project 061",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 8.17,
+      "total_units": 384
+    },
+    {
+      "project_id": "SAMPLE-062",
+      "project_name": "Sample Project 062",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 1.72,
+      "total_units": 92
+    },
+    {
+      "project_id": "SAMPLE-063",
+      "project_name": "Sample Project 063",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 8.88,
+      "total_units": 679
+    },
+    {
+      "project_id": "SAMPLE-064",
+      "project_name": "Sample Project 064",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 10.67,
+      "total_units": 282
+    },
+    {
+      "project_id": "SAMPLE-065",
+      "project_name": "Sample Project 065",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 6.48,
+      "total_units": 232
+    },
+    {
+      "project_id": "SAMPLE-066",
+      "project_name": "Sample Project 066",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 6.35,
+      "total_units": 292
+    },
+    {
+      "project_id": "SAMPLE-067",
+      "project_name": "Sample Project 067",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 6.61,
+      "total_units": 299
+    },
+    {
+      "project_id": "SAMPLE-068",
+      "project_name": "Sample Project 068",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 9.34,
+      "total_units": 183
+    },
+    {
+      "project_id": "SAMPLE-069",
+      "project_name": "Sample Project 069",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 10.32,
+      "total_units": 291
+    },
+    {
+      "project_id": "SAMPLE-070",
+      "project_name": "Sample Project 070",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 5.87,
+      "total_units": 199
+    },
+    {
+      "project_id": "SAMPLE-071",
+      "project_name": "Sample Project 071",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 4.28,
+      "total_units": 198
+    },
+    {
+      "project_id": "SAMPLE-072",
+      "project_name": "Sample Project 072",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 11.66,
+      "total_units": 264
+    },
+    {
+      "project_id": "SAMPLE-073",
+      "project_name": "Sample Project 073",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 11.75,
+      "total_units": 475
+    },
+    {
+      "project_id": "SAMPLE-074",
+      "project_name": "Sample Project 074",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 1.67,
+      "total_units": 62
+    },
+    {
+      "project_id": "SAMPLE-075",
+      "project_name": "Sample Project 075",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 6.08,
+      "total_units": 256
+    },
+    {
+      "project_id": "SAMPLE-076",
+      "project_name": "Sample Project 076",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 10.05,
+      "total_units": 121
+    },
+    {
+      "project_id": "SAMPLE-077",
+      "project_name": "Sample Project 077",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 7.65,
+      "total_units": 324
+    },
+    {
+      "project_id": "SAMPLE-078",
+      "project_name": "Sample Project 078",
+      "city": "Bengaluru",
+      "locality": "Yelahanka",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 4.94,
+      "total_units": 156
+    },
+    {
+      "project_id": "SAMPLE-079",
+      "project_name": "Sample Project 079",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 9.32,
+      "total_units": 1361
+    },
+    {
+      "project_id": "SAMPLE-080",
+      "project_name": "Sample Project 080",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 5.13,
+      "total_units": 562
+    },
+    {
+      "project_id": "SAMPLE-081",
+      "project_name": "Sample Project 081",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 7.77,
+      "total_units": 795
+    },
+    {
+      "project_id": "SAMPLE-082",
+      "project_name": "Sample Project 082",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 7.8,
+      "total_units": 758
+    },
+    {
+      "project_id": "SAMPLE-083",
+      "project_name": "Sample Project 083",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 10.12,
+      "total_units": 574
+    },
+    {
+      "project_id": "SAMPLE-084",
+      "project_name": "Sample Project 084",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 12.61,
+      "total_units": 1413
+    },
+    {
+      "project_id": "SAMPLE-085",
+      "project_name": "Sample Project 085",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 4.38,
+      "total_units": 327
+    },
+    {
+      "project_id": "SAMPLE-086",
+      "project_name": "Sample Project 086",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 4.9,
+      "total_units": 178
+    },
+    {
+      "project_id": "SAMPLE-087",
+      "project_name": "Sample Project 087",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 9.67,
+      "total_units": 468
+    },
+    {
+      "project_id": "SAMPLE-088",
+      "project_name": "Sample Project 088",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 8.44,
+      "total_units": 915
+    },
+    {
+      "project_id": "SAMPLE-089",
+      "project_name": "Sample Project 089",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 6.25,
+      "total_units": 446
+    },
+    {
+      "project_id": "SAMPLE-090",
+      "project_name": "Sample Project 090",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 13.11,
+      "total_units": 1508
+    },
+    {
+      "project_id": "SAMPLE-091",
+      "project_name": "Sample Project 091",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 12.22,
+      "total_units": 681
+    },
+    {
+      "project_id": "SAMPLE-092",
+      "project_name": "Sample Project 092",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 7.57,
+      "total_units": 571
+    },
+    {
+      "project_id": "SAMPLE-093",
+      "project_name": "Sample Project 093",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 11.42,
+      "total_units": 354
+    },
+    {
+      "project_id": "SAMPLE-094",
+      "project_name": "Sample Project 094",
+      "city": "Bengaluru",
+      "locality": "Whitefield",
+      "micromarket": "East Bengaluru",
+      "project_area_acres": 6.65,
+      "total_units": 424
+    },
+    {
+      "project_id": "SAMPLE-095",
+      "project_name": "Sample Project 095",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 9.68,
+      "total_units": 904
+    },
+    {
+      "project_id": "SAMPLE-096",
+      "project_name": "Sample Project 096",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 13.19,
+      "total_units": 516
+    },
+    {
+      "project_id": "SAMPLE-097",
+      "project_name": "Sample Project 097",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 11.27,
+      "total_units": 135
+    },
+    {
+      "project_id": "SAMPLE-098",
+      "project_name": "Sample Project 098",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 12.36,
+      "total_units": 740
+    },
+    {
+      "project_id": "SAMPLE-099",
+      "project_name": "Sample Project 099",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 11.22,
+      "total_units": 531
+    },
+    {
+      "project_id": "SAMPLE-100",
+      "project_name": "Sample Project 100",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 7.62,
+      "total_units": 147
+    },
+    {
+      "project_id": "SAMPLE-101",
+      "project_name": "Sample Project 101",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 13.19,
+      "total_units": 158
+    },
+    {
+      "project_id": "SAMPLE-102",
+      "project_name": "Sample Project 102",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 14.05,
+      "total_units": 1433
+    },
+    {
+      "project_id": "SAMPLE-103",
+      "project_name": "Sample Project 103",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 15.64,
+      "total_units": 1024
+    },
+    {
+      "project_id": "SAMPLE-104",
+      "project_name": "Sample Project 104",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 11.2,
+      "total_units": 966
+    },
+    {
+      "project_id": "SAMPLE-105",
+      "project_name": "Sample Project 105",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 4.11,
+      "total_units": 97
+    },
+    {
+      "project_id": "SAMPLE-106",
+      "project_name": "Sample Project 106",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 12.2,
+      "total_units": 1035
+    },
+    {
+      "project_id": "SAMPLE-107",
+      "project_name": "Sample Project 107",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 10.56,
+      "total_units": 856
+    },
+    {
+      "project_id": "SAMPLE-108",
+      "project_name": "Sample Project 108",
+      "city": "Bengaluru",
+      "locality": "Sarjapur Road",
+      "micromarket": "South East Bengaluru",
+      "project_area_acres": 4.76,
+      "total_units": 57
+    },
+    {
+      "project_id": "SAMPLE-109",
+      "project_name": "Sample Project 109",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 4.82,
+      "total_units": 601
+    },
+    {
+      "project_id": "SAMPLE-110",
+      "project_name": "Sample Project 110",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 5.34,
+      "total_units": 204
+    },
+    {
+      "project_id": "SAMPLE-111",
+      "project_name": "Sample Project 111",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 8.28,
+      "total_units": 1184
+    },
+    {
+      "project_id": "SAMPLE-112",
+      "project_name": "Sample Project 112",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 7.56,
+      "total_units": 606
+    },
+    {
+      "project_id": "SAMPLE-113",
+      "project_name": "Sample Project 113",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 9.56,
+      "total_units": 1081
+    },
+    {
+      "project_id": "SAMPLE-114",
+      "project_name": "Sample Project 114",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 7.23,
+      "total_units": 971
+    },
+    {
+      "project_id": "SAMPLE-115",
+      "project_name": "Sample Project 115",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 7.26,
+      "total_units": 757
+    },
+    {
+      "project_id": "SAMPLE-116",
+      "project_name": "Sample Project 116",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 4.74,
+      "total_units": 537
+    },
+    {
+      "project_id": "SAMPLE-117",
+      "project_name": "Sample Project 117",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 8.45,
+      "total_units": 1241
+    },
+    {
+      "project_id": "SAMPLE-118",
+      "project_name": "Sample Project 118",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 1.51,
+      "total_units": 121
+    },
+    {
+      "project_id": "SAMPLE-119",
+      "project_name": "Sample Project 119",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 8.25,
+      "total_units": 498
+    },
+    {
+      "project_id": "SAMPLE-120",
+      "project_name": "Sample Project 120",
+      "city": "Bengaluru",
+      "locality": "Hebbal",
+      "micromarket": "North Bengaluru",
+      "project_area_acres": 6.6,
+      "total_units": 1038
+    }
+  ]
+}
