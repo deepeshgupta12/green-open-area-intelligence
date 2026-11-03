@@ -252,9 +252,27 @@ TYPE_CAPS: dict[str, int] = {
 }
 
 # Boxes above this share of the image are not a feature, except for the few
-# types that legitimately span the drawing.
+# types that legitimately span the drawing. Some types have a tighter cap:
+# a tree belt is a strip, a pool is a pool, never a quarter of the plan.
 MAX_RELATIVE_AREA = 0.35
 AREA_EXEMPT_TYPES = {"site_boundary", "external_road", "legend_block"}
+TYPE_MAX_AREA: dict[str, float] = {
+    "tree_canopy_buffer": 0.06,
+    "lawn_garden": 0.08,
+    "parking": 0.05,
+    "plaza": 0.04,
+    "sports_court": 0.04,
+    "swimming_pool": 0.04,
+    "water_feature": 0.04,
+    "kids_play_area": 0.03,
+    "outdoor_gym": 0.02,
+    "outdoor_game": 0.02,
+    "utility_yard": 0.02,
+    "entry_exit_gate": 0.015,
+    "security_cabin": 0.01,
+    "driveway": 0.15,
+    "internal_road": 0.30,
+}
 
 # A residential footprint is never thinner than this on either side; boxes
 # below it are the printed wing label, not the building.
@@ -267,6 +285,8 @@ CROSS_TYPE_RUN_MIN = 2
 CROSS_TYPE_TINY_SIDE = 0.03
 MARKER_MAX_OUTPUT_TOKENS = 8192
 SITE_MAX_OUTPUT_TOKENS = 8192
+MAX_WING_RECOVERIES = 3
+MAX_MARKER_RECOVERY_CODES = 12
 # A retry after a malformed response runs warmer: at temperature 0 the model
 # tends to reproduce the same repetition loop.
 RETRY_TEMPERATURE = 0.25
@@ -337,6 +357,13 @@ class GeminiWing(BaseModel):
 
 class GeminiWingExtraction(BaseModel):
     wings: list[GeminiWing] = Field(default_factory=list)
+
+
+class GeminiWingLabel(BaseModel):
+    """What a crop of one chosen wing box actually says."""
+
+    label: str | None = Field(default=None, description="Building name printed in the crop, e.g. 'Wing - B'.")
+    wing: str | None = Field(default=None, description="The letter or number alone.")
 
 
 class GeminiSiteEntity(BaseModel):
@@ -539,6 +566,69 @@ def extract_master_plan_entities(
         list(structure_payload.get("entities", [])), wing_entities
     )
 
+    # The wing passes sometimes shuffle names between footprints. Reading the
+    # name printed inside each chosen box is cheap and settles it.
+    wing_raws = [raw for raw in structure_entities if normalize_entity_type(raw.get("entity_type")) == "residential_block"]
+    if wing_raws:
+        def read_wing_label(raw: dict[str, Any]) -> str | None:
+            box = _box_from_payload(raw.get("box_2d"))
+            if box is None:
+                return None
+            try:
+                payload = run_call(
+                    build_wing_label_prompt(),
+                    _crop_part(image, box, pad=0.15),
+                    GeminiWingLabel,
+                    max_output_tokens=256,
+                )
+            except Exception:  # noqa: BLE001 - an unreadable crop just stays unverified
+                return None
+            return _clean_text(payload.get("label")) or _clean_text(payload.get("wing")) or None
+
+        with ThreadPoolExecutor(max_workers=min(8, len(wing_raws))) as pool:
+            printed = list(pool.map(read_wing_label, wing_raws))
+        wing_raws, wing_label_diagnostic = reconcile_wing_labels(wing_raws, printed)
+        if wing_label_diagnostic:
+            diagnostics.append(wing_label_diagnostic)
+
+        # A wing missing from an otherwise sequential run (A..H, 1..N) is
+        # almost always drawn; ask for it by name and verify the crop.
+        missing = missing_wing_keys([wing_key(raw.get("label")) for raw in wing_raws])[:MAX_WING_RECOVERIES]
+        if missing:
+            sample_label = str(wing_raws[0].get("label") or "Wing - A")
+
+            def locate_wing(key: str) -> dict[str, Any] | None:
+                label = _format_wing_label_like(sample_label, key)
+                try:
+                    payload = run_call(build_wing_locate_prompt(label), full_image_part, GeminiWingExtraction)
+                except Exception:  # noqa: BLE001
+                    return None
+                candidates = [
+                    raw for raw in wings_to_entities(payload.get("wings", []))
+                    if (box := _box_from_payload(raw.get("box_2d"))) is not None and is_credible_wing_box(box)
+                ]
+                if not candidates:
+                    return None
+                candidate = {**candidates[0], "label": label, "attributes": [{"key": "wing", "value": key.upper()}]}
+                return candidate if wing_key(read_wing_label(candidate)) == key else None
+
+            with ThreadPoolExecutor(max_workers=len(missing)) as pool:
+                recovered = [raw for raw in pool.map(locate_wing, missing) if raw is not None]
+            recovered = [
+                raw for raw in recovered
+                if all(_iou(_box_from_payload(raw["box_2d"]), _box_from_payload(other["box_2d"])) <= WING_OVERLAP_IOU for other in wing_raws)  # type: ignore[arg-type]
+            ]
+            wing_raws.extend(recovered)
+            diagnostics.append({
+                "code": "wing_recovery_pass",
+                "count": len(recovered),
+                "items": [f"searched:{','.join(missing)}", f"recovered:{len(recovered)}"],
+            })
+
+        structure_entities = [
+            raw for raw in structure_entities if normalize_entity_type(raw.get("entity_type")) != "residential_block"
+        ] + wing_raws
+
     # The model occasionally hallucinates circles on blank paper. A real marker
     # is a filled, numbered disc on top of the drawing, so demand some ink.
     on_drawing = [marker for marker in marker_entities if marker_has_ink(image, marker["box_2d"])]
@@ -546,21 +636,58 @@ def extract_master_plan_entities(
     if phantom:
         diagnostics.append({"code": "phantom_markers_discarded", "count": phantom})
 
-    payload: dict[str, Any] = {
-        "extraction_confidence_label": site_payload.get("extraction_confidence_label"),
-        "site": site_payload.get("site") or {},
-        "legend_items": site_payload.get("legend_items", []),
-        "entities": structure_entities + list(site_payload.get("entities", [])) + on_drawing,
-        "diagnostics": diagnostics,
-    }
+    def build_payload(markers: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "extraction_confidence_label": site_payload.get("extraction_confidence_label"),
+            "site": site_payload.get("site") or {},
+            "legend_items": site_payload.get("legend_items", []),
+            "entities": structure_entities + list(site_payload.get("entities", [])) + markers,
+            "diagnostics": diagnostics,
+        }
 
-    return parse_master_plan_entity_payload(
-        payload,
-        image_width=width,
-        image_height=height,
-        project_id=project.project_id if project else None,
-        project_name=project.project_name if project else None,
-    )
+    def parse(markers: list[dict[str, Any]]) -> MasterPlanEntityMap:
+        return parse_master_plan_entity_payload(
+            build_payload(markers),
+            image_width=width,
+            image_height=height,
+            project_id=project.project_id if project else None,
+            project_name=project.project_name if project else None,
+        )
+
+    entity_map = parse(on_drawing)
+
+    # Legend rows still unlocated get one targeted re-scan of the tiles. Naming
+    # the codes keeps the model from inventing circles and keeps lists short.
+    unlocated = [item.code for item in entity_map.legend if not item.located_on_plan][:MAX_MARKER_RECOVERY_CODES]
+    if unlocated:
+        def run_targeted_markers(tile: tuple[float, float, float, float]) -> list[dict[str, Any]]:
+            try:
+                payload = run_call(
+                    build_targeted_marker_prompt(unlocated),
+                    _tile_part(image, tile),
+                    GeminiMarkerExtraction,
+                    max_output_tokens=MARKER_MAX_OUTPUT_TOKENS,
+                )
+            except Exception:  # noqa: BLE001 - recovery is best effort
+                return []
+            wanted = {_normalize_code(code) for code in unlocated}
+            return [
+                marker
+                for marker in map_markers_to_full_image(payload.get("markers", []), tile)
+                if _normalize_code(marker.get("legend_code")) in wanted and marker_has_ink(image, marker["box_2d"])
+            ]
+
+        with ThreadPoolExecutor(max_workers=len(tiles)) as pool:
+            recovered_markers = [marker for batch in pool.map(run_targeted_markers, tiles) for marker in batch]
+        diagnostics.append({
+            "code": "marker_recovery_pass",
+            "count": len(recovered_markers),
+            "items": unlocated,
+        })
+        if recovered_markers:
+            entity_map = parse(on_drawing + recovered_markers)
+
+    return entity_map
 
 
 def build_structure_prompt(project: ParsedProjectMetadata | None = None) -> str:
@@ -701,6 +828,130 @@ def parse_model_json(text: str, schema: type[BaseModel]) -> dict[str, Any]:
             if "list" in str(field.annotation):
                 return {name: parsed}
     raise ValueError("Model response was neither a JSON object nor a bare list.")
+
+
+def build_wing_locate_prompt(label: str) -> str:
+    return (
+        f"Locate the residential building labelled \"{label}\" on this real-estate master plan. "
+        "Output a JSON object whose \"wings\" list has exactly one item with the building's "
+        "footprint bounding box in \"box_2d\" as [ymin, xmin, ymax, xmax] on a 0-1000 scale, "
+        "the printed name in \"label\" and the letter or number alone in \"wing\". Box the whole "
+        "roof outline, not the text. If no building with that name is drawn, return an empty list."
+    )
+
+
+def build_targeted_marker_prompt(codes: list[str]) -> str:
+    return (
+        "This is a crop of a real-estate master plan. Find the small numbered circle markers whose "
+        f"printed number is one of: {', '.join(codes)}. Output a JSON object whose \"markers\" list "
+        "has, for each such circle actually drawn in this crop, its 2D bounding box in \"box_2d\" as "
+        "[ymin, xmin, ymax, xmax] on a 0-1000 scale of this image and the number as \"legend_code\". "
+        "Ignore every other circle and all legend text. If none of these numbers appear, return an "
+        "empty list."
+    )
+
+
+def missing_wing_keys(keys: list[str | None]) -> list[str]:
+    """Gaps inside a sequential set of wing identifiers (A..H or 1..N)."""
+    present = sorted({key for key in keys if key})
+    if len(present) < 2:
+        return []
+    if all(len(key) == 1 and key.isalpha() for key in present):
+        first, last = ord(present[0]), ord(present[-1])
+        return [chr(code) for code in range(first, last + 1) if chr(code) not in present]
+    if all(key.isdigit() for key in present):
+        numbers = sorted(int(key) for key in present)
+        return [str(value) for value in range(numbers[0], numbers[-1] + 1) if value not in numbers]
+    return []
+
+
+def _format_wing_label_like(sample_label: str, key: str) -> str:
+    """Build 'WING - F' from 'WING - A' and 'f', keeping the printed style."""
+    cleaned = _clean_text(sample_label)
+    match = _WING_KEY_RE.search(cleaned.lower())
+    if match:
+        start, end = match.span(1)
+        return cleaned[:start] + key.upper() + cleaned[end:]
+    return f"Wing - {key.upper()}"
+
+
+def build_wing_label_prompt() -> str:
+    return (
+        "This crop shows one residential building from a real-estate master plan. Return the "
+        "building name printed on or right beside it in \"label\" (for example \"Wing - B\" or "
+        "\"Tower 3\") and the letter or number alone in \"wing\". If no building name is printed "
+        "in the crop, return null for both. Return JSON only."
+    )
+
+
+_WING_KEY_RE = re.compile(r"(?:wing|tower|block|building|bldg)\s*[-–:.]?\s*([a-z]{1,2}|\d{1,3})\b")
+
+
+def wing_key(text: str | None) -> str | None:
+    """'WING - B' -> 'b', 'Tower 3' -> '3'; None when no identifier is present."""
+    cleaned = _clean_text(text).lower()
+    if not cleaned:
+        return None
+    match = _WING_KEY_RE.search(cleaned)
+    if match:
+        return match.group(1)
+    token = re.sub(r"[^a-z0-9]", "", cleaned)
+    return token if 1 <= len(token) <= 2 else None
+
+
+def reconcile_wing_labels(
+    wings: list[dict[str, Any]], printed: list[str | None]
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    """Correct wing names against what is printed inside each box.
+
+    A box whose printed name differs from its claimed name is relabelled to
+    the printed one. When two boxes end up claiming the same wing, the
+    verified box wins, then the relabelled, then the larger.
+    """
+    ranked: list[tuple[int, float, dict[str, Any]]] = []
+    relabelled = 0
+    for raw, seen_text in zip(wings, printed):
+        claimed = wing_key(raw.get("label"))
+        seen = wing_key(seen_text)
+        box = _box_from_payload(raw.get("box_2d"))
+        area = box.width * box.height if box else 0.0
+        if seen is None:
+            ranked.append((0, area, raw))
+        elif seen == claimed:
+            ranked.append((2, area, raw))
+        else:
+            relabelled += 1
+            new_label = _clean_text(seen_text) if _WING_KEY_RE.search(_clean_text(seen_text).lower()) else f"Wing - {seen.upper()}"
+            attributes = [item for item in (raw.get("attributes") or []) if not (isinstance(item, dict) and item.get("key") == "wing")]
+            attributes.append({"key": "wing", "value": seen.upper()})
+            ranked.append((1, area, {**raw, "label": new_label, "attributes": attributes}))
+
+    chosen: dict[str, tuple[int, float, dict[str, Any]]] = {}
+    unkeyed: list[dict[str, Any]] = []
+    dropped = 0
+    for rank, area, raw in ranked:
+        key = wing_key(raw.get("label"))
+        if key is None:
+            unkeyed.append(raw)
+            continue
+        current = chosen.get(key)
+        if current is None:
+            chosen[key] = (rank, area, raw)
+        elif (rank, area) > (current[0], current[1]):
+            chosen[key] = (rank, area, raw)
+            dropped += 1
+        else:
+            dropped += 1
+
+    final = [raw for _, _, raw in chosen.values()] + unkeyed
+    diagnostic = None
+    if relabelled or dropped:
+        diagnostic = {
+            "code": "wing_labels_reconciled",
+            "count": relabelled + dropped,
+            "items": [f"relabelled:{relabelled}", f"dropped:{dropped}"],
+        }
+    return final, diagnostic
 
 
 def wings_to_entities(wings: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -940,6 +1191,22 @@ def marker_has_ink(image: Image.Image, box_2d: list[float]) -> bool:
     luminance = pixels.mean(axis=2)
     ink = (chroma > 40) | (luminance < 170)
     return float(ink.mean()) >= MARKER_INK_MIN_FRACTION
+
+
+def _crop_part(image: Image.Image, box: EntityBox, *, pad: float) -> types.Part:
+    """PNG part of the box region, widened by ``pad`` of the box size each side."""
+    width, height = image.size
+    pad_x = max(box.width * pad, 20 / width)
+    pad_y = max(box.height * pad, 20 / height)
+    return _tile_part(
+        image,
+        (
+            _clamp(box.x_min - pad_x),
+            _clamp(box.y_min - pad_y),
+            _clamp(box.x_max + pad_x),
+            _clamp(box.y_max + pad_y),
+        ),
+    )
 
 
 def _tile_part(image: Image.Image, tile: tuple[float, float, float, float]) -> types.Part:
@@ -1244,7 +1511,8 @@ def _drop_oversized_boxes(entities: list[MasterPlanEntity]) -> tuple[list[Master
     kept = [
         entity
         for entity in entities
-        if entity.entity_type in AREA_EXEMPT_TYPES or entity.relative_area <= MAX_RELATIVE_AREA
+        if entity.entity_type in AREA_EXEMPT_TYPES
+        or entity.relative_area <= TYPE_MAX_AREA.get(entity.entity_type, MAX_RELATIVE_AREA)
     ]
     return kept, len(entities) - len(kept)
 

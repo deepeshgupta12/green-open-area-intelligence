@@ -8,11 +8,15 @@ from app.services.master_plan_entity_extractor import (
     map_markers_to_full_image,
     marker_has_ink,
     merge_structure_and_wings,
+    missing_wing_keys,
     normalize_entity_type,
     parse_master_plan_entity_payload,
     parse_model_json,
+    reconcile_wing_labels,
+    wing_key,
     wings_to_entities,
 )
+from app.services.master_plan_entity_extractor import _format_wing_label_like
 
 
 def build_sample_payload() -> dict:
@@ -431,6 +435,63 @@ def test_tiny_cross_type_pairs_and_road_label_boxes_are_discarded():
     codes = {item.code: item.count for item in result.diagnostics}
     assert codes["patterned_boxes_discarded"] == 2
     assert codes["road_label_boxes_discarded"] == 1
+
+
+def test_wing_labels_are_corrected_from_the_printed_name():
+    assert wing_key("WING - B") == "b"
+    assert wing_key("Tower 12") == "12"
+    assert wing_key("B") == "b"
+    assert wing_key("Clubhouse") is None
+
+    wings = wings_to_entities(
+        [
+            {"label": "Wing - A", "wing": "A", "box_2d": [400, 600, 500, 680]},
+            {"label": "Wing - B", "wing": "B", "box_2d": [510, 360, 610, 430]},  # actually Wing F
+            {"label": "Wing - F", "wing": "F", "box_2d": [420, 310, 490, 380]},  # actually Wing E
+            {"label": "Wing - E", "wing": "E", "box_2d": [420, 270, 490, 340]},  # unreadable crop
+        ]
+    )
+    printed = ["WING - A", "WING - F", "WING - E", None]
+    fixed, diagnostic = reconcile_wing_labels(wings, printed)
+
+    by_label = {raw["label"].lower(): raw for raw in fixed}
+    assert "wing - a" in by_label
+    assert by_label["wing - f"]["box_2d"] == [510, 360, 610, 430]
+    assert by_label["wing - f"]["attributes"] == [{"key": "wing", "value": "F"}]
+    # The verified E (relabelled from F's box) beats the unverified claim of E.
+    assert by_label["wing - e"]["box_2d"] == [420, 310, 490, 380]
+    assert "wing - b" not in by_label
+    assert diagnostic == {"code": "wing_labels_reconciled", "count": 3, "items": ["relabelled:2", "dropped:1"]}
+
+    untouched, none = reconcile_wing_labels(wings[:1], ["Wing - A"])
+    assert untouched == wings[:1]
+    assert none is None
+
+
+def test_missing_wing_keys_finds_gaps_in_sequential_runs():
+    assert missing_wing_keys(["a", "b", "c", "d", "e", "g", "h"]) == ["f"]
+    assert missing_wing_keys(["1", "2", "4"]) == ["3"]
+    assert missing_wing_keys(["a", "b", "c"]) == []
+    assert missing_wing_keys(["a"]) == []
+    assert missing_wing_keys(["a", "2"]) == []
+    assert missing_wing_keys([None, "b", "d"]) == ["c"]
+    assert _format_wing_label_like("WING - A", "f") == "WING - F"
+    assert _format_wing_label_like("Tower 3", "7") == "Tower 7"
+    assert _format_wing_label_like("Something odd", "b") == "Wing - B"
+
+
+def test_per_type_area_caps_drop_plan_sized_tree_belts():
+    payload = {
+        "legend_items": [],
+        "entities": [
+            {"entity_type": "tree_canopy_buffer", "label": "Tree belt", "box_2d": [280, 20, 700, 590]},
+            {"entity_type": "tree_canopy_buffer", "label": "Edge trees", "box_2d": [100, 590, 230, 900]},
+            {"entity_type": "internal_road", "label": "Loop road", "box_2d": [280, 100, 750, 950]},
+        ],
+    }
+    result = parse_master_plan_entity_payload(payload, image_width=1800, image_height=1270)
+    assert [entity.label for entity in result.entities] == ["Edge trees"]
+    assert {item.code: item.count for item in result.diagnostics}["oversized_boxes_discarded"] == 2
 
 
 def test_parse_model_json_wraps_a_bare_list():
