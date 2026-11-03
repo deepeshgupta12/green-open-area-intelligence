@@ -14,7 +14,7 @@ Three kinds of Gemini vision call, run in parallel, feed one
   so the image is tiled with overlap and results are mapped back.
 
 Structured output (``response_schema``) is enforced on every call so the
-model cannot return malformed JSON, and thinking is disabled because Gemini
+model cannot return malformed JSON, and thinking is kept at its minimum because Gemini
 2.5 localises better without it.
 
 The numbered markers are the most reliable location evidence on a master
@@ -366,6 +366,20 @@ class GeminiWingLabel(BaseModel):
     wing: str | None = Field(default=None, description="The letter or number alone.")
 
 
+class GeminiWaterCheck(BaseModel):
+    """Whether a crop of one drawn water-feature box really shows water."""
+
+    feature: str | None = Field(
+        default=None,
+        description="One of: swimming_pool, water_body, building_or_roof, paved_or_deck, lawn_or_garden, other.",
+    )
+    is_water: bool = Field(
+        default=False,
+        description="True only when the centre of the crop clearly shows a swimming pool or a water body.",
+    )
+    reason: str | None = Field(default=None, description="One short sentence.")
+
+
 class GeminiSiteEntity(BaseModel):
     entity_type: SiteTypeEnum
     label: str
@@ -418,17 +432,30 @@ class GeminiMarkerExtraction(BaseModel):
     markers: list[GeminiMarker] = Field(default_factory=list)
 
 
+def _thinking_config(model: str | None) -> types.ThinkingConfig:
+    """Thinking at its minimum: detection localises better and runs faster without it.
+
+    Gemini 2.x takes ``thinking_budget=0``; Gemini 3.x rejects a budget and
+    takes ``thinking_level`` instead, where ``minimal`` emits no thought tokens.
+    """
+    name = (model or get_settings().gemini_vision_model).lower()
+    if name.startswith("gemini-2"):
+        return types.ThinkingConfig(thinking_budget=0)
+    return types.ThinkingConfig(thinking_level="minimal")
+
+
 def _generation_config(
-    schema: type[BaseModel], temperature: float = 0.0, max_output_tokens: int = MAX_OUTPUT_TOKENS
+    schema: type[BaseModel],
+    temperature: float = 0.0,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS,
+    model: str | None = None,
 ) -> types.GenerateContentConfig:
     return types.GenerateContentConfig(
         temperature=temperature,
         response_mime_type="application/json",
         response_schema=schema,
         max_output_tokens=max_output_tokens,
-        # Gemini 2.5 localises better with thinking off (Google's spatial
-        # understanding guidance), and it is much faster.
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
+        thinking_config=_thinking_config(model),
     )
 
 
@@ -474,7 +501,9 @@ def extract_master_plan_entities(
                 response = client.models.generate_content(
                     model=model,
                     contents=[prompt, part],
-                    config=_generation_config(schema, temperature=attempt_temperature, max_output_tokens=max_output_tokens),
+                    config=_generation_config(
+                        schema, temperature=attempt_temperature, max_output_tokens=max_output_tokens, model=model
+                    ),
                 )
                 return parse_model_json(response.text or "{}", schema)
             except Exception as exc:  # noqa: BLE001 - retried once, then surfaced
@@ -687,6 +716,32 @@ def extract_master_plan_entities(
         if recovered_markers:
             entity_map = parse(on_drawing + recovered_markers)
 
+    # A pool that nothing else vouches for (no legend row, no declared
+    # amenity, no marker) must at least be painted blue; tower plates and
+    # lobbies drawn in pale grey-blue are a known confusion and the model
+    # keeps "seeing" swimmers on them. Boxes with blue ink get a second look
+    # on their own crop, and only a clear "not water" answer removes those.
+    # An unreadable crop keeps the feature.
+    suspects = unsupported_water_entities(entity_map, project)
+    if suspects:
+
+        def check_water(entity: MasterPlanEntity) -> dict[str, Any] | None:
+            if water_ink_share(image, entity.box) < WATER_MIN_BLUE_SHARE:
+                return {"feature": "no_blue_ink", "is_water": False}
+            try:
+                return run_call(
+                    build_water_check_prompt(),
+                    _crop_part(image, entity.box, pad=WATER_CHECK_PAD),
+                    GeminiWaterCheck,
+                    max_output_tokens=256,
+                )
+            except Exception:  # noqa: BLE001 - an unverifiable crop keeps the feature
+                return None
+
+        with ThreadPoolExecutor(max_workers=min(8, len(suspects))) as pool:
+            verdicts = list(pool.map(check_water, suspects))
+        entity_map = apply_water_verdicts(entity_map, suspects, verdicts)
+
     return entity_map
 
 
@@ -881,6 +936,143 @@ def build_wing_label_prompt() -> str:
         "building name printed on or right beside it in \"label\" (for example \"Wing - B\" or "
         "\"Tower 3\") and the letter or number alone in \"wing\". If no building name is printed "
         "in the crop, return null for both. Return JSON only."
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Water features nothing else vouches for
+# --------------------------------------------------------------------------- #
+
+WATER_TERMS: tuple[str, ...] = (
+    "pool",
+    "swim",
+    "water",
+    "pond",
+    "lake",
+    "fountain",
+    "cascad",
+    "lagoon",
+    "jacuzzi",
+    "splash",
+    "aqua",
+    "stream",
+    "creek",
+    "river",
+    "wet deck",
+)
+WATER_FEATURE_ANSWERS = {"swimming_pool", "water_body"}
+# Context each side of a suspect box, as a multiple of the box size, so the
+# crop shows the towers or lawns around it.
+WATER_CHECK_PAD = 1.0
+# Stylised plans draw water in saturated blue or cyan. Measured on the stored
+# runs: real drawn pools fill 30-56% of their box with it, tower plates and
+# lobbies drawn in pale grey-blue fill 0-3%.
+WATER_HUE_RANGE = (160.0, 250.0)
+WATER_MIN_SATURATION = 0.15
+WATER_MIN_VALUE = 0.35
+WATER_MIN_BLUE_SHARE = 0.08
+
+
+def water_ink_share(image: Image.Image, box: EntityBox) -> float:
+    """Share of the box painted in saturated blue or cyan."""
+    width, height = image.size
+    left, top = int(box.x_min * width), int(box.y_min * height)
+    right, bottom = max(int(box.x_max * width), left + 1), max(int(box.y_max * height), top + 1)
+    hsv = np.asarray(image.crop((left, top, right, bottom)).convert("HSV"), dtype=np.float32)
+    hue = hsv[..., 0] * (360.0 / 255.0)
+    saturation = hsv[..., 1] / 255.0
+    value = hsv[..., 2] / 255.0
+    bluish = (
+        (hue >= WATER_HUE_RANGE[0])
+        & (hue <= WATER_HUE_RANGE[1])
+        & (saturation >= WATER_MIN_SATURATION)
+        & (value >= WATER_MIN_VALUE)
+    )
+    return float(bluish.mean())
+
+
+def build_water_check_prompt() -> str:
+    return (
+        "This crop is cut from a stylised real-estate master plan drawing; the feature to judge sits in the "
+        "centre of the crop. Decide whether it is a swimming pool or a water body (pond, lake, fountain, "
+        "cascade, stream). Master plans often draw tower footprints, building roofs, lobbies, glass canopies, "
+        "shaded decks and paved plazas in light blue or grey, and those are NOT water. Return \"feature\" as "
+        "one of swimming_pool, water_body, building_or_roof, paved_or_deck, lawn_or_garden or other; "
+        "\"is_water\" true only for swimming_pool or water_body; and a short \"reason\". Return JSON only."
+    )
+
+
+def mentions_water(text: str | None) -> bool:
+    lowered = (text or "").lower()
+    return any(term in lowered for term in WATER_TERMS)
+
+
+def plan_declares_water(legend: list[LegendEntry], project: ParsedProjectMetadata | None) -> bool:
+    """True when the printed legend or the project's declared amenities mention water."""
+    texts = [item.label for item in legend]
+    if project is not None:
+        texts.extend(item.name for item in project.amenities)
+    return any(mentions_water(text) for text in texts)
+
+
+def unsupported_water_entities(
+    entity_map: MasterPlanEntityMap, project: ParsedProjectMetadata | None
+) -> list[MasterPlanEntity]:
+    """Water features that only the layout model vouches for.
+
+    When the legend or the project records list a pool, every drawn pool is
+    left exactly as it was. Otherwise the drawn ones (no legend code, no
+    marker) are suspects: light-blue roofs and lobbies are a known confusion.
+    """
+    if plan_declares_water(entity_map.legend, project):
+        return []
+    return [
+        entity
+        for entity in entity_map.entities
+        if entity.entity_group == "water" and entity.located_by == "layout_model" and not entity.legend_code
+    ]
+
+
+def apply_water_verdicts(
+    entity_map: MasterPlanEntityMap,
+    suspects: list[MasterPlanEntity],
+    verdicts: list[dict[str, Any] | None],
+) -> MasterPlanEntityMap:
+    """Drop suspects whose crop check said "not water"; keep the unverifiable ones."""
+    doomed: dict[str, str] = {}
+    unverified = 0
+    for entity, verdict in zip(suspects, verdicts):
+        if verdict is None:
+            unverified += 1
+            continue
+        feature = _clean_text(verdict.get("feature")).lower().replace(" ", "_")
+        if bool(verdict.get("is_water")) or feature in WATER_FEATURE_ANSWERS:
+            continue
+        doomed[entity.entity_id] = f"{entity.label}: {feature.replace('_', ' ') or 'not water'}"
+
+    diagnostics = list(entity_map.diagnostics)
+    if unverified:
+        diagnostics.append(Diagnostic(code="water_verification_failed", count=unverified))
+    if not doomed:
+        return entity_map.model_copy(update={"diagnostics": diagnostics})
+
+    diagnostics.append(Diagnostic(code="unsupported_water_discarded", count=len(doomed), items=list(doomed.values())))
+    entities = [entity for entity in entity_map.entities if entity.entity_id not in doomed]
+    entity_counts: dict[str, int] = {}
+    group_counts: dict[str, int] = {}
+    for entity in entities:
+        entity_counts[entity.entity_type] = entity_counts.get(entity.entity_type, 0) + 1
+        group_counts[entity.entity_group] = group_counts.get(entity.entity_group, 0) + 1
+    return entity_map.model_copy(
+        update={
+            "entities": entities,
+            "entity_counts": dict(sorted(entity_counts.items(), key=lambda item: (-item[1], item[0]))),
+            "group_counts": dict(sorted(group_counts.items(), key=lambda item: (-item[1], item[0]))),
+            "block_proximity": _build_block_proximity(
+                entities, image_width=entity_map.image_width, image_height=entity_map.image_height
+            ),
+            "diagnostics": diagnostics,
+        }
     )
 
 

@@ -19,11 +19,11 @@ class Settings(BaseSettings):
     # set) or a Gemini Developer API key. See app/utils/gemini_client.py.
     google_application_credentials: str | None = None
     google_cloud_project: str | None = None
-    google_cloud_location: str = "us-central1"
+    google_cloud_location: str = "global"
     gemini_api_key: str | None = None
 
-    gemini_vision_model: str = "gemini-2.5-flash"
-    gemini_text_model: str = "gemini-2.5-flash"
+    gemini_vision_model: str = "gemini-3.5-flash"
+    gemini_text_model: str = "gemini-3.5-flash"
 
     database_url: str = "sqlite:///./goa_engine.sqlite3"
 

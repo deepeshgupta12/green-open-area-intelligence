@@ -2,9 +2,9 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
-[![Gemini 2.5 Flash](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4)](https://ai.google.dev)
+[![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-48%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-51%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -52,7 +52,7 @@ The pipeline runs in stages. Each stage writes a typed JSON artefact so every re
 |-------|--------|--------------|
 | 1. Parse | `app/services/json_parser.py` | Normalises Datacenter JSON into project metadata: area, units, amenities, RERA records, wow factors, unit mix, master plan description, and any **direct green/open claims** found in text ("70% open space", "3 acres central green"). |
 | 2. Preprocess | `app/services/image_preprocessor.py` | Validates the master plan image, writes a normalised PNG, and scores image quality from sharpness, brightness and colourfulness. |
-| 3. Vision reasoning | `app/services/vision_analyzer.py` | Sends the normalised image plus project context to **Gemini 2.5 Flash** and gets back structured JSON: boundary confidence, visible green / open / built zones, a qualitative estimate, and warnings such as "stylised, not to scale". |
+| 3. Vision reasoning | `app/services/vision_analyzer.py` | Sends the normalised image plus project context to **Gemini 3.5 Flash** and gets back structured JSON: boundary confidence, visible green / open / built zones, a qualitative estimate, and warnings such as "stylised, not to scale". |
 | 4. Segmentation | `app/services/segmentation_engine.py` | **OpenCV** HSV masks for green landscape, water / pool, built structures and paved hardscape; class-wise pixel percentages, an **unknown / unclassified share**, and overlay images. |
 | 5. Estimate | `app/services/area_calculator.py` | Combines segmentation lower bounds, the vision estimate, JSON signals and image quality into **range-based** Green and Open Area estimates. Applies guardrails and confidence caps. |
 | 6. Explain | `validation_engine.py`, `confidence_engine.py`, `explanation_engine.py` | Validates ranges, computes the confidence score and label, and produces human-readable reasons and warnings. |
@@ -109,12 +109,13 @@ The comparison is served by the API (`POST /compare-master-plans`) and covered b
 
 ## Master plan entity map and hover viewer
 
-`POST /master-plan/entities` turns one master plan image into a **spatial entity map**: every wing, commercial block, clubhouse, gate, road, parking cluster, court, pool, garden, play area, game and utility yard with a bounding box, plus the legend as printed and a few site-level facts. The React app (`frontend/`, Vite + React + TypeScript) takes the plan either as a **public image URL** (fetched server-side, so CDN CORS and hotlink rules never block it; the stored copy is served back from `GET /master-plan/runs/{run_id}/image`) or as an **upload**, with the project's Datacenter JSON optional. From the plan alone it builds an executive dashboard: a **composition card** (features by type, residential blocks, entry points, parking, plan thumbnail), an **amenities and lifestyle** section (amenity mix by lifestyle category, legend coverage meter) and a **block-by-block access** matrix (amenities and green nearby, entry gate, external road, parking and utility-yard proximity per block). Expanding the plan opens the **hover viewer**: the boxes are drawn over the image, hovering a region shows the feature's full metadata, clicking pins it, filters and search scope the overlay, and a collapsed inventory table is the chart's accessible twin. With the Datacenter JSON the zoning, density and land allocation dashboards are added.
+`POST /master-plan/entities` turns one master plan image into a **spatial entity map**: every wing, commercial block, clubhouse, gate, road, parking cluster, court, pool, garden, play area, game and utility yard with a bounding box, plus the legend as printed and a few site-level facts. The React app (`frontend/`, Vite + React + TypeScript) takes the plan either as a **public image URL** (fetched server-side, so CDN CORS and hotlink rules never block it; the stored copy is served back from `GET /master-plan/runs/{run_id}/image`) or as an **upload**, with the project's Datacenter JSON optional. From the plan alone it builds an executive dashboard: a **composition card** (features by type, residential blocks, entry points, parking, plan thumbnail), a **land use** card (drawing area by use, summed from the located boxes), an **amenities and lifestyle** section (amenity mix by lifestyle category, legend coverage meter, legend promise vs plan evidence per category, walk to the nearest amenity per block) and a **spatial and access** section (where amenities and green sit on a 3x3 grid of the drawing, block exposure counts, and a block-by-block access matrix of amenities and green nearby plus entry gate, external road, parking and utility-yard proximity). Expanding the plan opens the **hover viewer**: the boxes are drawn over the image, hovering a region shows the feature's full metadata, clicking pins it, filters and search scope the overlay, and a collapsed inventory table is the chart's accessible twin. With the Datacenter JSON the land-use card becomes the **green and open area estimate** (low to high ranges, OpenCV pixel evidence, confidence reasons), a **home mix** card is added (carpet area by configuration, green per home, declared vs located amenities), and the zoning, density and land allocation dashboards follow.
 
 How the extraction works (`app/services/master_plan_entity_extractor.py`):
 
-- **Focused Gemini calls run in parallel**, each with a strict `response_schema` and thinking disabled: a *wings* call for residential building footprints (re-asked once if the boxes look fabricated), a *structures* call for the other large features, a *site* call for the legend text, plot shape, external roads and drawing annotations, and a *marker* call per image tile (2x2 with overlap) for the small numbered circles that key features to the legend.
+- **Focused Gemini calls run in parallel**, each with a strict `response_schema` and thinking at its minimum (`thinking_budget=0` on Gemini 2.x, `thinking_level=minimal` on 3.x): a *wings* call for residential building footprints (re-asked once if the boxes look fabricated), a *structures* call for the other large features, a *site* call for the legend text, plot shape, external roads and drawing annotations, and a *marker* call per image tile (2x2 with overlap) for the small numbered circles that key features to the legend.
 - **Numbered legend markers are treated as ground truth.** A marker whose code matches a legend row becomes that feature at that spot. A drawn box that agrees with a marker is merged with it (`located_by: both`); a drawn box far from the marker for the same feature is discarded.
+- **Water features need evidence**: a pool or water body that no legend row, declared amenity or legend marker vouches for must be painted in saturated blue or cyan (tower plates and lobbies drawn in pale grey-blue are a known confusion); the ones with blue ink get a second look on their own crop, and only a clear "not water" answer removes them. Plans whose legend or records list water are left untouched.
 - **Known model failure modes are filtered**: identical boxes reused across features, evenly spaced same-size runs, boxes covering most of the drawing, and circles detected on blank paper (a pixel check).
 - **Derived metadata**: category key for the nine comparison categories, nearest residential block and distance, per-block proximity notes ("Wing E sits closest to Entry Plaza, Outdoor Gym and Obstacle Park; ..."), legend coverage, entity and group counts.
 
@@ -139,7 +140,7 @@ Entity vocabulary: `residential_block`, `commercial_block`, `clubhouse`, `securi
 ```text
 Datacenter JSON ──► json_parser ─────────────────────────────┐
                                                              │
-Master plan image ─► image_preprocessor ──┬─► vision_analyzer (Gemini 2.5 Flash) ──┐
+Master plan image ─► image_preprocessor ──┬─► vision_analyzer (Gemini 3.5 Flash) ──┐
                                           └─► segmentation_engine (OpenCV) ────────┤
                                                                                    ▼
                                      area_calculator ─► validation ─► confidence ─► explanation
@@ -171,7 +172,7 @@ green-open-area-intelligence/
 │   └── utils/                    # file, image and Gemini client helpers
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── scripts/run_single_project.py # CLI runner for a single project
-├── tests/                        # pytest suite (48 tests)
+├── tests/                        # pytest suite (51 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
@@ -323,10 +324,10 @@ Flags are cumulative; omit later ones to stop at an earlier stage. Outputs land 
 |----------|---------|---------|
 | `GOOGLE_APPLICATION_CREDENTIALS` | none | Path to a Vertex AI service-account JSON. When set, Gemini runs through Vertex AI |
 | `GOOGLE_CLOUD_PROJECT` | from key file | GCP project for Vertex AI; defaults to the key file's `project_id` |
-| `GOOGLE_CLOUD_LOCATION` | `us-central1` | Vertex AI region |
+| `GOOGLE_CLOUD_LOCATION` | `global` | Vertex AI location. Gemini 3.x models are served from the `global` endpoint (and `asia-south1`); `us-central1` returns 404 for them |
 | `GEMINI_API_KEY` | none | Gemini Developer API key; used only when no service-account path is set |
-| `GEMINI_VISION_MODEL` | `gemini-2.5-flash` | Vision reasoning model |
-| `GEMINI_TEXT_MODEL` | `gemini-2.5-flash` | Narrative model |
+| `GEMINI_VISION_MODEL` | `gemini-3.5-flash` | Vision reasoning model |
+| `GEMINI_TEXT_MODEL` | `gemini-3.5-flash` | Narrative model |
 | `DENSITY_BENCHMARKS_PATH` | `data/benchmarks/density_benchmarks.sample.json` | Project parcel/unit dataset for density benchmarks; the default is a labelled synthetic sample |
 | `APP_ENV` | `local` | Environment label |
 | `APP_NAME` | `Green Open Area Intelligence Engine` | Reported by `/health` |

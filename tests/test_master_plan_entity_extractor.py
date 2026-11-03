@@ -542,3 +542,79 @@ def test_marker_has_ink_rejects_blank_paper():
 
     assert marker_has_ink(image, on_marker) is True
     assert marker_has_ink(image, on_blank) is False
+
+
+def _water_payload() -> dict:
+    payload = build_sample_payload()
+    payload["legend_items"] = [{"code": "1", "label": "Pet Park"}, {"code": "2", "label": "Party Lawn"}]
+    payload["entities"] = [
+        {"entity_id": "w1", "entity_type": "swimming_pool", "label": "Swimming Pool 1", "box_2d": [100, 100, 180, 200], "confidence": "High"},
+        {"entity_id": "w2", "entity_type": "swimming_pool", "label": "Swimming Pool 2", "box_2d": [400, 400, 470, 520]},
+        {"entity_id": "w3", "entity_type": "water_feature", "label": "Water Feature", "box_2d": [700, 100, 760, 190]},
+        {"entity_id": "w4", "entity_type": "swimming_pool", "label": "Marked pool", "box_2d": [500, 700, 590, 800], "located_by": "legend_marker"},
+        {"entity_id": "b1", "entity_type": "residential_block", "label": "Wing - A", "box_2d": [600, 100, 900, 300]},
+    ]
+    return payload
+
+
+def test_unsupported_water_entities_need_no_legend_or_records_support():
+    from app.schemas.project_schema import AmenityRecord, ParsedProjectMetadata
+    from app.services.master_plan_entity_extractor import unsupported_water_entities
+
+    payload = _water_payload()
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    # Only the drawn pools are suspects; the marker-located one is trusted.
+    assert [entity.entity_id for entity in unsupported_water_entities(entity_map, None)] == ["w1", "w2", "w3"]
+
+    # A legend row that mentions water vouches for every drawn pool.
+    payload["legend_items"].append({"code": "3", "label": "Swimming Pool"})
+    vouched = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    assert unsupported_water_entities(vouched, None) == []
+
+    # So does a declared amenity in the project records.
+    project = ParsedProjectMetadata.model_construct(amenities=[AmenityRecord(name="Kids Splash Pool")])
+    assert unsupported_water_entities(entity_map, project) == []
+
+
+def test_water_verdicts_drop_only_rejected_crops_and_recount():
+    from app.services.master_plan_entity_extractor import apply_water_verdicts, unsupported_water_entities
+
+    entity_map = parse_master_plan_entity_payload(_water_payload(), image_width=1000, image_height=1000)
+    suspects = unsupported_water_entities(entity_map, None)
+    assert entity_map.group_counts["water"] == 4
+
+    verdicts = [
+        {"feature": "building_or_roof", "is_water": False, "reason": "tower footprint"},
+        None,  # the crop could not be checked: keep it
+        {"feature": "swimming_pool", "is_water": True},
+    ]
+    checked = apply_water_verdicts(entity_map, suspects, verdicts)
+
+    assert [entity.entity_id for entity in checked.entities if entity.entity_group == "water"] == ["w2", "w3", "w4"]
+    assert checked.group_counts["water"] == 3
+    assert checked.entity_counts["swimming_pool"] == 2
+    codes = {diagnostic.code: diagnostic for diagnostic in checked.diagnostics}
+    assert codes["unsupported_water_discarded"].count == 1
+    assert codes["unsupported_water_discarded"].items == ["Swimming Pool 1: building or roof"]
+    assert codes["water_verification_failed"].count == 1
+    assert checked.block_proximity[0].block_label == "Wing - A"
+
+    # Nothing rejected: the map is unchanged apart from the diagnostics.
+    untouched = apply_water_verdicts(entity_map, suspects, [{"is_water": True}] * 3)
+    assert len(untouched.entities) == len(entity_map.entities)
+    assert "unsupported_water_discarded" not in {diagnostic.code for diagnostic in untouched.diagnostics}
+
+
+def test_water_ink_share_separates_blue_water_from_pale_plates():
+    from app.schemas.master_plan_entity_schema import EntityBox
+    from app.services.master_plan_entity_extractor import WATER_MIN_BLUE_SHARE, water_ink_share
+
+    image = Image.new("RGB", (200, 100), "white")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((10, 10, 90, 90), fill=(70, 190, 230))  # saturated cyan pool
+    draw.rectangle((110, 10, 190, 90), fill=(205, 220, 230))  # pale grey-blue tower plate
+
+    pool = water_ink_share(image, EntityBox(x_min=0.05, y_min=0.1, x_max=0.45, y_max=0.9))
+    plate = water_ink_share(image, EntityBox(x_min=0.55, y_min=0.1, x_max=0.95, y_max=0.9))
+    assert pool >= 0.9 > WATER_MIN_BLUE_SHARE
+    assert plate < WATER_MIN_BLUE_SHARE
