@@ -23,6 +23,7 @@ from app.schemas.project_schema import ParsedProjectMetadata
 from app.services.master_plan_entity_extractor import (
     WATER_MIN_BLUE_SHARE,
     plan_declares_water,
+    unsupported_water_entities,
     water_ink_share,
     wing_key,
 )
@@ -254,6 +255,7 @@ def run_model_review(
     image_part: types.Part,
     playbook: Playbook,
     call: Callable[..., dict[str, Any]],
+    project: ParsedProjectMetadata | None = None,
 ) -> tuple[list[Finding], dict[str, Any]]:
     scope = plan_scope(entity_map)
     # The count comes first and sees only the drawing, so it cannot anchor on
@@ -290,6 +292,14 @@ def run_model_review(
             severity = "minor"
         labels = [str(label) for label in (raw.get("entity_labels") or []) if str(label).strip()]
         ids = [entity.entity_id for entity in entity_map.entities if entity.label in labels]
+        if code == "false_positive_water":
+            # Water backed by the legend, the records or a marker outranks the
+            # model's eyes; only unsupported water can be a finding.
+            unsupported = {entity.entity_id for entity in unsupported_water_entities(entity_map, project)}
+            ids = [entity_id for entity_id in ids if entity_id in unsupported]
+            if not ids:
+                continue
+            severity = "major"
         findings.append(Finding(
             code=code, severity=severity, source="model",  # type: ignore[arg-type]
             detail=str(raw.get("detail") or code), entity_ids=ids, entity_labels=labels,
@@ -322,7 +332,7 @@ def review_analysis(
     model_used = False
     if call is not None and image_part is not None:
         try:
-            model_findings, observed = run_model_review(entity_map, area_estimate, image_part, playbook, call)
+            model_findings, observed = run_model_review(entity_map, area_estimate, image_part, playbook, call, project)
             model_used = True
             known = {finding.code for finding in findings}
             findings.extend(finding for finding in model_findings if finding.code not in known)

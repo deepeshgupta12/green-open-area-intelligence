@@ -184,7 +184,8 @@ def test_fixer_drops_water_without_ink_and_keeps_blocks_the_crop_check_confirms(
 
     block_ids = [e.entity_id for e in fixed.entities if e.entity_type == "residential_block"]
     findings = [Finding(code="false_positive_block", severity="major", detail="d", entity_ids=block_ids[:1])]
-    fixed2, _, actions2 = apply_fixes(fixed, None, findings, ctx, seed_playbook())
+    block_plan = fixed.model_copy(update={"site": fixed.site.model_copy(update={"drawing_style": "block_plan"})})
+    fixed2, _, actions2 = apply_fixes(block_plan, None, findings, ctx, seed_playbook())
     assert sum(1 for e in fixed2.entities if e.entity_type == "residential_block") == len(block_ids) - 1
     assert actions2[0].applied
 
@@ -315,3 +316,37 @@ def test_teacher_ignores_model_only_cycles_without_an_applied_fix():
         final_verdict="pass", final_score=0.95, adopted_round=1,
     )
     assert teach(seed, trail, lambda prompt: {"lessons": ["should not be recorded"]}) == (seed, 0)
+
+
+def test_fixer_never_touches_supported_water_or_rendered_blocks():
+    """A legend-placed water feature and a rendered plan's wings are outside the fixer's reach."""
+    white = Image.new("RGB", (1000, 1000), "white")
+    # The sample legend lists "Water Cascading", so every water feature on this plan is supported.
+    entity_map = build_map(extra_entities=[{"entity_id": "pool", "entity_type": "swimming_pool", "label": "Pool", "box_2d": [700, 700, 760, 790]}])
+    water_ids = [e.entity_id for e in entity_map.entities if e.entity_group == "water"]
+    assert water_ids
+
+    def never_called(prompt, part, schema, temperature=0.0, max_tokens=0):
+        raise AssertionError("no crop check may run for supported water or rendered blocks")
+
+    ctx = FixContext(image=white, image_part=object(), call=never_called, project=None)
+    findings = [
+        Finding(code="false_positive_water", severity="blocker", detail="d", entity_ids=water_ids, source="model"),
+        Finding(code="false_positive_block", severity="major", detail="d", entity_ids=[e.entity_id for e in entity_map.entities if e.entity_type == "residential_block"], source="model"),
+    ]
+    fixed, _, actions = apply_fixes(entity_map, None, findings, ctx, seed_playbook())
+    assert len(fixed.entities) == len(entity_map.entities)
+    assert all(not action.applied for action in actions)
+
+
+def test_reviewer_drops_model_water_findings_on_supported_water():
+    entity_map = build_map()  # legend declares water
+
+    def fake_call(prompt, part, schema, temperature=0.0, max_tokens=0):
+        if schema.__name__ == "GeminiCount":
+            return {"towers_seen": 2, "pools_seen": 0, "gates_seen": 1}
+        return {"findings": [{"code": "false_positive_water", "severity": "blocker", "detail": "no pool drawn", "entity_labels": ["Tennis court"]}]}
+
+    report = review_analysis(entity_map, None, project=None, image=None, image_part=object(), playbook=seed_playbook(), call=fake_call)
+    assert not any(f.code == "false_positive_water" for f in report.findings)
+    assert report.verdict == "pass"

@@ -17,12 +17,14 @@ type MasterPlanAnalysisPanelProps = {
   /** Local upload when there is one; otherwise the API's stored copy is shown. */
   imageFile: File | null;
   analysis: MasterPlanAnalysisResponse;
+  /** Open the hover viewer at once (used by previews and deep links). */
+  initialViewerOpen?: boolean;
 };
 
-export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPlanAnalysisPanelProps) {
+export function MasterPlanAnalysisPanel({ title, imageFile, analysis, initialViewerOpen = false }: MasterPlanAnalysisPanelProps) {
   const metrics = analysis.site_metrics;
   const entityMap = analysis.entity_map;
-  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(initialViewerOpen);
   const servedImageUrl = imageFile ? null : apiUrl(analysis.image_url);
   const isBlockPlan = entityMap.site.drawing_style === "block_plan";
   const toggleViewer = () => setViewerOpen((open) => !open);

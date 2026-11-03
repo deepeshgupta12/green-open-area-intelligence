@@ -100,6 +100,33 @@ export function LandAllocationSankey({ metrics }: LandAllocationSankeyProps) {
   );
 }
 
+function nodeCaption(node: FlowNode, metrics: SiteMetrics): string[] {
+  switch (node.key) {
+    case "site_parcel":
+      return [`${fmt(metricValue(metrics.parcel_area_acres), 2)} acres (${fmtSqM(node.value_sq_m)})`, "100% macro allocation"];
+    case "open_realm":
+      return [`${fmtSqM(node.value_sq_m, 2)}`, `${fmtPercent(node.share_of_parcel_percent ?? null, 1)} of parcel · ${sourceLabel(metrics.open_area_percent)}`];
+    case "building_plinth":
+      return [`${fmtSqM(node.value_sq_m, 2)}`, `${fmtPercent(node.share_of_parcel_percent ?? null, 1)} of parcel`];
+    case "land_per_home":
+      return [`${fmt(node.value_sq_m, 1)} sq.m / home`, `Across ${fmt(node.count)} homes`];
+    case "outdoor_amenities":
+      return [
+        `${fmtSqM(node.value_sq_m, 2)}`,
+        node.count ? `${fmt(node.count)} outdoor space${node.count === 1 ? "" : "s"} located on the plan` : "Outdoor spaces not counted",
+      ];
+    case "built_up_envelope":
+      return [
+        node.value_sq_m ? `${fmtSqM(node.value_sq_m)} gross` : "Not in project records",
+        metricValue(metrics.sanctioned_fsi) !== null ? `FSI ${fmt(metricValue(metrics.sanctioned_fsi), 2)}` : "Needs sanctioned FSI",
+      ];
+    case "clubhouse":
+      return [`${fmtSqM(node.value_sq_m)}`, "From project records"];
+    default:
+      return [];
+  }
+}
+
 type SankeyFigureProps = {
   nodes: FlowNode[];
   links: FlowLink[];
@@ -110,20 +137,80 @@ type SankeyFigureProps = {
 };
 
 type PlacedNode = FlowNode & { x: number; y: number; height: number };
+type Caption = { value: string | null; subs: string[] };
+
+const TITLE_HEIGHT = 18;
+const VALUE_HEIGHT = 20;
+const SUB_LINE_HEIGHT = 15;
+
+function wrapWords(text: string, maxChars: number, maxLines = 3): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  words.forEach((word) => {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  });
+  if (current) lines.push(current);
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines);
+    kept[maxLines - 1] = `${kept[maxLines - 1].replace(/[\s·]+$/, "")}…`;
+    return kept;
+  }
+  return lines;
+}
+
+/** Break a caption on its " · " separators first, then on words, so no line overruns its column. */
+function wrapCaption(text: string, maxChars: number): string[] {
+  if (text.length <= maxChars) return [text];
+  const parts = text.split(" · ");
+  if (parts.length === 1) return wrapWords(text, maxChars);
+  const lines: string[] = [];
+  let current = "";
+  parts.forEach((part) => {
+    const candidate = current ? `${current} · ${part}` : part;
+    if (candidate.length > maxChars && current) {
+      lines.push(current);
+      current = part;
+    } else {
+      current = candidate;
+    }
+  });
+  if (current) lines.push(current);
+  return lines.flatMap((line) => wrapWords(line, maxChars));
+}
+
+function captionHeight(caption: Caption): number {
+  return TITLE_HEIGHT + (caption.value ? VALUE_HEIGHT : 0) + caption.subs.length * SUB_LINE_HEIGHT + 4;
+}
 
 function SankeyFigure({ nodes, links, parcel, metrics, active, onHover }: SankeyFigureProps) {
   const width = 900;
-  const height = 330;
+  const baseHeight = 330;
   const padY = 24;
   const nodeWidth = 10;
   const gap = 14;
-  const columnX = [40, 430, 760];
-  const usable = height - padY * 2;
+  // The right column keeps 210px for its text so outcome labels never run off the sheet.
+  const columnX = [40, 400, 680];
+  const columnChars = [46, 40, 30];
+  const usable = baseHeight - padY * 2;
 
-  const placed = useMemo(() => {
+  const captionFor = (node: FlowNode): Caption => {
+    const maxChars = columnChars[Math.min(node.stage, 2)];
+    const lines = nodeCaption(node, metrics);
+    return { value: lines[0] ?? null, subs: lines[1] ? wrapCaption(lines[1], maxChars) : [] };
+  };
+
+  const { placed, height } = useMemo(() => {
     const byStage = new Map<number, FlowNode[]>();
     nodes.forEach((node) => byStage.set(node.stage, [...(byStage.get(node.stage) ?? []), node]));
     const result: PlacedNode[] = [];
+    let bottom = baseHeight - padY;
     byStage.forEach((stageNodes, stage) => {
       // Stage 2 outcome nodes hang off their parent flows, so size them by the
       // area they represent; the per-home node is a thin outcome bar.
@@ -135,13 +222,18 @@ function SankeyFigure({ nodes, links, parcel, metrics, active, onHover }: Sankey
       const scale = (usable - gap * (sized.length - 1)) / Math.max(total, parcel);
       let cursor = padY;
       sized.forEach(({ node, value }) => {
-        const h = Math.max(10, value * scale);
+        const h = Math.max(12, value * scale);
+        // A thin node still needs room for its label block; the next node
+        // starts below whichever is taller, so labels never collide.
+        const block = Math.max(h, captionHeight(captionFor(node)));
         result.push({ ...node, x: columnX[Math.min(stage, 2)], y: cursor, height: h });
-        cursor += h + gap;
+        cursor += block + gap;
+        bottom = Math.max(bottom, cursor - gap);
       });
     });
-    return result;
-  }, [nodes, parcel, usable]);
+    return { placed: result, height: Math.ceil(bottom + padY) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, parcel, usable, metrics]);
 
   const byKey = new Map(placed.map((node) => [node.key, node]));
 
@@ -179,30 +271,6 @@ function SankeyFigure({ nodes, links, parcel, metrics, active, onHover }: Sankey
     })
     .filter((ribbon): ribbon is NonNullable<typeof ribbon> => ribbon !== null);
 
-  const nodeCaption = (node: PlacedNode): string[] => {
-    switch (node.key) {
-      case "site_parcel":
-        return [`${fmt(metricValue(metrics.parcel_area_acres), 2)} acres (${fmtSqM(node.value_sq_m)})`, "100% macro allocation"];
-      case "open_realm":
-        return [`${fmtSqM(node.value_sq_m, 2)}`, `${fmtPercent(node.share_of_parcel_percent ?? null, 1)} of parcel · ${sourceLabel(metrics.open_area_percent)}`];
-      case "building_plinth":
-        return [`${fmtSqM(node.value_sq_m, 2)}`, `${fmtPercent(node.share_of_parcel_percent ?? null, 1)} of parcel`];
-      case "land_per_home":
-        return [`${fmt(node.value_sq_m, 1)} sq.m / home`, `Across ${fmt(node.count)} homes`];
-      case "outdoor_amenities":
-        return [`${fmtSqM(node.value_sq_m, 2)}`, node.count ? `${fmt(node.count)} outdoor spaces located on the plan` : "Outdoor spaces not counted"];
-      case "built_up_envelope":
-        return [
-          node.value_sq_m ? `${fmtSqM(node.value_sq_m)} gross` : "Not in project records",
-          metricValue(metrics.sanctioned_fsi) !== null ? `FSI ${fmt(metricValue(metrics.sanctioned_fsi), 2)}` : "Needs sanctioned FSI",
-        ];
-      case "clubhouse":
-        return [`${fmtSqM(node.value_sq_m)}`, "From project records"];
-      default:
-        return [];
-    }
-  };
-
   return (
     <figure className="viz-figure sankey-figure">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Flow of the site parcel into open realm and building plinth, and on to per-home land, outdoor amenities and built-up envelope">
@@ -222,26 +290,26 @@ function SankeyFigure({ nodes, links, parcel, metrics, active, onHover }: Sankey
           );
         })}
         {placed.map((node) => {
-          const captions = nodeCaption(node);
-          const anchorRight = node.stage === 2;
-          const textX = anchorRight ? node.x + nodeWidth + 12 : node.x + nodeWidth + 12;
+          const caption = captionFor(node);
+          const textX = node.x + nodeWidth + 12;
           const unavailable = node.value_sq_m === null || node.value_sq_m === undefined;
+          const subTop = node.y + TITLE_HEIGHT + (caption.value ? VALUE_HEIGHT : 0) + 12;
           return (
             <g key={node.key} className={`sankey-node${unavailable ? " is-unavailable" : ""}`}>
               <rect x={node.x} y={node.y} width={nodeWidth} height={node.height} rx={3} />
               <text x={textX} y={node.y + 14} className="sankey-node-title">
                 {(NODE_LABELS[node.key] ?? node.key).toUpperCase()}
               </text>
-              {captions[0] && (
+              {caption.value && (
                 <text x={textX} y={node.y + 34} className="sankey-node-value">
-                  {captions[0]}
+                  {caption.value}
                 </text>
               )}
-              {captions[1] && (
-                <text x={textX} y={node.y + 50} className="sankey-node-sub">
-                  {captions[1]}
+              {caption.subs.map((line, index) => (
+                <text key={index} x={textX} y={subTop + index * SUB_LINE_HEIGHT} className="sankey-node-sub">
+                  {line}
                 </text>
-              )}
+              ))}
             </g>
           );
         })}

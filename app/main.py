@@ -17,7 +17,9 @@ from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
 from app.agents.orchestrator import run_qa_loop
+from app.schemas.analysis_response_schema import MasterPlanAnalysisResponse, MasterPlanEntitiesResponse, RunArtifacts
 from app.schemas.area_schema import AreaEstimateResult
+from app.schemas.master_plan_entity_schema import Diagnostic
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.site_metrics_schema import SiteRecords
 from app.services.density_benchmarks import load_density_benchmarks
@@ -720,24 +722,27 @@ async def analyse_master_plan(
         else:
             diagnostics.append({"code": "project_json_missing", "count": 1})
 
-        return {
-            "run_id": run_id,
-            "image_url": f"/master-plan/runs/{run_id}/image",
-            "source_image_url": master_plan_image_url.strip() if master_plan_image_url else None,
-            "entity_map": entity_map.model_dump(mode="json"),
-            "site_metrics": site_metrics.model_dump(mode="json") if site_metrics else None,
-            "area_estimate": area_estimate.model_dump(mode="json") if area_estimate else None,
-            "image_metadata": image_metadata.model_dump(mode="json"),
-            "diagnostics": diagnostics,
-            "run_artifacts": {
-                "input_master_plan_image_path": str(image_path),
-                "input_project_json_path": str(project_json_path) if project_json_path else None,
-                "normalized_image_path": image_metadata.normalized_image_path,
-                "master_plan_entity_map_json_path": str(entity_map_path),
-                "area_estimate_json_path": str(area_estimate_path) if area_estimate_path else None,
-                "site_metrics_json_path": str(site_metrics_path) if site_metrics_path else None,
-            },
-        }
+        qa_trail_path = run_output_dir / "qa_trail.json"
+        response = MasterPlanAnalysisResponse(
+            run_id=run_id,
+            image_url=f"/master-plan/runs/{run_id}/image",
+            source_image_url=master_plan_image_url.strip() if master_plan_image_url else None,
+            entity_map=entity_map,
+            site_metrics=site_metrics,
+            area_estimate=area_estimate,
+            image_metadata=image_metadata,
+            diagnostics=[Diagnostic(code=str(item["code"]), count=int(item.get("count") or 0), items=list(item.get("items") or [])) for item in diagnostics],
+            run_artifacts=RunArtifacts(
+                input_master_plan_image_path=str(image_path),
+                input_project_json_path=str(project_json_path) if project_json_path else None,
+                normalized_image_path=image_metadata.normalized_image_path,
+                master_plan_entity_map_json_path=str(entity_map_path),
+                area_estimate_json_path=str(area_estimate_path) if area_estimate_path else None,
+                site_metrics_json_path=str(site_metrics_path) if site_metrics_path else None,
+                qa_trail_json_path=str(qa_trail_path) if qa_trail_path.exists() else None,
+            ),
+        )
+        return response.model_dump(mode="json")
 
     except HTTPException:
         raise
@@ -792,19 +797,22 @@ async def extract_master_plan_entity_map(
         entity_map_path = run_output_dir / "master_plan_entity_map.json"
         write_json_file(entity_map_path, entity_map.model_dump(mode="json"))
 
-        return {
-            "run_id": run_id,
-            "image_url": f"/master-plan/runs/{run_id}/image",
-            "source_image_url": master_plan_image_url.strip() if master_plan_image_url else None,
-            "entity_map": entity_map.model_dump(mode="json"),
-            "image_metadata": image_metadata.model_dump(mode="json"),
-            "run_artifacts": {
-                "input_master_plan_image_path": str(image_path),
-                "input_project_json_path": str(project_json_path) if project_json_path else None,
-                "normalized_image_path": image_metadata.normalized_image_path,
-                "master_plan_entity_map_json_path": str(entity_map_path),
-            },
-        }
+        qa_trail_path = run_output_dir / "qa_trail.json"
+        response = MasterPlanEntitiesResponse(
+            run_id=run_id,
+            image_url=f"/master-plan/runs/{run_id}/image",
+            source_image_url=master_plan_image_url.strip() if master_plan_image_url else None,
+            entity_map=entity_map,
+            image_metadata=image_metadata,
+            run_artifacts=RunArtifacts(
+                input_master_plan_image_path=str(image_path),
+                input_project_json_path=str(project_json_path) if project_json_path else None,
+                normalized_image_path=image_metadata.normalized_image_path,
+                master_plan_entity_map_json_path=str(entity_map_path),
+                qa_trail_json_path=str(qa_trail_path) if qa_trail_path.exists() else None,
+            ),
+        )
+        return response.model_dump(mode="json")
 
     except HTTPException:
         raise

@@ -27,6 +27,7 @@ from app.services.master_plan_entity_extractor import (
     build_footprint_check_prompt,
     build_water_check_prompt,
     recover_footprints,
+    unsupported_water_entities,
     water_ink_share,
     wing_key,
 )
@@ -111,9 +112,13 @@ def downgrade_estimate(estimate: AreaEstimateResult, reason: str) -> AreaEstimat
 
 
 def verify_water(entity_map: MasterPlanEntityMap, entity_ids: set[str], ctx: FixContext) -> tuple[MasterPlanEntityMap, str]:
-    suspects = [entity for entity in entity_map.entities if entity.entity_id in entity_ids and entity.entity_group == "water"]
+    # Only water the extractor itself would treat as unsupported is checked:
+    # a legend row, a declared amenity or a legend marker outranks the
+    # reviewer's eyes, and a marker-sized box holds little blue by nature.
+    unsupported = {entity.entity_id for entity in unsupported_water_entities(entity_map, ctx.project)}
+    suspects = [entity for entity in entity_map.entities if entity.entity_id in entity_ids and entity.entity_id in unsupported]
     if not suspects or ctx.image is None:
-        return entity_map, "nothing to verify"
+        return entity_map, "nothing to verify: the flagged water is supported by the legend, records or a marker"
     verdicts: list[dict[str, Any] | None] = []
     for entity in suspects:
         if water_ink_share(ctx.image, entity.box) < WATER_MIN_BLUE_SHARE:
@@ -132,6 +137,10 @@ def verify_water(entity_map: MasterPlanEntityMap, entity_ids: set[str], ctx: Fix
 
 
 def verify_blocks(entity_map: MasterPlanEntityMap, entity_ids: set[str], ctx: FixContext) -> tuple[MasterPlanEntityMap, str]:
+    # The "building outline" crop check is calibrated on line drawings; on a
+    # rendered plan it would reject real wings, so it never runs there.
+    if entity_map.site.drawing_style != "block_plan":
+        return entity_map, "not applied: block crop checks run on block plans only"
     suspects = [entity for entity in entity_map.entities if entity.entity_id in entity_ids and entity.entity_type == "residential_block"]
     if not suspects or ctx.image is None or ctx.call is None:
         return entity_map, "nothing to verify"

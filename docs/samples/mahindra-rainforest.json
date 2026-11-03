@@ -1,0 +1,1520 @@
+{
+  "run_id": "d09b53f3-eaab-4458-81ba-59590cc43736",
+  "image_url": "/master-plan/runs/d09b53f3-eaab-4458-81ba-59590cc43736/image",
+  "source_image_url": "https://static.squareyards.com/resources/images/mumbai/project-image/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-e14ccd0af67f.jpg",
+  "entity_map": {
+    "project_id": null,
+    "project_name": null,
+    "image_width": 1113,
+    "image_height": 800,
+    "coordinate_system": "fraction_of_image",
+    "extraction_confidence_label": "High",
+    "site": {
+      "shape_class": "irregular",
+      "north_arrow_present": true,
+      "external_roads": [
+        {
+          "label": "LAL BAHADUR SHASTRI ROAD",
+          "width_text": "30.50 M. WIDE",
+          "side": "west"
+        },
+        {
+          "label": "PROPOSED D. P. ROAD",
+          "width_text": "13.40 MT. WIDE",
+          "side": "south"
+        },
+        {
+          "label": "PROPOSED D. P. ROAD",
+          "width_text": "15.25 MT. WIDE",
+          "side": "east"
+        },
+        {
+          "label": "PROPOSED D. P. ROAD",
+          "width_text": "27.45 MT. WIDE",
+          "side": "north"
+        }
+      ],
+      "entry_exit_count": 5,
+      "residential_block_labels": [
+        "Footprint 1",
+        "Footprint 2",
+        "Footprint 3",
+        "Footprint 4",
+        "Footprint 5",
+        "Footprint 6",
+        "WING - B",
+        "WING - C",
+        "WING - D",
+        "WING - E",
+        "WING - G",
+        "WING-F"
+      ],
+      "commercial_block_count": 2,
+      "parking_cluster_count": 0,
+      "utility_yard_count": 0,
+      "drawing_style": "block_plan",
+      "printed_records": {
+        "title": "Mahindra Rainforest Phase-2",
+        "plot_area_text": "2,835.56 sq.m.",
+        "plot_area_sq_m": 2835.56,
+        "sanctioned_bua_text": "51,683.45 sq.m.",
+        "sanctioned_bua_sq_m": 51683.45,
+        "fsi_text": null,
+        "derived_fsi": 18.23,
+        "scale_text": "1 : 1000",
+        "parcels": [
+          {
+            "label": "SETBACK - 1 AREA",
+            "area_text": "213.50 SQ.MT.",
+            "area_sq_m": 213.5,
+            "box": {
+              "x_min": 0.496,
+              "y_min": 0.129,
+              "x_max": 0.528,
+              "y_max": 0.215
+            }
+          },
+          {
+            "label": "SETBACK - 2 AREA",
+            "area_text": "104.00 SQ.MT.",
+            "area_sq_m": 104.0,
+            "box": {
+              "x_min": 0.727,
+              "y_min": 0.068,
+              "x_max": 0.742,
+              "y_max": 0.144
+            }
+          },
+          {
+            "label": "SETBACK - 3 AREA",
+            "area_text": "379.00 SQ.MT.",
+            "area_sq_m": 379.0,
+            "box": {
+              "x_min": 0.811,
+              "y_min": 0.231,
+              "x_max": 0.838,
+              "y_max": 0.31
+            }
+          },
+          {
+            "label": "R. ZONE 1-3 A.O.S ZONE",
+            "area_text": "629.10 SQ.MT",
+            "area_sq_m": 629.1,
+            "box": {
+              "x_min": 0.659,
+              "y_min": 0.184,
+              "x_max": 0.694,
+              "y_max": 0.258
+            }
+          },
+          {
+            "label": "R.O.S. 1.4 (P.G.)",
+            "area_text": "1903.36 Sq.Mt.",
+            "area_sq_m": 1903.36,
+            "box": {
+              "x_min": 0.75,
+              "y_min": 0.32,
+              "x_max": 0.827,
+              "y_max": 0.43
+            }
+          },
+          {
+            "label": "R.O.S. 1.5 GARDEN/PARK AREA (AS PER DP 2034)",
+            "area_text": "1903.36 Sq.Mt.",
+            "area_sq_m": 1903.36,
+            "box": {
+              "x_min": 0.75,
+              "y_min": 0.32,
+              "x_max": 0.827,
+              "y_max": 0.43
+            }
+          },
+          {
+            "label": "RECREATION GROUND (R.G.1) (PART OF LARGER EXISTING AMENITY)",
+            "area_text": "252.19 SQ.MT.",
+            "area_sq_m": 252.19,
+            "box": {
+              "x_min": 0.415,
+              "y_min": 0.375,
+              "x_max": 0.441,
+              "y_max": 0.485
+            }
+          },
+          {
+            "label": "R.S.A. 3.3 RELOCATED CULTURAL CENTRE/DRAMA THEATRE/THEATRE AREA",
+            "area_text": "11695.57 SQ.MT",
+            "area_sq_m": 11695.57,
+            "box": {
+              "x_min": 0.076,
+              "y_min": 0.299,
+              "x_max": 0.141,
+              "y_max": 0.515
+            }
+          },
+          {
+            "label": "RE 1.1 MUNICIPAL SCHOOL AREA",
+            "area_text": "2688.10 Sq.Mt.",
+            "area_sq_m": 2688.1,
+            "box": {
+              "x_min": 0.764,
+              "y_min": 0.408,
+              "x_max": 0.847,
+              "y_max": 0.557
+            }
+          },
+          {
+            "label": "1-3 + R ZONE AMENITY OPEN SPACE (A.O.S) AREA",
+            "area_text": "6732.29 SQ.MT",
+            "area_sq_m": 6732.29,
+            "box": {
+              "x_min": 0.799,
+              "y_min": 0.571,
+              "x_max": 0.841,
+              "y_max": 0.691
+            }
+          },
+          {
+            "label": "R.O.S. 1.5 GARDEN/PARK AREA",
+            "area_text": "2668.67 SQ.MT.",
+            "area_sq_m": 2668.67,
+            "box": {
+              "x_min": 0.801,
+              "y_min": 0.711,
+              "x_max": 0.879,
+              "y_max": 0.885
+            }
+          }
+        ]
+      }
+    },
+    "legend": [],
+    "entities": [
+      {
+        "entity_id": "e1",
+        "entity_type": "clubhouse",
+        "entity_group": "structure",
+        "label": "Clubhouse",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.583,
+          "y_min": 0.624,
+          "x_max": 0.744,
+          "y_max": 0.8
+        },
+        "center_x": 0.6635,
+        "center_y": 0.712,
+        "relative_area": 0.02834,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - C",
+        "nearest_residential_distance": 0.0691
+      },
+      {
+        "entity_id": "e2",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Garden/Park Area",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "green_landscape",
+        "box": {
+          "x_min": 0.801,
+          "y_min": 0.711,
+          "x_max": 0.88,
+          "y_max": 0.885
+        },
+        "center_x": 0.8405,
+        "center_y": 0.798,
+        "relative_area": 0.01375,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING-F",
+        "nearest_residential_distance": 0.102
+      },
+      {
+        "entity_id": "e3",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "R.G.S. 1.5 Garden/Park Area",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "green_landscape",
+        "box": {
+          "x_min": 0.75,
+          "y_min": 0.319,
+          "x_max": 0.826,
+          "y_max": 0.428
+        },
+        "center_x": 0.788,
+        "center_y": 0.3735,
+        "relative_area": 0.00828,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.1498
+      },
+      {
+        "entity_id": "e4",
+        "entity_type": "commercial_block",
+        "entity_group": "structure",
+        "label": "Municipal School Area",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.763,
+          "y_min": 0.408,
+          "x_max": 0.844,
+          "y_max": 0.559
+        },
+        "center_x": 0.8035,
+        "center_y": 0.4835,
+        "relative_area": 0.01223,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.1058
+      },
+      {
+        "entity_id": "e5",
+        "entity_type": "commercial_block",
+        "entity_group": "structure",
+        "label": "Relocated Cultural Centre/Drama Theatre/Theatre Area",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.05,
+          "y_min": 0.214,
+          "x_max": 0.19,
+          "y_max": 0.555
+        },
+        "center_x": 0.12,
+        "center_y": 0.3845,
+        "relative_area": 0.04774,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 1",
+        "nearest_residential_distance": 0.1255
+      },
+      {
+        "entity_id": "e6",
+        "entity_type": "entry_exit_gate",
+        "entity_group": "structure",
+        "label": "Entry/Exit Gate 1",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.459,
+          "y_min": 0.129,
+          "x_max": 0.498,
+          "y_max": 0.177
+        },
+        "center_x": 0.4785,
+        "center_y": 0.153,
+        "relative_area": 0.00187,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 2",
+        "nearest_residential_distance": 0.2652
+      },
+      {
+        "entity_id": "e7",
+        "entity_type": "entry_exit_gate",
+        "entity_group": "structure",
+        "label": "Entry/Exit Gate 2",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.649,
+          "y_min": 0.873,
+          "x_max": 0.684,
+          "y_max": 0.911
+        },
+        "center_x": 0.6665,
+        "center_y": 0.892,
+        "relative_area": 0.00133,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - C",
+        "nearest_residential_distance": 0.0584
+      },
+      {
+        "entity_id": "e8",
+        "entity_type": "entry_exit_gate",
+        "entity_group": "structure",
+        "label": "Entry/Exit Gate 3",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.156,
+          "y_min": 0.873,
+          "x_max": 0.191,
+          "y_max": 0.911
+        },
+        "center_x": 0.1735,
+        "center_y": 0.892,
+        "relative_area": 0.00133,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 4",
+        "nearest_residential_distance": 0.0527
+      },
+      {
+        "entity_id": "e9",
+        "entity_type": "entry_exit_gate",
+        "entity_group": "structure",
+        "label": "Entry/Exit Gate 4",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.156,
+          "y_min": 0.157,
+          "x_max": 0.2,
+          "y_max": 0.193
+        },
+        "center_x": 0.178,
+        "center_y": 0.175,
+        "relative_area": 0.00158,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - G",
+        "nearest_residential_distance": 0.2472
+      },
+      {
+        "entity_id": "e10",
+        "entity_type": "internal_road",
+        "entity_group": "circulation",
+        "label": "15.25 Mt. Wide Proposed D. P. Road",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.087,
+          "y_min": 0.873,
+          "x_max": 0.804,
+          "y_max": 0.919
+        },
+        "center_x": 0.4455,
+        "center_y": 0.896,
+        "relative_area": 0.03298,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "road_width": "15.25 m"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - D",
+        "nearest_residential_distance": 0.0496
+      },
+      {
+        "entity_id": "e11",
+        "entity_type": "internal_road",
+        "entity_group": "circulation",
+        "label": "27.45 Mt. Wide Proposed D. P. Road",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.684,
+          "y_min": 0.177,
+          "x_max": 0.875,
+          "y_max": 0.918
+        },
+        "center_x": 0.7795,
+        "center_y": 0.5475,
+        "relative_area": 0.14153,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "road_width": "27.45 m"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.0683
+      },
+      {
+        "entity_id": "e12",
+        "entity_type": "internal_road",
+        "entity_group": "circulation",
+        "label": "30.50 M. Wide Lal Bahadur Shastri Road",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.199,
+          "y_min": 0.089,
+          "x_max": 0.516,
+          "y_max": 0.177
+        },
+        "center_x": 0.3575,
+        "center_y": 0.133,
+        "relative_area": 0.0279,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "road_width": "30.50 m"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 2",
+        "nearest_residential_distance": 0.3065
+      },
+      {
+        "entity_id": "e13",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "WING - C",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.588,
+          "y_min": 0.773,
+          "x_max": 0.654,
+          "y_max": 0.856
+        },
+        "center_x": 0.621,
+        "center_y": 0.8145,
+        "relative_area": 0.00548,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "C",
+          "highlighted": "yes"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e14",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "WING-F",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.682,
+          "y_min": 0.774,
+          "x_max": 0.749,
+          "y_max": 0.858
+        },
+        "center_x": 0.7155,
+        "center_y": 0.816,
+        "relative_area": 0.00563,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "F",
+          "highlighted": "yes"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e15",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "WING - D",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.381,
+          "y_min": 0.769,
+          "x_max": 0.467,
+          "y_max": 0.864
+        },
+        "center_x": 0.424,
+        "center_y": 0.8165,
+        "relative_area": 0.00817,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "D"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e16",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "WING - E",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.244,
+          "y_min": 0.773,
+          "x_max": 0.359,
+          "y_max": 0.866
+        },
+        "center_x": 0.3015,
+        "center_y": 0.8195,
+        "relative_area": 0.01069,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "E"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e17",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "WING - G",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.096,
+          "y_min": 0.556,
+          "x_max": 0.255,
+          "y_max": 0.641
+        },
+        "center_x": 0.1755,
+        "center_y": 0.5985,
+        "relative_area": 0.01351,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "G"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e18",
+        "entity_type": "site_boundary",
+        "entity_group": "annotation",
+        "label": "Site Boundary",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.049,
+          "y_min": 0.147,
+          "x_max": 0.876,
+          "y_max": 0.888
+        },
+        "center_x": 0.4625,
+        "center_y": 0.5175,
+        "relative_area": 0.61281,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e19",
+        "entity_type": "title_block",
+        "entity_group": "annotation",
+        "label": "Mahindra Rainforest Phase-2 Title Block",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "environment_sustainability",
+        "box": {
+          "x_min": 0.893,
+          "y_min": 0.159,
+          "x_max": 0.974,
+          "y_max": 0.608
+        },
+        "center_x": 0.9335,
+        "center_y": 0.3835,
+        "relative_area": 0.03637,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e20",
+        "entity_type": "north_arrow",
+        "entity_group": "annotation",
+        "label": "North Arrow",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.033,
+          "y_min": 0.731,
+          "x_max": 0.061,
+          "y_max": 0.762
+        },
+        "center_x": 0.047,
+        "center_y": 0.7465,
+        "relative_area": 0.00087,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e21",
+        "entity_type": "external_road",
+        "entity_group": "circulation",
+        "label": "30.50 M. WIDE LAL BAHADUR SHASTRI ROAD",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.1,
+          "y_min": 0.089,
+          "x_max": 0.738,
+          "y_max": 0.176
+        },
+        "center_x": 0.419,
+        "center_y": 0.1325,
+        "relative_area": 0.05551,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 2",
+        "nearest_residential_distance": 0.2879
+      },
+      {
+        "entity_id": "e22",
+        "entity_type": "external_road",
+        "entity_group": "circulation",
+        "label": "15.25 MT. WIDE PROPOSED D. P. ROAD",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.087,
+          "y_min": 0.881,
+          "x_max": 0.871,
+          "y_max": 0.919
+        },
+        "center_x": 0.479,
+        "center_y": 0.9,
+        "relative_area": 0.02979,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 6",
+        "nearest_residential_distance": 0.0583
+      },
+      {
+        "entity_id": "e23",
+        "entity_type": "external_road",
+        "entity_group": "circulation",
+        "label": "13.40 MT. WIDE PROPOSED D. P. ROAD",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.04,
+          "y_min": 0.18,
+          "x_max": 0.098,
+          "y_max": 0.888
+        },
+        "center_x": 0.069,
+        "center_y": 0.534,
+        "relative_area": 0.04106,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 1",
+        "nearest_residential_distance": 0.0537
+      },
+      {
+        "entity_id": "e24",
+        "entity_type": "external_road",
+        "entity_group": "circulation",
+        "label": "27.45 MT. WIDE PROPOSED D. P. ROAD",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.699,
+          "y_min": 0.18,
+          "x_max": 0.929,
+          "y_max": 0.923
+        },
+        "center_x": 0.814,
+        "center_y": 0.5515,
+        "relative_area": 0.17089,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.0931
+      },
+      {
+        "entity_id": "e25",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 1",
+        "legend_code": "1",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.7462,
+          "y_min": 0.5655,
+          "x_max": 0.7582,
+          "y_max": 0.5771
+        },
+        "center_x": 0.7522,
+        "center_y": 0.5713,
+        "relative_area": 0.00014,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.0422
+      },
+      {
+        "entity_id": "e26",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 2",
+        "legend_code": "2",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.7458,
+          "y_min": 0.5539,
+          "x_max": 0.7582,
+          "y_max": 0.5655
+        },
+        "center_x": 0.752,
+        "center_y": 0.5597,
+        "relative_area": 0.00014,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.0454
+      },
+      {
+        "entity_id": "e27",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 1",
+        "legend_code": "1",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.7202,
+          "y_min": 0.3648,
+          "x_max": 0.7305,
+          "y_max": 0.3764
+        },
+        "center_x": 0.7253,
+        "center_y": 0.3706,
+        "relative_area": 0.00012,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.1366
+      },
+      {
+        "entity_id": "e28",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 2",
+        "legend_code": "2",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.719,
+          "y_min": 0.355,
+          "x_max": 0.7293,
+          "y_max": 0.366
+        },
+        "center_x": 0.7241,
+        "center_y": 0.3605,
+        "relative_area": 0.00011,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 3",
+        "nearest_residential_distance": 0.1423
+      },
+      {
+        "entity_id": "e29",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 1",
+        "legend_code": "1",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.3169,
+          "y_min": 0.8631,
+          "x_max": 0.3234,
+          "y_max": 0.8672
+        },
+        "center_x": 0.3202,
+        "center_y": 0.8651,
+        "relative_area": 3e-05,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - E",
+        "nearest_residential_distance": 0.0306
+      },
+      {
+        "entity_id": "e30",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 10",
+        "legend_code": "10",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.3707,
+          "y_min": 0.8631,
+          "x_max": 0.3771,
+          "y_max": 0.8672
+        },
+        "center_x": 0.3739,
+        "center_y": 0.8651,
+        "relative_area": 3e-05,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - D",
+        "nearest_residential_distance": 0.0496
+      },
+      {
+        "entity_id": "e31",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 11",
+        "legend_code": "11",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.4699,
+          "y_min": 0.8631,
+          "x_max": 0.4758,
+          "y_max": 0.8672
+        },
+        "center_x": 0.4728,
+        "center_y": 0.8651,
+        "relative_area": 2e-05,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 6",
+        "nearest_residential_distance": 0.0478
+      },
+      {
+        "entity_id": "e32",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 1",
+        "legend_code": "1",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.571,
+          "y_min": 0.8631,
+          "x_max": 0.577,
+          "y_max": 0.8672
+        },
+        "center_x": 0.574,
+        "center_y": 0.8651,
+        "relative_area": 2e-05,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - C",
+        "nearest_residential_distance": 0.0483
+      },
+      {
+        "entity_id": "e33",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 1",
+        "legend_code": "1",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.616,
+          "y_min": 0.8069,
+          "x_max": 0.6243,
+          "y_max": 0.8161
+        },
+        "center_x": 0.6201,
+        "center_y": 0.8115,
+        "relative_area": 8e-05,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING - C",
+        "nearest_residential_distance": 0.0019
+      },
+      {
+        "entity_id": "e34",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 2",
+        "legend_code": "2",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.7107,
+          "y_min": 0.8115,
+          "x_max": 0.7177,
+          "y_max": 0.8196
+        },
+        "center_x": 0.7142,
+        "center_y": 0.8155,
+        "relative_area": 6e-05,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "WING-F",
+        "nearest_residential_distance": 0.0011
+      },
+      {
+        "entity_id": "fp1",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Footprint 1",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.082,
+          "y_min": 0.558,
+          "x_max": 0.149,
+          "y_max": 0.641
+        },
+        "center_x": 0.1155,
+        "center_y": 0.5995,
+        "relative_area": 0.00556,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "fp2",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Footprint 2",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.494,
+          "y_min": 0.561,
+          "x_max": 0.559,
+          "y_max": 0.644
+        },
+        "center_x": 0.5265,
+        "center_y": 0.6025,
+        "relative_area": 0.0054,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "fp3",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "WING - B",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.593,
+          "y_min": 0.571,
+          "x_max": 0.658,
+          "y_max": 0.635
+        },
+        "center_x": 0.6255,
+        "center_y": 0.603,
+        "relative_area": 0.00416,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "B"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "fp4",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Footprint 3",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.673,
+          "y_min": 0.571,
+          "x_max": 0.738,
+          "y_max": 0.635
+        },
+        "center_x": 0.7055,
+        "center_y": 0.603,
+        "relative_area": 0.00416,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "fp5",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Footprint 4",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.097,
+          "y_min": 0.775,
+          "x_max": 0.163,
+          "y_max": 0.875
+        },
+        "center_x": 0.13,
+        "center_y": 0.825,
+        "relative_area": 0.0066,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "fp6",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Footprint 5",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.187,
+          "y_min": 0.773,
+          "x_max": 0.254,
+          "y_max": 0.869
+        },
+        "center_x": 0.2205,
+        "center_y": 0.821,
+        "relative_area": 0.00643,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "fp7",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Footprint 6",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.489,
+          "y_min": 0.771,
+          "x_max": 0.555,
+          "y_max": 0.869
+        },
+        "center_x": 0.522,
+        "center_y": 0.82,
+        "relative_area": 0.00647,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      }
+    ],
+    "entity_counts": {
+      "residential_block": 12,
+      "commercial_block": 2,
+      "clubhouse": 1,
+      "security_cabin": 0,
+      "utility_yard": 0,
+      "entry_exit_gate": 4,
+      "external_road": 4,
+      "internal_road": 3,
+      "driveway": 0,
+      "walkway_pathway": 0,
+      "parking": 0,
+      "swimming_pool": 0,
+      "water_feature": 0,
+      "sports_court": 0,
+      "kids_play_area": 0,
+      "outdoor_game": 0,
+      "outdoor_gym": 0,
+      "plaza": 0,
+      "pet_park": 0,
+      "working_pods": 0,
+      "other_feature": 0,
+      "lawn_garden": 2,
+      "tree_canopy_buffer": 0,
+      "legend_marker": 10,
+      "legend_block": 0,
+      "title_block": 1,
+      "north_arrow": 1,
+      "site_boundary": 1
+    },
+    "group_counts": {
+      "structure": 19,
+      "circulation": 7,
+      "amenity": 0,
+      "landscape": 2,
+      "water": 0,
+      "annotation": 13
+    },
+    "block_proximity": [
+      {
+        "block_label": "Footprint 1",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": false,
+        "near_external_road": true,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "Footprint 2",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "Footprint 3",
+        "nearby_amenities": [],
+        "nearby_green": [
+          "R.G.S. 1.5 Garden/Park Area",
+          "Garden/Park Area"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": true,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "Footprint 4",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": true,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "Footprint 5",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": true,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "Footprint 6",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": false,
+        "near_external_road": true,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "WING - B",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "WING - C",
+        "nearby_amenities": [],
+        "nearby_green": [
+          "Garden/Park Area"
+        ],
+        "near_entry_gate": true,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "WING - D",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": false,
+        "near_external_road": true,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "WING - E",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": true,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "WING - G",
+        "nearby_amenities": [],
+        "nearby_green": [],
+        "near_entry_gate": false,
+        "near_external_road": true,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      },
+      {
+        "block_label": "WING-F",
+        "nearby_amenities": [],
+        "nearby_green": [
+          "Garden/Park Area"
+        ],
+        "near_entry_gate": true,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": null
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "wing_labels_reconciled",
+        "count": 8,
+        "items": [
+          "relabelled:4",
+          "dropped:4"
+        ]
+      },
+      {
+        "code": "phantom_markers_discarded",
+        "count": 8,
+        "items": []
+      },
+      {
+        "code": "block_plan_mode",
+        "count": 1,
+        "items": [
+          "parcels:11"
+        ]
+      },
+      {
+        "code": "footprints_added",
+        "count": 7,
+        "items": [
+          "unnamed:6"
+        ]
+      },
+      {
+        "code": "footprint_candidates_rejected",
+        "count": 6,
+        "items": []
+      }
+    ]
+  },
+  "site_metrics": null,
+  "area_estimate": {
+    "project_id": "plan-d09b53f3",
+    "project_name": "Mahindra Rainforest Project Master Plan Image1 7011 Opt 69Ca849C 0E5F 47Aa Bcf4 ",
+    "green_area_percentage": {
+      "min": 1.6,
+      "max": 24.3,
+      "display": "~2–24%",
+      "basis": "opencv_green_lower_bound_plus_vision_and_json_green_signals"
+    },
+    "open_area_percentage": {
+      "min": 17.5,
+      "max": 45.5,
+      "display": "~18–46%",
+      "basis": "opencv_known_open_pixels_plus_vision_open_and_inverse_built_estimate"
+    },
+    "confidence": {
+      "score": 0.4,
+      "label": "Low",
+      "reasons": [
+        "Master plan image quality is usable.",
+        "Vision model detected a visible project boundary.",
+        "Vision model boundary confidence is high.",
+        "OpenCV unknown/unclassified area is very high.",
+        "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
+        "The text on the image is rotated 90 degrees clockwise relative to standard reading orientation.",
+        "The plan contains large 'Future Development' zones which may significantly alter the final open/green area ratios depending on how they are phased.",
+        "Confidence capped because OpenCV unknown/unclassified area is above 70%.",
+        "Confidence capped because the final estimate range is wide.",
+        "The drawing is an architectural block plan (line drawing, no legend): pixel colour carries little land-use signal, so the range rests on the vision reading alone."
+      ]
+    },
+    "guardrails": {
+      "passed": true,
+      "warnings": [],
+      "adjustments": []
+    },
+    "compare_module_display": {
+      "green_space_label": "Estimated Green Space",
+      "green_space_value": "~2–24%",
+      "open_area_label": "Estimated Open Area",
+      "open_area_value": "~18–46%",
+      "confidence_label": "Low Confidence",
+      "tooltip": "Estimated using the project master plan, vision-model interpretation, OpenCV segmentation, and available Datacenter project signals. Actual values may vary from official layout or RERA disclosures."
+    },
+    "evidence_summary": {
+      "opencv_green_percentage": 1.64,
+      "opencv_water_percentage": 0.0,
+      "opencv_built_percentage": 0.43,
+      "opencv_paved_percentage": 4.45,
+      "opencv_unknown_percentage": 93.49,
+      "vision_green_estimate": "Low",
+      "vision_open_estimate": "Moderate",
+      "vision_built_estimate": "High",
+      "image_quality_score": 0.72,
+      "image_quality_label": "Medium",
+      "project_area_acres": null,
+      "total_units": null,
+      "green_signal_count": 0,
+      "open_space_signal_count": 0
+    },
+    "warnings": [
+      "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
+      "The text on the image is rotated 90 degrees clockwise relative to standard reading orientation.",
+      "The plan contains large 'Future Development' zones which may significantly alter the final open/green area ratios depending on how they are phased.",
+      "The drawing is an architectural block plan (line drawing, no legend): pixel colour carries little land-use signal, so the range rests on the vision reading alone."
+    ],
+    "notes": [
+      "Final values are range-based estimates, not official measurements.",
+      "OpenCV segmentation is treated as visual evidence, not a standalone source of truth.",
+      "Vision-model qualitative output is used to adjust the range and confidence.",
+      "Green Area is constrained to be less than or equal to Open Area."
+    ]
+  },
+  "image_metadata": {
+    "image_path": "<repo>/data/input/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
+    "normalized_image_path": "<repo>/data/output/overlays/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-_normalized.png",
+    "file_name": "mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
+    "file_extension": ".jpg",
+    "file_size_mb": 0.131,
+    "format": "PNG",
+    "mode": "RGB",
+    "dimensions": {
+      "width": 1113,
+      "height": 800,
+      "total_pixels": 890400
+    },
+    "is_supported_format": true,
+    "is_within_size_limit": true,
+    "quality": {
+      "score": 0.72,
+      "label": "Medium",
+      "reasons": [
+        "Image resolution is acceptable.",
+        "Image sharpness appears good.",
+        "Image brightness may be too low or too high.",
+        "Image has enough color variation for visual class detection.",
+        "Image file size is within configured limit.",
+        "Sharpness metric: 2027.2481",
+        "Brightness metric: 245.103",
+        "Colorfulness metric: 48.8507"
+      ]
+    },
+    "processing_warnings": []
+  },
+  "diagnostics": [
+    {
+      "code": "project_json_missing",
+      "count": 1,
+      "items": []
+    }
+  ],
+  "run_artifacts": {
+    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
+    "input_project_json_path": null,
+    "normalized_image_path": "<repo>/data/output/overlays/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-_normalized.png",
+    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/master_plan_entity_map.json",
+    "area_estimate_json_path": "<repo>/data/output/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/area_estimate.json",
+    "site_metrics_json_path": null,
+    "qa_trail_json_path": "<repo>/data/output/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/qa_trail.json"
+  }
+}

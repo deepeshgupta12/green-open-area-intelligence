@@ -1252,17 +1252,26 @@ def apply_water_verdicts(
     return _with_entities(entity_map, entities, diagnostics)
 
 
+ENTITY_GROUP_ORDER: tuple[str, ...] = ("structure", "circulation", "amenity", "landscape", "water", "annotation")
+
+
+def _count_entities(entities: list[MasterPlanEntity]) -> tuple[dict[str, int], dict[str, int]]:
+    """Counts over the full vocabulary, zeros included, so every run has the same keys in the same order."""
+    entity_counts = {entity_type: 0 for entity_type in ENTITY_TYPES}
+    group_counts = {group: 0 for group in ENTITY_GROUP_ORDER}
+    for entity in entities:
+        entity_counts[entity.entity_type] = entity_counts.get(entity.entity_type, 0) + 1
+        group_counts[entity.entity_group] = group_counts.get(entity.entity_group, 0) + 1
+    return entity_counts, group_counts
+
+
 def _with_entities(
     entity_map: MasterPlanEntityMap, entities: list[MasterPlanEntity], diagnostics: list[Diagnostic]
 ) -> MasterPlanEntityMap:
     """Copy of the map with a new entity list and every derived field rebuilt."""
     entities = [entity.model_copy() for entity in entities]
     _attach_nearest_block(entities, image_width=entity_map.image_width, image_height=entity_map.image_height)
-    entity_counts: dict[str, int] = {}
-    group_counts: dict[str, int] = {}
-    for entity in entities:
-        entity_counts[entity.entity_type] = entity_counts.get(entity.entity_type, 0) + 1
-        group_counts[entity.entity_group] = group_counts.get(entity.entity_group, 0) + 1
+    entity_counts, group_counts = _count_entities(entities)
     site = entity_map.site.model_copy(
         update={
             "residential_block_labels": sorted(
@@ -1273,8 +1282,8 @@ def _with_entities(
     return entity_map.model_copy(
         update={
             "entities": entities,
-            "entity_counts": dict(sorted(entity_counts.items(), key=lambda item: (-item[1], item[0]))),
-            "group_counts": dict(sorted(group_counts.items(), key=lambda item: (-item[1], item[0]))),
+            "entity_counts": entity_counts,
+            "group_counts": group_counts,
             "block_proximity": _build_block_proximity(
                 entities, image_width=entity_map.image_width, image_height=entity_map.image_height
             ),
@@ -2079,11 +2088,7 @@ def parse_master_plan_entity_payload(
     block_proximity = _build_block_proximity(entities, image_width=image_width, image_height=image_height)
     site = _build_site_summary(payload.get("site") or {}, entities)
 
-    entity_counts: dict[str, int] = {}
-    group_counts: dict[str, int] = {}
-    for entity in entities:
-        entity_counts[entity.entity_type] = entity_counts.get(entity.entity_type, 0) + 1
-        group_counts[entity.entity_group] = group_counts.get(entity.entity_group, 0) + 1
+    entity_counts, group_counts = _count_entities(entities)
 
     if dropped:
         diagnostics.append(Diagnostic(code="invalid_entities_dropped", count=dropped))
@@ -2115,8 +2120,8 @@ def parse_master_plan_entity_payload(
         site=site,
         legend=legend,
         entities=entities,
-        entity_counts=dict(sorted(entity_counts.items(), key=lambda item: (-item[1], item[0]))),
-        group_counts=dict(sorted(group_counts.items(), key=lambda item: (-item[1], item[0]))),
+        entity_counts=entity_counts,
+        group_counts=group_counts,
         block_proximity=block_proximity,
         diagnostics=diagnostics,
     )

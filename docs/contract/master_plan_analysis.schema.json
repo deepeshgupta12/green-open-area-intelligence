@@ -1,0 +1,1922 @@
+{
+  "$defs": {
+    "AreaEstimateConfidence": {
+      "properties": {
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "score",
+        "label"
+      ],
+      "title": "AreaEstimateConfidence",
+      "type": "object"
+    },
+    "AreaEstimateGuardrail": {
+      "properties": {
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "adjustments": {
+          "items": {
+            "type": "object"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "passed"
+      ],
+      "title": "AreaEstimateGuardrail",
+      "type": "object"
+    },
+    "AreaEstimateResult": {
+      "properties": {
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "project_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Name"
+        },
+        "green_area_percentage": {
+          "$ref": "#/$defs/AreaRange"
+        },
+        "open_area_percentage": {
+          "$ref": "#/$defs/AreaRange"
+        },
+        "confidence": {
+          "$ref": "#/$defs/AreaEstimateConfidence"
+        },
+        "guardrails": {
+          "$ref": "#/$defs/AreaEstimateGuardrail"
+        },
+        "compare_module_display": {
+          "$ref": "#/$defs/CompareModuleDisplay"
+        },
+        "evidence_summary": {
+          "title": "Evidence Summary",
+          "type": "object"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "project_id",
+        "green_area_percentage",
+        "open_area_percentage",
+        "confidence",
+        "guardrails",
+        "compare_module_display"
+      ],
+      "title": "AreaEstimateResult",
+      "type": "object"
+    },
+    "AreaRange": {
+      "properties": {
+        "min": {
+          "title": "Min",
+          "type": "number"
+        },
+        "max": {
+          "title": "Max",
+          "type": "number"
+        },
+        "display": {
+          "title": "Display",
+          "type": "string"
+        },
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "min",
+        "max",
+        "display",
+        "basis"
+      ],
+      "title": "AreaRange",
+      "type": "object"
+    },
+    "BenchmarkProjectPoint": {
+      "properties": {
+        "project_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Id"
+        },
+        "project_name": {
+          "title": "Project Name",
+          "type": "string"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "locality": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locality"
+        },
+        "project_area_acres": {
+          "title": "Project Area Acres",
+          "type": "number"
+        },
+        "total_units": {
+          "title": "Total Units",
+          "type": "integer"
+        },
+        "units_per_acre": {
+          "title": "Units Per Acre",
+          "type": "number"
+        },
+        "is_subject": {
+          "default": false,
+          "title": "Is Subject",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "project_name",
+        "project_area_acres",
+        "total_units",
+        "units_per_acre"
+      ],
+      "title": "BenchmarkProjectPoint",
+      "type": "object"
+    },
+    "BenchmarkScope": {
+      "properties": {
+        "scope": {
+          "enum": [
+            "micromarket",
+            "city"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "sample_size": {
+          "title": "Sample Size",
+          "type": "integer"
+        },
+        "sufficient": {
+          "title": "Sufficient",
+          "type": "boolean"
+        },
+        "median_units_per_acre": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Units Per Acre"
+        },
+        "mean_units_per_acre": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Units Per Acre"
+        },
+        "p25_units_per_acre": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P25 Units Per Acre"
+        },
+        "p75_units_per_acre": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P75 Units Per Acre"
+        },
+        "peak_units_per_acre": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peak Units Per Acre"
+        },
+        "subject_percentile": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Share of scope projects with lower density than the subject, in percent.",
+          "title": "Subject Percentile"
+        },
+        "subject_vs_median_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Vs Median Percent"
+        },
+        "share_at_or_below_city_median_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Share At Or Below City Median Percent"
+        },
+        "density_curve": {
+          "items": {
+            "$ref": "#/$defs/CurvePoint"
+          },
+          "title": "Density Curve",
+          "type": "array"
+        },
+        "projects": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkProjectPoint"
+          },
+          "title": "Projects",
+          "type": "array"
+        },
+        "trendline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Trendline"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "scope",
+        "name",
+        "sample_size",
+        "sufficient"
+      ],
+      "title": "BenchmarkScope",
+      "type": "object"
+    },
+    "CompareModuleDisplay": {
+      "properties": {
+        "green_space_label": {
+          "title": "Green Space Label",
+          "type": "string"
+        },
+        "green_space_value": {
+          "title": "Green Space Value",
+          "type": "string"
+        },
+        "open_area_label": {
+          "title": "Open Area Label",
+          "type": "string"
+        },
+        "open_area_value": {
+          "title": "Open Area Value",
+          "type": "string"
+        },
+        "confidence_label": {
+          "title": "Confidence Label",
+          "type": "string"
+        },
+        "tooltip": {
+          "title": "Tooltip",
+          "type": "string"
+        }
+      },
+      "required": [
+        "green_space_label",
+        "green_space_value",
+        "open_area_label",
+        "open_area_value",
+        "confidence_label",
+        "tooltip"
+      ],
+      "title": "CompareModuleDisplay",
+      "type": "object"
+    },
+    "CurvePoint": {
+      "properties": {
+        "units_per_acre": {
+          "title": "Units Per Acre",
+          "type": "number"
+        },
+        "density": {
+          "title": "Density",
+          "type": "number"
+        }
+      },
+      "required": [
+        "units_per_acre",
+        "density"
+      ],
+      "title": "CurvePoint",
+      "type": "object"
+    },
+    "DensityBenchmarks": {
+      "properties": {
+        "dataset_name": {
+          "title": "Dataset Name",
+          "type": "string"
+        },
+        "dataset_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Version"
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As Of"
+        },
+        "is_sample": {
+          "default": false,
+          "title": "Is Sample",
+          "type": "boolean"
+        },
+        "subject_units_per_acre": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Units Per Acre"
+        },
+        "city_median_units_per_acre": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City Median Units Per Acre"
+        },
+        "scopes": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkScope"
+          },
+          "title": "Scopes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "dataset_name"
+      ],
+      "title": "DensityBenchmarks",
+      "type": "object"
+    },
+    "Diagnostic": {
+      "description": "A machine-readable processing note; the frontend owns the wording.",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "count": {
+          "default": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    },
+    "EntityBox": {
+      "description": "Axis-aligned box as fractions of image width and height.",
+      "properties": {
+        "x_min": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "X Min",
+          "type": "number"
+        },
+        "y_min": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Y Min",
+          "type": "number"
+        },
+        "x_max": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "X Max",
+          "type": "number"
+        },
+        "y_max": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Y Max",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x_min",
+        "y_min",
+        "x_max",
+        "y_max"
+      ],
+      "title": "EntityBox",
+      "type": "object"
+    },
+    "ExternalRoad": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "width_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width Text"
+        },
+        "side": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Side"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "ExternalRoad",
+      "type": "object"
+    },
+    "FlowLink": {
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "value_sq_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Sq M"
+        },
+        "share_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Share Percent"
+        },
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "basis"
+      ],
+      "title": "FlowLink",
+      "type": "object"
+    },
+    "FlowNode": {
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "stage": {
+          "title": "Stage",
+          "type": "integer"
+        },
+        "value_sq_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Sq M"
+        },
+        "share_of_parcel_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Share Of Parcel Percent"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count"
+        },
+        "source": {
+          "default": "derived",
+          "enum": [
+            "project_records",
+            "master_plan_estimate",
+            "master_plan_entities",
+            "derived",
+            "benchmark_dataset",
+            "unavailable"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "stage"
+      ],
+      "title": "FlowNode",
+      "type": "object"
+    },
+    "ImageDimensions": {
+      "properties": {
+        "width": {
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "title": "Height",
+          "type": "integer"
+        },
+        "total_pixels": {
+          "title": "Total Pixels",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "total_pixels"
+      ],
+      "title": "ImageDimensions",
+      "type": "object"
+    },
+    "ImageMetadata": {
+      "properties": {
+        "image_path": {
+          "title": "Image Path",
+          "type": "string"
+        },
+        "normalized_image_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normalized Image Path"
+        },
+        "file_name": {
+          "title": "File Name",
+          "type": "string"
+        },
+        "file_extension": {
+          "title": "File Extension",
+          "type": "string"
+        },
+        "file_size_mb": {
+          "title": "File Size Mb",
+          "type": "number"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/ImageDimensions"
+        },
+        "is_supported_format": {
+          "title": "Is Supported Format",
+          "type": "boolean"
+        },
+        "is_within_size_limit": {
+          "title": "Is Within Size Limit",
+          "type": "boolean"
+        },
+        "quality": {
+          "$ref": "#/$defs/ImageQualityAssessment"
+        },
+        "processing_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Processing Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "image_path",
+        "file_name",
+        "file_extension",
+        "file_size_mb",
+        "dimensions",
+        "is_supported_format",
+        "is_within_size_limit",
+        "quality"
+      ],
+      "title": "ImageMetadata",
+      "type": "object"
+    },
+    "ImageQualityAssessment": {
+      "properties": {
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "score",
+        "label"
+      ],
+      "title": "ImageQualityAssessment",
+      "type": "object"
+    },
+    "LegendEntry": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "normalized_label": {
+          "title": "Normalized Label",
+          "type": "string"
+        },
+        "category_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category Key"
+        },
+        "located_on_plan": {
+          "default": false,
+          "title": "Located On Plan",
+          "type": "boolean"
+        },
+        "marker_count": {
+          "default": 0,
+          "title": "Marker Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "label",
+        "normalized_label"
+      ],
+      "title": "LegendEntry",
+      "type": "object"
+    },
+    "MasterPlanEntity": {
+      "properties": {
+        "entity_id": {
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "entity_type": {
+          "title": "Entity Type",
+          "type": "string"
+        },
+        "entity_group": {
+          "enum": [
+            "structure",
+            "circulation",
+            "amenity",
+            "landscape",
+            "water",
+            "annotation"
+          ],
+          "title": "Entity Group",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "legend_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Legend Code"
+        },
+        "legend_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Legend Label"
+        },
+        "category_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category Key"
+        },
+        "box": {
+          "$ref": "#/$defs/EntityBox"
+        },
+        "center_x": {
+          "title": "Center X",
+          "type": "number"
+        },
+        "center_y": {
+          "title": "Center Y",
+          "type": "number"
+        },
+        "relative_area": {
+          "description": "Box area as a fraction of the full image area. Directional only.",
+          "title": "Relative Area",
+          "type": "number"
+        },
+        "confidence_label": {
+          "default": "Medium",
+          "title": "Confidence Label",
+          "type": "string"
+        },
+        "located_by": {
+          "default": "layout_model",
+          "description": "layout_model: box drawn by the vision pass; legend_marker: position taken from a numbered legend circle; both: the two agreed and were merged.",
+          "enum": [
+            "layout_model",
+            "legend_marker",
+            "both"
+          ],
+          "title": "Located By",
+          "type": "string"
+        },
+        "attributes": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Attributes",
+          "type": "object"
+        },
+        "adjacent_to": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Adjacent To",
+          "type": "array"
+        },
+        "nearest_residential_block": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nearest Residential Block"
+        },
+        "nearest_residential_distance": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Centre-to-centre distance as a fraction of the image diagonal.",
+          "title": "Nearest Residential Distance"
+        }
+      },
+      "required": [
+        "entity_id",
+        "entity_type",
+        "entity_group",
+        "label",
+        "box",
+        "center_x",
+        "center_y",
+        "relative_area"
+      ],
+      "title": "MasterPlanEntity",
+      "type": "object"
+    },
+    "MasterPlanEntityMap": {
+      "properties": {
+        "project_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Id"
+        },
+        "project_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Name"
+        },
+        "image_width": {
+          "title": "Image Width",
+          "type": "integer"
+        },
+        "image_height": {
+          "title": "Image Height",
+          "type": "integer"
+        },
+        "coordinate_system": {
+          "const": "fraction_of_image",
+          "default": "fraction_of_image",
+          "title": "Coordinate System",
+          "type": "string"
+        },
+        "extraction_confidence_label": {
+          "default": "Medium",
+          "title": "Extraction Confidence Label",
+          "type": "string"
+        },
+        "site": {
+          "$ref": "#/$defs/SiteSummary"
+        },
+        "legend": {
+          "items": {
+            "$ref": "#/$defs/LegendEntry"
+          },
+          "title": "Legend",
+          "type": "array"
+        },
+        "entities": {
+          "items": {
+            "$ref": "#/$defs/MasterPlanEntity"
+          },
+          "title": "Entities",
+          "type": "array"
+        },
+        "entity_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Entity Counts",
+          "type": "object"
+        },
+        "group_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Group Counts",
+          "type": "object"
+        },
+        "block_proximity": {
+          "items": {
+            "$ref": "#/$defs/ResidentialBlockProximity"
+          },
+          "title": "Block Proximity",
+          "type": "array"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "image_width",
+        "image_height"
+      ],
+      "title": "MasterPlanEntityMap",
+      "type": "object"
+    },
+    "MetricValue": {
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "source": {
+          "default": "unavailable",
+          "enum": [
+            "project_records",
+            "master_plan_estimate",
+            "master_plan_entities",
+            "derived",
+            "benchmark_dataset",
+            "unavailable"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "confidence_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence Label"
+        },
+        "basis": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Machine-readable formula key, e.g. parcel_sq_m / total_units.",
+          "title": "Basis"
+        }
+      },
+      "required": [
+        "unit"
+      ],
+      "title": "MetricValue",
+      "type": "object"
+    },
+    "PrintedParcel": {
+      "description": "A labelled land parcel with the area printed on the sheet.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "area_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Area Text"
+        },
+        "area_sq_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Area Sq M"
+        },
+        "box": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntityBox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "PrintedParcel",
+      "type": "object"
+    },
+    "PrintedRecords": {
+      "description": "Figures printed on the drawing itself (architectural block plans).",
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "plot_area_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plot Area Text"
+        },
+        "plot_area_sq_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plot Area Sq M"
+        },
+        "sanctioned_bua_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanctioned Bua Text"
+        },
+        "sanctioned_bua_sq_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sanctioned Bua Sq M"
+        },
+        "fsi_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fsi Text"
+        },
+        "derived_fsi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "sanctioned_bua_sq_m / plot_area_sq_m when both are printed.",
+          "title": "Derived Fsi"
+        },
+        "scale_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scale Text"
+        },
+        "parcels": {
+          "items": {
+            "$ref": "#/$defs/PrintedParcel"
+          },
+          "title": "Parcels",
+          "type": "array"
+        }
+      },
+      "title": "PrintedRecords",
+      "type": "object"
+    },
+    "ResidentialBlockProximity": {
+      "properties": {
+        "block_label": {
+          "title": "Block Label",
+          "type": "string"
+        },
+        "nearby_amenities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Nearby Amenities",
+          "type": "array"
+        },
+        "nearby_green": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Nearby Green",
+          "type": "array"
+        },
+        "near_entry_gate": {
+          "default": false,
+          "title": "Near Entry Gate",
+          "type": "boolean"
+        },
+        "near_external_road": {
+          "default": false,
+          "title": "Near External Road",
+          "type": "boolean"
+        },
+        "near_utility_yard": {
+          "default": false,
+          "title": "Near Utility Yard",
+          "type": "boolean"
+        },
+        "near_parking": {
+          "default": false,
+          "title": "Near Parking",
+          "type": "boolean"
+        },
+        "nearest_amenity_distance": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fraction of the image diagonal to the closest amenity or water feature.",
+          "title": "Nearest Amenity Distance"
+        }
+      },
+      "required": [
+        "block_label"
+      ],
+      "title": "ResidentialBlockProximity",
+      "type": "object"
+    },
+    "RunArtifacts": {
+      "properties": {
+        "input_master_plan_image_path": {
+          "title": "Input Master Plan Image Path",
+          "type": "string"
+        },
+        "input_project_json_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Project Json Path"
+        },
+        "normalized_image_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normalized Image Path"
+        },
+        "master_plan_entity_map_json_path": {
+          "title": "Master Plan Entity Map Json Path",
+          "type": "string"
+        },
+        "area_estimate_json_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Area Estimate Json Path"
+        },
+        "site_metrics_json_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Site Metrics Json Path"
+        },
+        "qa_trail_json_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Qa Trail Json Path"
+        }
+      },
+      "required": [
+        "input_master_plan_image_path",
+        "master_plan_entity_map_json_path"
+      ],
+      "title": "RunArtifacts",
+      "type": "object"
+    },
+    "SiteMetrics": {
+      "properties": {
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "project_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Name"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "locality": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Locality"
+        },
+        "micromarket": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Micromarket"
+        },
+        "parcel_area_acres": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "parcel_area_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "total_units": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "units_per_acre": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "open_area_percent": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "open_area_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "green_area_percent": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "green_area_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "building_footprint_percent": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "building_footprint_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "sanctioned_fsi": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "built_up_area_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "land_per_home_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "open_realm_per_home_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "green_per_home_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "undivided_land_share_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "clubhouse_area_sq_m": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "residential_block_count": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "homes_per_block": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "homes_per_floor_min": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "homes_per_floor_max": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "outdoor_space_count": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "declared_amenity_count": {
+          "$ref": "#/$defs/MetricValue"
+        },
+        "unit_mix": {
+          "items": {
+            "$ref": "#/$defs/UnitMixRow"
+          },
+          "title": "Unit Mix",
+          "type": "array"
+        },
+        "allocation_nodes": {
+          "items": {
+            "$ref": "#/$defs/FlowNode"
+          },
+          "title": "Allocation Nodes",
+          "type": "array"
+        },
+        "allocation_links": {
+          "items": {
+            "$ref": "#/$defs/FlowLink"
+          },
+          "title": "Allocation Links",
+          "type": "array"
+        },
+        "density_benchmarks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DensityBenchmarks"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "constants": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Constants",
+          "type": "object"
+        }
+      },
+      "required": [
+        "project_id",
+        "parcel_area_acres",
+        "parcel_area_sq_m",
+        "total_units",
+        "units_per_acre",
+        "open_area_percent",
+        "open_area_sq_m",
+        "green_area_percent",
+        "green_area_sq_m",
+        "building_footprint_percent",
+        "building_footprint_sq_m",
+        "sanctioned_fsi",
+        "built_up_area_sq_m",
+        "land_per_home_sq_m",
+        "open_realm_per_home_sq_m",
+        "green_per_home_sq_m",
+        "undivided_land_share_sq_m",
+        "clubhouse_area_sq_m",
+        "residential_block_count",
+        "homes_per_block",
+        "homes_per_floor_min",
+        "homes_per_floor_max",
+        "outdoor_space_count",
+        "declared_amenity_count"
+      ],
+      "title": "SiteMetrics",
+      "type": "object"
+    },
+    "SiteSummary": {
+      "properties": {
+        "shape_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "One of SHAPE_CLASSES; a key, never prose.",
+          "title": "Shape Class"
+        },
+        "north_arrow_present": {
+          "default": false,
+          "title": "North Arrow Present",
+          "type": "boolean"
+        },
+        "external_roads": {
+          "items": {
+            "$ref": "#/$defs/ExternalRoad"
+          },
+          "title": "External Roads",
+          "type": "array"
+        },
+        "entry_exit_count": {
+          "default": 0,
+          "title": "Entry Exit Count",
+          "type": "integer"
+        },
+        "residential_block_labels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Residential Block Labels",
+          "type": "array"
+        },
+        "commercial_block_count": {
+          "default": 0,
+          "title": "Commercial Block Count",
+          "type": "integer"
+        },
+        "parking_cluster_count": {
+          "default": 0,
+          "title": "Parking Cluster Count",
+          "type": "integer"
+        },
+        "utility_yard_count": {
+          "default": 0,
+          "title": "Utility Yard Count",
+          "type": "integer"
+        },
+        "drawing_style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "'block_plan' when no legend is printed and the block-plan passes ran.",
+          "title": "Drawing Style"
+        },
+        "printed_records": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrintedRecords"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SiteSummary",
+      "type": "object"
+    },
+    "Trendline": {
+      "properties": {
+        "slope_acres_per_unit": {
+          "title": "Slope Acres Per Unit",
+          "type": "number"
+        },
+        "intercept_acres": {
+          "title": "Intercept Acres",
+          "type": "number"
+        },
+        "r_squared": {
+          "title": "R Squared",
+          "type": "number"
+        }
+      },
+      "required": [
+        "slope_acres_per_unit",
+        "intercept_acres",
+        "r_squared"
+      ],
+      "title": "Trendline",
+      "type": "object"
+    },
+    "UnitMixRow": {
+      "properties": {
+        "bedroom_count": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bedroom Count"
+        },
+        "unit_cat_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Cat Name"
+        },
+        "unit_size_sq_ft": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Size Sq Ft"
+        },
+        "carpet_area_sq_ft": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Carpet Area Sq Ft"
+        }
+      },
+      "title": "UnitMixRow",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "image_url": {
+      "description": "Backend path serving the stored plan, e.g. /master-plan/runs/{run_id}/image.",
+      "title": "Image Url",
+      "type": "string"
+    },
+    "source_image_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Image Url"
+    },
+    "entity_map": {
+      "$ref": "#/$defs/MasterPlanEntityMap"
+    },
+    "site_metrics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SiteMetrics"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "area_estimate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AreaEstimateResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "image_metadata": {
+      "$ref": "#/$defs/ImageMetadata"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/Diagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "run_artifacts": {
+      "$ref": "#/$defs/RunArtifacts"
+    }
+  },
+  "required": [
+    "run_id",
+    "image_url",
+    "entity_map",
+    "image_metadata",
+    "run_artifacts"
+  ],
+  "title": "MasterPlanAnalysisResponse",
+  "type": "object"
+}

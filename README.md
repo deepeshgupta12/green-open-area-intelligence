@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-75%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -58,6 +58,17 @@ The pipeline runs in stages. Each stage writes a typed JSON artefact so every re
 | 6. Explain | `validation_engine.py`, `confidence_engine.py`, `explanation_engine.py` | Validates ranges, computes the confidence score and label, and produces human-readable reasons and warnings. |
 | 7. Category insights | `app/services/category_insight_engine.py` | Scores the project on buyer-facing categories (green planning, openness, built density, amenities, sports, family living, circulation, sustainability) with positives, risks, evidence and tooltips. |
 | 8. Report | `app/services/report_writer.py` | Writes a Markdown report and a **compare-module JSON contract** ready for a product surface. |
+
+## Screenshots
+
+Rendered from real runs with the production build (headless Chrome, 1440px wide, scaled down here).
+
+| | |
+|---|---|
+| ![Birla Taranya with project records: zoning, estimate, home mix, density and allocation](docs/screenshots/birla-taranya-with-records.png) | ![Sattva Lumina from the plan alone: composition, amenities, legend promise, spatial access](docs/screenshots/sattva-lumina.png) |
+| *Birla Taranya, plan URL + Datacenter JSON* | *Sattva Lumina, plan URL only* |
+| ![Mahindra Rainforest Phase-2 block plan: printed records, reservations, phase towers, road frontages](docs/screenshots/mahindra-rainforest-block-plan.png) | ![Hover viewer with the entity overlay and tooltip](docs/screenshots/hover-viewer.png) |
+| *Mahindra Rainforest Phase-2, an architectural block plan* | *The hover viewer on Kalpataru Vian* |
 
 ## Locked definitions
 
@@ -186,8 +197,9 @@ green-open-area-intelligence/
 │   ├── storage/                  # SQLAlchemy scaffolding (persistence not yet wired)
 │   └── utils/                    # file, image and Gemini client helpers
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
-├── scripts/run_single_project.py # CLI runner for a single project
-├── tests/                        # pytest suite (75 tests)
+├── docs/                         # contract schema, sample responses, screenshots
+├── scripts/                      # run_single_project.py, qa_agents.py, export_contract.py
+├── tests/                        # pytest suite (78 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
@@ -289,6 +301,65 @@ Spatial entity map for one master plan (see [above](#master-plan-entity-map-and-
 Serves the master plan stored for an analysis or entities run, so the UI can display a URL-sourced plan without hotlinking the original.
 
 Response: `run_id`, `entity_map`, `image_metadata`, `run_artifacts`. The `entity_map` carries `image_width`, `image_height`, `coordinate_system: "fraction_of_image"`, `extraction_confidence_label`, `site`, `legend`, `entities`, `entity_counts`, `group_counts`, `block_proximity`, `warnings` and `notes`. Each entity has `entity_type`, `entity_group`, `label`, `legend_code`, `legend_label`, `category_key`, `box {x_min, y_min, x_max, y_max}`, `center_x`, `center_y`, `relative_area`, `confidence_label`, `located_by`, `attributes`, `adjacent_to`, `nearest_residential_block` and `nearest_residential_distance`. Typical latency is 20 to 30 seconds for a 1800 px plan.
+
+## Output contract and samples
+
+`POST /master-plan/analysis` returns the same shape for every plan. A figure that could not be produced is `null`, never a missing key, and `entity_counts` / `group_counts` carry every key of the vocabulary with zeros, so the frontend and the project detail page can bind to fixed paths. The response is built from `app/schemas/analysis_response_schema.py`; its JSON Schema is in [docs/contract/](docs/contract/) (`python scripts/export_contract.py` regenerates it) and a test asserts the shape is identical with and without project records and on legend-less plans.
+
+Full responses of four real runs are in [docs/samples/](docs/samples/) (local paths replaced by `<repo>`):
+
+| Sample | Plan | Input | What it exercises |
+|--------|------|-------|-------------------|
+| [sattva-lumina.json](docs/samples/sattva-lumina.json) | Sattva Lumina, Bengaluru | plan URL | rendered plan with a 38-row numbered legend, wings A to H, real pool |
+| [kalpataru-vian.json](docs/samples/kalpataru-vian.json) | Kalpataru Vian, Mumbai | plan URL | letter keys explained by a printed note, water guardrail (no pools) |
+| [mahindra-rainforest.json](docs/samples/mahindra-rainforest.json) | Mahindra Rainforest Phase-2, Mumbai | plan URL | architectural block plan: printed records, 11 parcels, 12 tower footprints |
+| [birla-taranya-with-records.json](docs/samples/birla-taranya-with-records.json) | Birla Taranya, Thane | plan URL + Datacenter JSON | site metrics, density benchmarks, land allocation |
+
+Shape, with the sub-keys that are always present:
+
+```jsonc
+{
+  "run_id": "uuid",
+  "image_url": "/master-plan/runs/<run_id>/image",
+  "source_image_url": "https://..." ,                 // null for uploads
+  "entity_map": {
+    "project_id": null, "project_name": null,          // from the Datacenter JSON when given
+    "image_width": 1113, "image_height": 800, "coordinate_system": "fraction_of_image",
+    "extraction_confidence_label": "High",
+    "site": {
+      "shape_class": "irregular", "north_arrow_present": true,
+      "external_roads": [ { "label", "width_text", "side" } ],
+      "entry_exit_count": 5, "residential_block_labels": [], "commercial_block_count": 2,
+      "parking_cluster_count": 0, "utility_yard_count": 0,
+      "drawing_style": null,                           // "block_plan" on architectural sheets
+      "printed_records": null                          // { title, plot_area_text, plot_area_sq_m, sanctioned_bua_text,
+                                                       //   sanctioned_bua_sq_m, fsi_text, derived_fsi, scale_text,
+                                                       //   parcels: [ { label, area_text, area_sq_m, box } ] } on block plans
+    },
+    "legend": [ { "code", "label", "normalized_label", "category_key", "located_on_plan", "marker_count" } ],
+    "entities": [ { "entity_id", "entity_type", "entity_group", "label", "legend_code", "legend_label", "category_key",
+                    "box": { "x_min", "y_min", "x_max", "y_max" }, "center_x", "center_y", "relative_area",
+                    "confidence_label", "located_by", "attributes": {}, "adjacent_to": [],
+                    "nearest_residential_block", "nearest_residential_distance" } ],
+    "entity_counts": { "<every entity type>": 0 },
+    "group_counts": { "structure", "circulation", "amenity", "landscape", "water", "annotation" },
+    "block_proximity": [ { "block_label", "nearby_amenities", "nearby_green", "near_entry_gate", "near_external_road",
+                           "near_utility_yard", "near_parking", "nearest_amenity_distance" } ],
+    "diagnostics": [ { "code", "count", "items" } ]
+  },
+  "site_metrics": null,                                // with records: every metric as { value, unit, source, confidence_label, basis },
+                                                       // unit_mix, allocation_nodes, allocation_links, density_benchmarks, constants
+  "area_estimate": {                                   // null only when run_area_estimate=false or the pipeline failed
+    "green_area_percentage": { "min", "max", "display", "basis" }, "open_area_percentage": { ... },
+    "confidence": { "score", "label", "reasons" }, "guardrails": { "passed", "warnings", "adjustments" },
+    "compare_module_display": { ... }, "evidence_summary": { ... }, "warnings": [], "notes": []
+  },
+  "image_metadata": { ... },
+  "diagnostics": [ { "code", "count", "items" } ],
+  "run_artifacts": { "input_master_plan_image_path", "input_project_json_path", "normalized_image_path",
+                     "master_plan_entity_map_json_path", "area_estimate_json_path", "site_metrics_json_path", "qa_trail_json_path" }
+}
+```
 
 ## CLI
 

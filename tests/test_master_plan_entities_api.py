@@ -297,3 +297,57 @@ def test_qa_loop_output_is_what_the_endpoint_returns(monkeypatch, tmp_path):
     assert any(item["code"] == "qa_stub_applied" for item in stored["diagnostics"])
     assert "response" not in payload or "qa" not in payload  # nothing about the agents in the API contract
     assert "qa_trail" not in payload and "qa" not in payload
+
+
+def _analysis_response(monkeypatch, with_json: bool, legend_rows: bool = True) -> dict:
+    def fake_extract(image_metadata, project=None):
+        payload = build_sample_payload()
+        if not legend_rows:
+            payload["legend_items"] = []
+        return parse_master_plan_entity_payload(
+            payload,
+            image_width=image_metadata.dimensions.width,
+            image_height=image_metadata.dimensions.height,
+            project_id=project.project_id if project else None,
+            project_name=project.project_name if project else None,
+        )
+
+    def fake_vision(project, image_metadata):
+        return build_mock_vision(project_id=project.project_id, project_name=project.project_name)
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+    monkeypatch.setattr("app.main.analyze_master_plan_with_gemini", fake_vision)
+    files = {"master_plan_image_file": ("plan.jpg", find_master_plan_image().read_bytes(), "image/jpeg")}
+    if with_json:
+        files["project_json_file"] = ("project.json", Path("data/input/342956.json").read_bytes(), "application/json")
+    response = client.post("/master-plan/analysis", files=files, data={"run_area_estimate": "true"})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_analysis_response_has_one_shape_whatever_the_plan(monkeypatch):
+    from app.schemas.master_plan_entity_schema import ENTITY_TYPES
+
+    with_records = _analysis_response(monkeypatch, with_json=True)
+    plan_only = _analysis_response(monkeypatch, with_json=False)
+    no_legend = _analysis_response(monkeypatch, with_json=False, legend_rows=False)
+
+    expected_top = {"run_id", "image_url", "source_image_url", "entity_map", "site_metrics", "area_estimate", "image_metadata", "diagnostics", "run_artifacts"}
+    for payload in (with_records, plan_only, no_legend):
+        assert set(payload) == expected_top
+        assert set(payload["entity_map"]) == set(with_records["entity_map"])
+        assert set(payload["entity_map"]["site"]) == set(with_records["entity_map"]["site"])
+        assert list(payload["entity_map"]["group_counts"]) == ["structure", "circulation", "amenity", "landscape", "water", "annotation"]
+        assert list(payload["entity_map"]["entity_counts"]) == list(ENTITY_TYPES)
+        assert set(payload["run_artifacts"]) == {
+            "input_master_plan_image_path", "input_project_json_path", "normalized_image_path", "master_plan_entity_map_json_path",
+            "area_estimate_json_path", "site_metrics_json_path", "qa_trail_json_path",
+        }
+        assert set(payload["area_estimate"]) == set(with_records["area_estimate"])
+
+    # Figures that could not be produced are null, never missing.
+    assert plan_only["site_metrics"] is None and with_records["site_metrics"] is not None
+    assert plan_only["entity_map"]["site"]["printed_records"] is None
+    assert plan_only["run_artifacts"]["site_metrics_json_path"] is None and plan_only["run_artifacts"]["input_project_json_path"] is None
+    assert plan_only["entity_map"]["group_counts"]["water"] == 0
+    assert all(set(item) == {"code", "count", "items"} for item in plan_only["diagnostics"])
