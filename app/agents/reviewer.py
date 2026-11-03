@@ -22,6 +22,7 @@ from app.schemas.master_plan_entity_schema import MasterPlanEntityMap
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.services.master_plan_entity_extractor import (
     WATER_MIN_BLUE_SHARE,
+    marker_only_area_features,
     plan_declares_water,
     unsupported_water_entities,
     water_ink_share,
@@ -29,6 +30,8 @@ from app.services.master_plan_entity_extractor import (
 )
 
 OVERSIZED_RELATIVE_AREA = 0.35
+# The area types whose drawn extent matters to a reader (rule A9).
+MAJOR_AREA_TYPES = {"sports_court", "swimming_pool", "lawn_garden", "kids_play_area", "clubhouse"}
 OVERSIZE_EXEMPT_TYPES = {"external_road", "internal_road", "driveway", "site_boundary", "legend_block", "title_block"}
 SEVERITY_PENALTY = {"blocker": 0.5, "major": 0.2, "minor": 0.05}
 MODEL_FINDING_CODES = {"missed_blocks", "false_positive_block", "false_positive_water", "mislabelled_block", "missed_legend_item", "other"}
@@ -148,6 +151,22 @@ def run_rule_checks(
                 suggested_fix="Downgrade to Low.",
             ))
 
+    # A9: a court, pool or lawn that a marker placed must be boxed as an area.
+    # Once the extractor has tried, what is left is what the drawing does not
+    # give (seating spots, bays), so the finding drops to minor.
+    applied.append("A9")
+    marker_only = [entity for entity in marker_only_area_features(entity_map) if entity.entity_type in MAJOR_AREA_TYPES]
+    if marker_only:
+        attempted = any(diagnostic.code in {"marker_features_boxed", "marker_expansion_attempted"} for diagnostic in entity_map.diagnostics)
+        findings.append(Finding(
+            code="marker_only_area_features", severity="minor" if attempted else "major",
+            detail=f"{len(marker_only)} area features (courts, pools, lawns, play areas) are placed by a marker but not boxed on the drawing"
+            + (" after an expansion attempt." if attempted else "."),
+            entity_ids=[entity.entity_id for entity in marker_only],
+            entity_labels=[entity.label for entity in marker_only],
+            suggested_fix="Box the drawn area around each marker.",
+        ))
+
     # A1 (deterministic part): no blocks at all is a blocker
     applied.append("A1")
     if not blocks:
@@ -191,7 +210,8 @@ def build_count_prompt(scope: str) -> str:
     return (
         f"This is a {sheet}. Count, carefully and only what is actually drawn: residential towers or wings "
         "(one per separate building footprint, including unlabelled outlines at the plot edges and any "
-        "colour-filled or hatched ones; do not count parcels, plots, roads or text blocks), swimming pools or "
+        "colour-filled or hatched ones; do not count parcels, plots, roads, text blocks, or blank placeholders "
+        "labelled future development), swimming pools or "
         "water bodies, and entry/exit points. Say in one sentence where the towers are. Return JSON only."
     )
 
@@ -267,10 +287,11 @@ def run_model_review(
     boxed = sum(1 for entity in entity_map.entities if entity.entity_type == "residential_block")
     seen = observed["towers_seen"]
 
-    # A1 from the model's count: the count decides the severity, not the model's wording.
+    # A1 from the model's count: the count decides the severity, not the model's
+    # wording. A single tower of difference is within the count's own noise.
     if seen > 0 and boxed < seen:
         gap = seen - boxed
-        severity = "blocker" if gap >= 3 or boxed < 0.7 * seen else "major"
+        severity = "blocker" if gap >= 3 or (seen >= 5 and boxed < 0.7 * seen) else "major" if gap == 2 else "minor"
         findings.append(Finding(
             code="missed_blocks", severity=severity, source="model",
             detail=f"The reviewer sees {seen} towers; {boxed} are boxed ({gap} missing).",

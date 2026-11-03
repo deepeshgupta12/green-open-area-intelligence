@@ -33,6 +33,9 @@ logger = logging.getLogger(__name__)
 Reviewer = Callable[[MasterPlanEntityMap, AreaEstimateResult | None], ReviewReport]
 Fixer = Callable[[MasterPlanEntityMap, AreaEstimateResult | None, list], tuple[MasterPlanEntityMap, AreaEstimateResult | None, list]]
 
+# A pass below this score still has fixable findings worth a round of repair.
+FIX_BELOW_SCORE = 0.9
+
 
 def run_qa_cycle(
     entity_map: MasterPlanEntityMap,
@@ -42,8 +45,15 @@ def run_qa_cycle(
     fixer: Fixer,
     max_rounds: int,
     run_id: str | None = None,
+    fix_below_score: float = FIX_BELOW_SCORE,
 ) -> tuple[MasterPlanEntityMap, AreaEstimateResult | None, QaTrail]:
-    """Pure loop over injected reviewer and fixer callables (also what the tests drive)."""
+    """Pure loop over injected reviewer and fixer callables (also what the tests drive).
+
+    A failed review is always sent to the fixer; a passed one is too while
+    its score is below ``fix_below_score``, so fixable major findings on an
+    otherwise acceptable analysis still get repaired. The best-scoring
+    version is adopted either way.
+    """
     rounds: list[QaRound] = []
     best = (entity_map, area_estimate)
     best_round = 1
@@ -54,7 +64,8 @@ def run_qa_cycle(
         actions: list = []
         if report.score > best_score:
             best, best_round, best_score = (current_map, current_estimate), number, report.score
-        if report.verdict == "pass" or number == max_rounds:
+        settled = report.verdict == "pass" and report.score >= fix_below_score
+        if settled or number == max_rounds:
             rounds.append(QaRound(round=number, review=report, actions=actions))
             break
         current_map, current_estimate, actions = fixer(current_map, current_estimate, report.findings)

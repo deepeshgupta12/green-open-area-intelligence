@@ -1,0 +1,1302 @@
+{
+  "run_id": "bacbd044-9165-442e-a3e2-5439798d3311",
+  "image_url": "/master-plan/runs/bacbd044-9165-442e-a3e2-5439798d3311/image",
+  "source_image_url": "https://static.squareyards.com/resources/images/mumbai/project-image/lodha-corinthia-project-master-plan-image1-6134.jpg",
+  "entity_map": {
+    "project_id": null,
+    "project_name": null,
+    "image_width": 1800,
+    "image_height": 897,
+    "coordinate_system": "fraction_of_image",
+    "extraction_confidence_label": "High",
+    "site": {
+      "shape_class": "irregular",
+      "north_arrow_present": true,
+      "external_roads": [
+        {
+          "label": "ENTRY / EXIT",
+          "width_text": null,
+          "side": "north"
+        }
+      ],
+      "entry_exit_count": 1,
+      "residential_block_labels": [
+        "TOWER-1",
+        "Tower-2",
+        "Tower-3",
+        "Tower-4",
+        "Tower-5",
+        "Tower-6"
+      ],
+      "commercial_block_count": 1,
+      "parking_cluster_count": 0,
+      "utility_yard_count": 0,
+      "drawing_style": null,
+      "printed_records": null
+    },
+    "legend": [
+      {
+        "code": "1",
+        "label": "Project Entry/ Exit",
+        "normalized_label": "project entry/ exit",
+        "category_key": "access_circulation",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "2",
+        "label": "Club House",
+        "normalized_label": "club house",
+        "category_key": null,
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "3",
+        "label": "Deck/ Seating Area",
+        "normalized_label": "deck/ seating area",
+        "category_key": "water_leisure",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "4",
+        "label": "Futsal Court",
+        "normalized_label": "futsal court",
+        "category_key": "amenity_richness",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "5",
+        "label": "Tennis Court",
+        "normalized_label": "tennis court",
+        "category_key": "sports_active_lifestyle",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "6",
+        "label": "Dense Tree Garden",
+        "normalized_label": "dense tree garden",
+        "category_key": "green_landscape",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "7",
+        "label": "Even Lawn",
+        "normalized_label": "even lawn",
+        "category_key": "green_landscape",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "8",
+        "label": "Walking and Jogging Track",
+        "normalized_label": "walking and jogging track",
+        "category_key": "sports_active_lifestyle",
+        "located_on_plan": true,
+        "marker_count": 6
+      },
+      {
+        "code": "9",
+        "label": "Pet Park",
+        "normalized_label": "pet park",
+        "category_key": "family_community",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "10",
+        "label": "Senior Citizen Park",
+        "normalized_label": "senior citizen park",
+        "category_key": "family_community",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "11",
+        "label": "Children's Play Area",
+        "normalized_label": "children's play area",
+        "category_key": "family_community",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "12",
+        "label": "Seating Alcove",
+        "normalized_label": "seating alcove",
+        "category_key": "open_space",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "13",
+        "label": "Picnic Area",
+        "normalized_label": "picnic area",
+        "category_key": null,
+        "located_on_plan": true,
+        "marker_count": 2
+      },
+      {
+        "code": "14",
+        "label": "Elevated Walkway",
+        "normalized_label": "elevated walkway",
+        "category_key": "access_circulation",
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "15",
+        "label": "Ganesha Temple",
+        "normalized_label": "ganesha temple",
+        "category_key": null,
+        "located_on_plan": true,
+        "marker_count": 1
+      },
+      {
+        "code": "16",
+        "label": "Maidan/ Multipurpose Court",
+        "normalized_label": "maidan/ multipurpose court",
+        "category_key": "amenity_richness",
+        "located_on_plan": true,
+        "marker_count": 1
+      }
+    ],
+    "entities": [
+      {
+        "entity_id": "e1",
+        "entity_type": "commercial_block",
+        "entity_group": "structure",
+        "label": "Future Development",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.459,
+          "y_min": 0.165,
+          "x_max": 0.537,
+          "y_max": 0.702
+        },
+        "center_x": 0.498,
+        "center_y": 0.4335,
+        "relative_area": 0.04189,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.1669
+      },
+      {
+        "entity_id": "e2",
+        "entity_type": "sports_court",
+        "entity_group": "amenity",
+        "label": "Tennis Court",
+        "legend_code": "5",
+        "legend_label": "Tennis Court",
+        "category_key": "sports_active_lifestyle",
+        "box": {
+          "x_min": 0.299,
+          "y_min": 0.125,
+          "x_max": 0.352,
+          "y_max": 0.308
+        },
+        "center_x": 0.3255,
+        "center_y": 0.2165,
+        "relative_area": 0.0097,
+        "confidence_label": "High",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "TOWER-1",
+        "nearest_residential_distance": 0.1841
+      },
+      {
+        "entity_id": "e4",
+        "entity_type": "kids_play_area",
+        "entity_group": "amenity",
+        "label": "Children's Play Area",
+        "legend_code": "11",
+        "legend_label": "Children's Play Area",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.188,
+          "y_min": 0.348,
+          "x_max": 0.245,
+          "y_max": 0.61
+        },
+        "center_x": 0.2165,
+        "center_y": 0.479,
+        "relative_area": 0.01493,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-2",
+        "nearest_residential_distance": 0.0651
+      },
+      {
+        "entity_id": "e5",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Senior Citizen Park",
+        "legend_code": "10",
+        "legend_label": "Senior Citizen Park",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.224,
+          "y_min": 0.35,
+          "x_max": 0.283,
+          "y_max": 0.655
+        },
+        "center_x": 0.2535,
+        "center_y": 0.5025,
+        "relative_area": 0.01799,
+        "confidence_label": "High",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-3",
+        "nearest_residential_distance": 0.092
+      },
+      {
+        "entity_id": "e6",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Dense Tree Garden",
+        "legend_code": "6",
+        "legend_label": "Dense Tree Garden",
+        "category_key": "green_landscape",
+        "box": {
+          "x_min": 0.275,
+          "y_min": 0.41,
+          "x_max": 0.436,
+          "y_max": 0.5
+        },
+        "center_x": 0.3555,
+        "center_y": 0.455,
+        "relative_area": 0.01449,
+        "confidence_label": "High",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-5",
+        "nearest_residential_distance": 0.148
+      },
+      {
+        "entity_id": "e7",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Even Lawn",
+        "legend_code": "7",
+        "legend_label": "Even Lawn",
+        "category_key": "green_landscape",
+        "box": {
+          "x_min": 0.273,
+          "y_min": 0.462,
+          "x_max": 0.447,
+          "y_max": 0.675
+        },
+        "center_x": 0.36,
+        "center_y": 0.5685,
+        "relative_area": 0.03706,
+        "confidence_label": "High",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-5",
+        "nearest_residential_distance": 0.0994
+      },
+      {
+        "entity_id": "e8",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Maidan/ Multipurpose Court",
+        "legend_code": "16",
+        "legend_label": "Maidan/ Multipurpose Court",
+        "category_key": "amenity_richness",
+        "box": {
+          "x_min": 0.555,
+          "y_min": 0.505,
+          "x_max": 0.689,
+          "y_max": 0.62
+        },
+        "center_x": 0.622,
+        "center_y": 0.5625,
+        "relative_area": 0.01541,
+        "confidence_label": "High",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.2074
+      },
+      {
+        "entity_id": "e9",
+        "entity_type": "entry_exit_gate",
+        "entity_group": "structure",
+        "label": "Entry / Exit",
+        "legend_code": "1",
+        "legend_label": "Project Entry/ Exit",
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.403,
+          "y_min": 0.085,
+          "x_max": 0.559,
+          "y_max": 0.18
+        },
+        "center_x": 0.481,
+        "center_y": 0.1325,
+        "relative_area": 0.01482,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.2895
+      },
+      {
+        "entity_id": "e10",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "TOWER-1",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.084,
+          "y_min": 0.179,
+          "x_max": 0.161,
+          "y_max": 0.386
+        },
+        "center_x": 0.1225,
+        "center_y": 0.2825,
+        "relative_area": 0.01594,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "1"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e11",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Tower-2",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.108,
+          "y_min": 0.345,
+          "x_max": 0.183,
+          "y_max": 0.55
+        },
+        "center_x": 0.1455,
+        "center_y": 0.4475,
+        "relative_area": 0.01538,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "2"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e12",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Tower-3",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.129,
+          "y_min": 0.51,
+          "x_max": 0.204,
+          "y_max": 0.715
+        },
+        "center_x": 0.1665,
+        "center_y": 0.6125,
+        "relative_area": 0.01537,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "3"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e13",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Tower-4",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.198,
+          "y_min": 0.725,
+          "x_max": 0.291,
+          "y_max": 0.868
+        },
+        "center_x": 0.2445,
+        "center_y": 0.7965,
+        "relative_area": 0.0133,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "4"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e14",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Tower-5",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.282,
+          "y_min": 0.71,
+          "x_max": 0.376,
+          "y_max": 0.855
+        },
+        "center_x": 0.329,
+        "center_y": 0.7825,
+        "relative_area": 0.01363,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "5"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e15",
+        "entity_type": "residential_block",
+        "entity_group": "structure",
+        "label": "Tower-6",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "built_density",
+        "box": {
+          "x_min": 0.368,
+          "y_min": 0.695,
+          "x_max": 0.46,
+          "y_max": 0.84
+        },
+        "center_x": 0.414,
+        "center_y": 0.7675,
+        "relative_area": 0.01334,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {
+          "wing": "6"
+        },
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e16",
+        "entity_type": "site_boundary",
+        "entity_group": "annotation",
+        "label": "Site Boundary",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.047,
+          "y_min": 0.047,
+          "x_max": 0.752,
+          "y_max": 0.95
+        },
+        "center_x": 0.3995,
+        "center_y": 0.4985,
+        "relative_area": 0.63661,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e17",
+        "entity_type": "legend_block",
+        "entity_group": "annotation",
+        "label": "LEGEND",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.848,
+          "y_min": 0.449,
+          "x_max": 0.962,
+          "y_max": 0.902
+        },
+        "center_x": 0.905,
+        "center_y": 0.6755,
+        "relative_area": 0.05164,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e18",
+        "entity_type": "north_arrow",
+        "entity_group": "annotation",
+        "label": "North Arrow",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.73,
+          "y_min": 0.88,
+          "x_max": 0.749,
+          "y_max": 0.93
+        },
+        "center_x": 0.7395,
+        "center_y": 0.905,
+        "relative_area": 0.00095,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": null,
+        "nearest_residential_distance": null
+      },
+      {
+        "entity_id": "e19",
+        "entity_type": "external_road",
+        "entity_group": "circulation",
+        "label": "ENTRY / EXIT",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.402,
+          "y_min": 0.081,
+          "x_max": 0.559,
+          "y_max": 0.18
+        },
+        "center_x": 0.4805,
+        "center_y": 0.1305,
+        "relative_area": 0.01554,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.2903
+      },
+      {
+        "entity_id": "e21",
+        "entity_type": "tree_canopy_buffer",
+        "entity_group": "landscape",
+        "label": "Tree Canopy Buffer South",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "green_landscape",
+        "box": {
+          "x_min": 0.17,
+          "y_min": 0.809,
+          "x_max": 0.52,
+          "y_max": 0.95
+        },
+        "center_x": 0.345,
+        "center_y": 0.8795,
+        "relative_area": 0.04935,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-5",
+        "nearest_residential_distance": 0.0456
+      },
+      {
+        "entity_id": "m9-1",
+        "entity_type": "pet_park",
+        "entity_group": "amenity",
+        "label": "Pet Park",
+        "legend_code": "9",
+        "legend_label": "Pet Park",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.0655,
+          "y_min": 0.1098,
+          "x_max": 0.101,
+          "y_max": 0.1823
+        },
+        "center_x": 0.0833,
+        "center_y": 0.146,
+        "relative_area": 0.00257,
+        "confidence_label": "Medium",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "TOWER-1",
+        "nearest_residential_distance": 0.0703
+      },
+      {
+        "entity_id": "m8-1",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Walking and Jogging Track",
+        "legend_code": "8",
+        "legend_label": "Walking and Jogging Track",
+        "category_key": "sports_active_lifestyle",
+        "box": {
+          "x_min": 0.0632,
+          "y_min": 0.1716,
+          "x_max": 0.0852,
+          "y_max": 0.2158
+        },
+        "center_x": 0.0742,
+        "center_y": 0.1937,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "TOWER-1",
+        "nearest_residential_distance": 0.0586
+      },
+      {
+        "entity_id": "m8-2",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Walking and Jogging Track",
+        "legend_code": "8",
+        "legend_label": "Walking and Jogging Track",
+        "category_key": "sports_active_lifestyle",
+        "box": {
+          "x_min": 0.1568,
+          "y_min": 0.1777,
+          "x_max": 0.1788,
+          "y_max": 0.2219
+        },
+        "center_x": 0.1678,
+        "center_y": 0.1998,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "TOWER-1",
+        "nearest_residential_distance": 0.0548
+      },
+      {
+        "entity_id": "m8-3",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Walking and Jogging Track",
+        "legend_code": "8",
+        "legend_label": "Walking and Jogging Track",
+        "category_key": "sports_active_lifestyle",
+        "box": {
+          "x_min": 0.3951,
+          "y_min": 0.0814,
+          "x_max": 0.4171,
+          "y_max": 0.1256
+        },
+        "center_x": 0.4061,
+        "center_y": 0.1035,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "TOWER-1",
+        "nearest_residential_distance": 0.2661
+      },
+      {
+        "entity_id": "m8-4",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Walking and Jogging Track",
+        "legend_code": "8",
+        "legend_label": "Walking and Jogging Track",
+        "category_key": "sports_active_lifestyle",
+        "box": {
+          "x_min": 0.4323,
+          "y_min": 0.5336,
+          "x_max": 0.4543,
+          "y_max": 0.5777
+        },
+        "center_x": 0.4433,
+        "center_y": 0.5556,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.0981
+      },
+      {
+        "entity_id": "m8-5",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Walking and Jogging Track",
+        "legend_code": "8",
+        "legend_label": "Walking and Jogging Track",
+        "category_key": "sports_active_lifestyle",
+        "box": {
+          "x_min": 0.3161,
+          "y_min": 0.6815,
+          "x_max": 0.3382,
+          "y_max": 0.7257
+        },
+        "center_x": 0.3271,
+        "center_y": 0.7036,
+        "relative_area": 0.00098,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-5",
+        "nearest_residential_distance": 0.0352
+      },
+      {
+        "entity_id": "m8-6",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Walking and Jogging Track",
+        "legend_code": "8",
+        "legend_label": "Walking and Jogging Track",
+        "category_key": "sports_active_lifestyle",
+        "box": {
+          "x_min": 0.3201,
+          "y_min": 0.8613,
+          "x_max": 0.3421,
+          "y_max": 0.9055
+        },
+        "center_x": 0.3311,
+        "center_y": 0.8834,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-5",
+        "nearest_residential_distance": 0.045
+      },
+      {
+        "entity_id": "m12-1",
+        "entity_type": "other_feature",
+        "entity_group": "amenity",
+        "label": "Seating Alcove",
+        "legend_code": "12",
+        "legend_label": "Seating Alcove",
+        "category_key": "open_space",
+        "box": {
+          "x_min": 0.2742,
+          "y_min": 0.3221,
+          "x_max": 0.2962,
+          "y_max": 0.3663
+        },
+        "center_x": 0.2852,
+        "center_y": 0.3442,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-2",
+        "nearest_residential_distance": 0.1333
+      },
+      {
+        "entity_id": "m3-1",
+        "entity_type": "other_feature",
+        "entity_group": "amenity",
+        "label": "Deck/ Seating Area",
+        "legend_code": "3",
+        "legend_label": "Deck/ Seating Area",
+        "category_key": "water_leisure",
+        "box": {
+          "x_min": 0.3488,
+          "y_min": 0.3268,
+          "x_max": 0.3708,
+          "y_max": 0.371
+        },
+        "center_x": 0.3598,
+        "center_y": 0.3489,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.1929
+      },
+      {
+        "entity_id": "m2-1",
+        "entity_type": "clubhouse",
+        "entity_group": "structure",
+        "label": "Club House",
+        "legend_code": "2",
+        "legend_label": "Club House",
+        "category_key": "amenity_richness",
+        "box": {
+          "x_min": 0.3066,
+          "y_min": 0.301,
+          "x_max": 0.4107,
+          "y_max": 0.4157
+        },
+        "center_x": 0.3587,
+        "center_y": 0.3584,
+        "relative_area": 0.01194,
+        "confidence_label": "Medium",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.1891
+      },
+      {
+        "entity_id": "m13-1",
+        "entity_type": "other_feature",
+        "entity_group": "amenity",
+        "label": "Picnic Area",
+        "legend_code": "13",
+        "legend_label": "Picnic Area",
+        "category_key": "amenity_richness",
+        "box": {
+          "x_min": 0.4167,
+          "y_min": 0.2662,
+          "x_max": 0.4387,
+          "y_max": 0.3104
+        },
+        "center_x": 0.4277,
+        "center_y": 0.2883,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.2141
+      },
+      {
+        "entity_id": "m13-2",
+        "entity_type": "other_feature",
+        "entity_group": "amenity",
+        "label": "Picnic Area",
+        "legend_code": "13",
+        "legend_label": "Picnic Area",
+        "category_key": "amenity_richness",
+        "box": {
+          "x_min": 0.1464,
+          "y_min": 0.7679,
+          "x_max": 0.1684,
+          "y_max": 0.8121
+        },
+        "center_x": 0.1574,
+        "center_y": 0.79,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-4",
+        "nearest_residential_distance": 0.078
+      },
+      {
+        "entity_id": "m15-1",
+        "entity_type": "other_feature",
+        "entity_group": "amenity",
+        "label": "Ganesha Temple",
+        "legend_code": "15",
+        "legend_label": "Ganesha Temple",
+        "category_key": "amenity_richness",
+        "box": {
+          "x_min": 0.5272,
+          "y_min": 0.3044,
+          "x_max": 0.5492,
+          "y_max": 0.3486
+        },
+        "center_x": 0.5382,
+        "center_y": 0.3265,
+        "relative_area": 0.00097,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.2259
+      },
+      {
+        "entity_id": "m4-1",
+        "entity_type": "sports_court",
+        "entity_group": "amenity",
+        "label": "Futsal Court",
+        "legend_code": "4",
+        "legend_label": "Futsal Court",
+        "category_key": "amenity_richness",
+        "box": {
+          "x_min": 0.1346,
+          "y_min": 0.7351,
+          "x_max": 0.1831,
+          "y_max": 0.83
+        },
+        "center_x": 0.1588,
+        "center_y": 0.7825,
+        "relative_area": 0.0046,
+        "confidence_label": "Medium",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-3",
+        "nearest_residential_distance": 0.0761
+      },
+      {
+        "entity_id": "m14-1",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Elevated Walkway",
+        "legend_code": "14",
+        "legend_label": "Elevated Walkway",
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.4667,
+          "y_min": 0.8416,
+          "x_max": 0.4888,
+          "y_max": 0.8858
+        },
+        "center_x": 0.4778,
+        "center_y": 0.8637,
+        "relative_area": 0.00098,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.0714
+      },
+      {
+        "entity_id": "e45",
+        "entity_type": "legend_marker",
+        "entity_group": "annotation",
+        "label": "Marker 18",
+        "legend_code": "18",
+        "legend_label": null,
+        "category_key": null,
+        "box": {
+          "x_min": 0.6198,
+          "y_min": 0.5556,
+          "x_max": 0.6276,
+          "y_max": 0.5719
+        },
+        "center_x": 0.6237,
+        "center_y": 0.5637,
+        "relative_area": 0.00013,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower-6",
+        "nearest_residential_distance": 0.2085
+      }
+    ],
+    "entity_counts": {
+      "residential_block": 6,
+      "commercial_block": 1,
+      "clubhouse": 1,
+      "security_cabin": 0,
+      "utility_yard": 0,
+      "entry_exit_gate": 1,
+      "external_road": 1,
+      "internal_road": 0,
+      "driveway": 0,
+      "walkway_pathway": 7,
+      "parking": 0,
+      "swimming_pool": 0,
+      "water_feature": 0,
+      "sports_court": 2,
+      "kids_play_area": 1,
+      "outdoor_game": 0,
+      "outdoor_gym": 0,
+      "plaza": 0,
+      "pet_park": 1,
+      "working_pods": 0,
+      "other_feature": 5,
+      "lawn_garden": 4,
+      "tree_canopy_buffer": 1,
+      "legend_marker": 1,
+      "legend_block": 1,
+      "title_block": 0,
+      "north_arrow": 1,
+      "site_boundary": 1
+    },
+    "group_counts": {
+      "structure": 9,
+      "circulation": 8,
+      "amenity": 9,
+      "landscape": 5,
+      "water": 0,
+      "annotation": 4
+    },
+    "block_proximity": [
+      {
+        "block_label": "TOWER-1",
+        "nearby_amenities": [
+          "Pet Park",
+          "Children's Play Area",
+          "Seating Alcove"
+        ],
+        "nearby_green": [
+          "Senior Citizen Park"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": 0.0703
+      },
+      {
+        "block_label": "Tower-2",
+        "nearby_amenities": [
+          "Children's Play Area",
+          "Seating Alcove",
+          "Pet Park",
+          "Futsal Court",
+          "Picnic Area"
+        ],
+        "nearby_green": [
+          "Senior Citizen Park"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": 0.0651
+      },
+      {
+        "block_label": "Tower-3",
+        "nearby_amenities": [
+          "Children's Play Area",
+          "Futsal Court",
+          "Picnic Area",
+          "Seating Alcove"
+        ],
+        "nearby_green": [
+          "Senior Citizen Park",
+          "Even Lawn"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": 0.0745
+      },
+      {
+        "block_label": "Tower-4",
+        "nearby_amenities": [
+          "Futsal Court",
+          "Picnic Area",
+          "Children's Play Area"
+        ],
+        "nearby_green": [
+          "Tree Canopy Buffer South",
+          "Senior Citizen Park",
+          "Even Lawn"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": 0.077
+      },
+      {
+        "block_label": "Tower-5",
+        "nearby_amenities": [
+          "Futsal Court",
+          "Picnic Area",
+          "Children's Play Area"
+        ],
+        "nearby_green": [
+          "Tree Canopy Buffer South",
+          "Even Lawn",
+          "Senior Citizen Park",
+          "Dense Tree Garden"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": 0.1523
+      },
+      {
+        "block_label": "Tower-6",
+        "nearby_amenities": [],
+        "nearby_green": [
+          "Tree Canopy Buffer South",
+          "Even Lawn",
+          "Dense Tree Garden"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": 0.1929
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "phantom_markers_discarded",
+        "count": 5,
+        "items": []
+      },
+      {
+        "code": "oversized_boxes_discarded",
+        "count": 1,
+        "items": []
+      },
+      {
+        "code": "marker_contradicted_boxes_discarded",
+        "count": 1,
+        "items": []
+      },
+      {
+        "code": "marker_features_boxed",
+        "count": 3,
+        "items": []
+      }
+    ]
+  },
+  "site_metrics": null,
+  "area_estimate": {
+    "project_id": "plan-bacbd044",
+    "project_name": "Lodha Corinthia Project Master Plan Image1 6134",
+    "green_area_percentage": {
+      "min": 30.6,
+      "max": 48.6,
+      "display": "~31–49%",
+      "basis": "opencv_green_lower_bound_plus_vision_and_json_green_signals"
+    },
+    "open_area_percentage": {
+      "min": 58.7,
+      "max": 66.7,
+      "display": "~59–67%",
+      "basis": "opencv_known_open_pixels_plus_vision_open_and_inverse_built_estimate"
+    },
+    "confidence": {
+      "score": 0.67,
+      "label": "Medium",
+      "reasons": [
+        "Master plan image quality is usable.",
+        "Vision model detected a visible project boundary.",
+        "Vision model boundary confidence is high.",
+        "OpenCV unknown/unclassified area is moderate.",
+        "The 'Future Development' block is represented as a simple rectangular footprint and its final design/height is not detailed.",
+        "The plan is stylized and illustrative, typical of marketing master plans."
+      ]
+    },
+    "guardrails": {
+      "passed": true,
+      "warnings": [],
+      "adjustments": []
+    },
+    "compare_module_display": {
+      "green_space_label": "Estimated Green Space",
+      "green_space_value": "~31–49%",
+      "open_area_label": "Estimated Open Area",
+      "open_area_value": "~59–67%",
+      "confidence_label": "Medium Confidence",
+      "tooltip": "Estimated using the project master plan, vision-model interpretation, OpenCV segmentation, and available Datacenter project signals. Actual values may vary from official layout or RERA disclosures."
+    },
+    "evidence_summary": {
+      "opencv_green_percentage": 24.05,
+      "opencv_water_percentage": 19.36,
+      "opencv_built_percentage": 1.49,
+      "opencv_paved_percentage": 15.32,
+      "opencv_unknown_percentage": 39.77,
+      "vision_green_estimate": "High",
+      "vision_open_estimate": "High",
+      "vision_built_estimate": "Moderate",
+      "image_quality_score": 0.95,
+      "image_quality_label": "High",
+      "project_area_acres": null,
+      "total_units": null,
+      "green_signal_count": 0,
+      "open_space_signal_count": 0
+    },
+    "warnings": [
+      "The 'Future Development' block is represented as a simple rectangular footprint and its final design/height is not detailed.",
+      "The plan is stylized and illustrative, typical of marketing master plans."
+    ],
+    "notes": [
+      "Final values are range-based estimates, not official measurements.",
+      "OpenCV segmentation is treated as visual evidence, not a standalone source of truth.",
+      "Vision-model qualitative output is used to adjust the range and confidence.",
+      "Green Area is constrained to be less than or equal to Open Area."
+    ]
+  },
+  "image_metadata": {
+    "image_path": "<repo>/data/input/analysis_runs/bacbd044-9165-442e-a3e2-5439798d3311/lodha-corinthia-project-master-plan-image1-6134.jpg",
+    "normalized_image_path": "<repo>/data/output/overlays/lodha-corinthia-project-master-plan-image1-6134_normalized.png",
+    "file_name": "lodha-corinthia-project-master-plan-image1-6134.jpg",
+    "file_extension": ".jpg",
+    "file_size_mb": 0.3296,
+    "format": "PNG",
+    "mode": "RGB",
+    "dimensions": {
+      "width": 1800,
+      "height": 897,
+      "total_pixels": 1614600
+    },
+    "is_supported_format": true,
+    "is_within_size_limit": true,
+    "quality": {
+      "score": 0.95,
+      "label": "High",
+      "reasons": [
+        "Image resolution is sufficient for master plan analysis.",
+        "Image sharpness appears good.",
+        "Image brightness is within a usable range.",
+        "Image has enough color variation for visual class detection.",
+        "Image file size is within configured limit.",
+        "Sharpness metric: 708.5359",
+        "Brightness metric: 187.9562",
+        "Colorfulness metric: 39.0042"
+      ]
+    },
+    "processing_warnings": []
+  },
+  "diagnostics": [
+    {
+      "code": "project_json_missing",
+      "count": 1,
+      "items": []
+    }
+  ],
+  "run_artifacts": {
+    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/bacbd044-9165-442e-a3e2-5439798d3311/lodha-corinthia-project-master-plan-image1-6134.jpg",
+    "input_project_json_path": null,
+    "normalized_image_path": "<repo>/data/output/overlays/lodha-corinthia-project-master-plan-image1-6134_normalized.png",
+    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/bacbd044-9165-442e-a3e2-5439798d3311/master_plan_entity_map.json",
+    "area_estimate_json_path": "<repo>/data/output/analysis_runs/bacbd044-9165-442e-a3e2-5439798d3311/area_estimate.json",
+    "site_metrics_json_path": null,
+    "qa_trail_json_path": "<repo>/data/output/analysis_runs/bacbd044-9165-442e-a3e2-5439798d3311/qa_trail.json"
+  }
+}

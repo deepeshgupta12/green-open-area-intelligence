@@ -179,6 +179,18 @@ TYPE_ALIASES: tuple[tuple[str, str], ...] = (
     ("boundary", "site_boundary"),
     ("security", "security_cabin"),
     ("cabin", "security_cabin"),
+    # Specific phrases first: an "entry feature element" is an ornament and a
+    # "tower entry" is a building door, not a site gate; a "poolside deck" is
+    # paving, not water.
+    ("entry feature", "other_feature"),
+    ("feature element", "other_feature"),
+    ("tower entry", "other_feature"),
+    ("wing entry", "other_feature"),
+    ("block entry", "other_feature"),
+    ("lobby", "other_feature"),
+    ("poolside", "plaza"),
+    ("pool deck", "plaza"),
+    ("pool side", "plaza"),
     ("plaza", "plaza"),
     ("gate", "entry_exit_gate"),
     ("entry", "entry_exit_gate"),
@@ -434,6 +446,13 @@ class GeminiFootprintCheck(BaseModel):
         description="True only when the centre of the crop shows a building footprint: a tower or wing outline with internal walls.",
     )
     what: str | None = Field(default=None, description="One of: building, parcel, road, text, other.")
+
+
+class GeminiRegionBox(BaseModel):
+    """The drawn area a legend marker labels, boxed on a crop centred on the marker."""
+
+    found: bool = Field(default=False, description="True when the drawn feature is visible in the crop.")
+    box_2d: list[int] | None = Field(default=None, description=BOX_DESCRIPTION)
 
 
 class GeminiSiteEntity(BaseModel):
@@ -721,7 +740,8 @@ def extract_master_plan_entities(
                 )
             except Exception:  # noqa: BLE001 - recovery is best effort
                 return []
-            wanted = {_normalize_code(code) for code in unlocated}
+            # Accept the prefixed code or its bare number ("GR-13" or "13").
+            wanted = {_normalize_code(code) for code in unlocated} | set(bare_number_aliases(unlocated))
             return [
                 marker
                 for marker in map_markers_to_full_image(payload.get("markers", []), tile)
@@ -737,6 +757,10 @@ def extract_master_plan_entities(
         })
         if recovered_markers:
             entity_map = parse(on_drawing + recovered_markers)
+
+    # A marker places a court or pool reliably but only as a disc; box the
+    # drawn area it labels so the hover map covers the feature itself.
+    entity_map = expand_marker_features(entity_map, image, run_call)
 
     # A pool that nothing else vouches for (no legend row, no declared
     # amenity, no marker) must at least be painted blue; tower plates and
@@ -800,6 +824,155 @@ def extract_master_plan_entities(
         )
 
     return entity_map
+
+
+# --------------------------------------------------------------------------- #
+# Marker-only area features: box the drawn area the marker labels
+# --------------------------------------------------------------------------- #
+#
+# A numbered marker places a feature reliably but only as a marker-sized disc.
+# For courts, pools, lawns and the like the drawing shows a whole area, and
+# the hover map should cover it. One focused crop call per such feature
+# returns the area's box; it is adopted only when it contains the marker and
+# is sized like a feature, otherwise the disc stays.
+
+AREA_FEATURE_TYPES: frozenset[str] = frozenset({
+    "sports_court",
+    "swimming_pool",
+    "water_feature",
+    "lawn_garden",
+    "kids_play_area",
+    "clubhouse",
+    "parking",
+    "plaza",
+    "outdoor_gym",
+    "pet_park",
+    "outdoor_game",
+    "commercial_block",
+})
+MAX_MARKER_EXPANSIONS = 48
+MARKER_EXPANSION_PAD = 0.12
+MARKER_EXPANSION_MAX_SIDE = 0.35
+
+
+def build_region_prompt(label: str, entity_type: str) -> str:
+    kind = humanize_type(entity_type)
+    return (
+        "This crop of a real-estate master plan is centred on a small numbered circle marker that the legend "
+        f"keys as \"{label}\" ({kind}). Box the drawn feature that this marker labels: the {kind} area itself "
+        "(its paved, turfed, planted or water surface), tight to its edges, not the circle. Return the box in "
+        "\"box_2d\" as [ymin, xmin, ymax, xmax] on a 0-1000 scale of this crop and \"found\" true. If the marker "
+        "only points at a small object, or the feature is not visible in this crop, return \"found\" false. "
+        "Return JSON only."
+    )
+
+
+def humanize_type(entity_type: str) -> str:
+    return entity_type.replace("_", " ")
+
+
+def marker_only_area_features(entity_map: MasterPlanEntityMap) -> list[MasterPlanEntity]:
+    """Area-type features that a marker placed but nothing boxed (still marker-sized)."""
+    limit = MARKER_FEATURE_MIN_SIDE * 2.5
+    return [
+        entity
+        for entity in entity_map.entities
+        if entity.located_by == "legend_marker"
+        and entity.entity_type in AREA_FEATURE_TYPES
+        and entity.box.width <= limit
+        and entity.box.height <= limit * 1.6
+    ][:MAX_MARKER_EXPANSIONS]
+
+
+def expansion_tile(entity: MasterPlanEntity, aspect: float) -> tuple[float, float, float, float]:
+    """A crop around the marker, MARKER_EXPANSION_PAD of the image each side (taller on wide sheets)."""
+    pad_x = MARKER_EXPANSION_PAD
+    pad_y = MARKER_EXPANSION_PAD * aspect
+    return (
+        _clamp(entity.center_x - pad_x),
+        _clamp(entity.center_y - pad_y),
+        _clamp(entity.center_x + pad_x),
+        _clamp(entity.center_y + pad_y),
+    )
+
+
+def region_box_from_payload(
+    payload: dict[str, Any] | None, tile: tuple[float, float, float, float], entity: MasterPlanEntity
+) -> EntityBox | None:
+    """The area box in image fractions, or None when the answer is missing or not credible."""
+    if not payload or not payload.get("found"):
+        return None
+    mapped = map_boxes_to_full_image([{"box_2d": payload.get("box_2d")}], tile)
+    if not mapped:
+        return None
+    box = _box_from_payload(mapped[0]["box_2d"])
+    if box is None:
+        return None
+    if not _point_near_box(entity.center_x, entity.center_y, box, pad=0.01):
+        return None
+    if box.width > MARKER_EXPANSION_MAX_SIDE or box.height > MARKER_EXPANSION_MAX_SIDE:
+        return None
+    if box.width < entity.box.width * 1.2 and box.height < entity.box.height * 1.2:
+        return None
+    if box.width * box.height > TYPE_MAX_AREA.get(entity.entity_type, MAX_RELATIVE_AREA):
+        return None
+    return box
+
+
+def apply_region_boxes(entity_map: MasterPlanEntityMap, boxes: dict[str, EntityBox]) -> MasterPlanEntityMap:
+    """Replace marker-sized boxes with the drawn areas found for them."""
+    if not boxes:
+        return entity_map
+    entities: list[MasterPlanEntity] = []
+    changed = 0
+    for entity in entity_map.entities:
+        box = boxes.get(entity.entity_id)
+        if box is None:
+            entities.append(entity)
+            continue
+        center_x, center_y = box.center
+        entities.append(
+            entity.model_copy(
+                update={
+                    "box": box,
+                    "center_x": round(center_x, 4),
+                    "center_y": round(center_y, 4),
+                    "relative_area": round(box.width * box.height, 5),
+                    "located_by": "both",
+                }
+            )
+        )
+        changed += 1
+    if not changed:
+        return entity_map
+    diagnostics = list(entity_map.diagnostics) + [Diagnostic(code="marker_features_boxed", count=changed)]
+    return _with_entities(entity_map, entities, diagnostics)
+
+
+def expand_marker_features(entity_map: MasterPlanEntityMap, image: Image.Image, call: ModelCall) -> MasterPlanEntityMap:
+    """Box the drawn area of every marker-only court, pool, lawn or play area (best effort)."""
+    targets = marker_only_area_features(entity_map)
+    if not targets:
+        return entity_map
+    width, height = image.size
+    aspect = width / max(height, 1)
+
+    def locate(entity: MasterPlanEntity) -> tuple[str, EntityBox | None]:
+        tile = expansion_tile(entity, aspect)
+        try:
+            payload = call(build_region_prompt(entity.label, entity.entity_type), _tile_part(image, tile), GeminiRegionBox, 0.0, 256)
+        except Exception:  # noqa: BLE001 - the disc stays
+            return entity.entity_id, None
+        return entity.entity_id, region_box_from_payload(payload, tile, entity)
+
+    with ThreadPoolExecutor(max_workers=min(8, len(targets))) as pool:
+        results = dict(pool.map(locate, targets))
+    boxed = apply_region_boxes(entity_map, {entity_id: box for entity_id, box in results.items() if box is not None})
+    # Record the attempt even when nothing was boxed: a reviewer must not
+    # keep asking for areas the drawing does not give.
+    return boxed.model_copy(
+        update={"diagnostics": list(boxed.diagnostics) + [Diagnostic(code="marker_expansion_attempted", count=len(targets))]}
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -1087,9 +1260,14 @@ def build_wing_locate_prompt(label: str) -> str:
 
 
 def build_targeted_marker_prompt(codes: list[str]) -> str:
+    aliases = {key: number for number, key in bare_number_aliases(codes).items()}
+    shown = [
+        f"{code} (the circle may print just {aliases[_normalize_code(code) or '']})" if (_normalize_code(code) or "") in aliases else code
+        for code in codes
+    ]
     return (
         "This is a crop of a real-estate master plan. Find the small numbered circle markers whose "
-        f"printed number is one of: {', '.join(codes)}. Output a JSON object whose \"markers\" list "
+        f"printed number is one of: {', '.join(shown)}. Output a JSON object whose \"markers\" list "
         "has, for each such circle actually drawn in this crop, its 2D bounding box in \"box_2d\" as "
         "[ymin, xmin, ymax, xmax] on a 0-1000 scale of this image and the number as \"legend_code\". "
         "Ignore every other circle and all legend text. If none of these numbers appear, return an "
@@ -2207,6 +2385,9 @@ def normalize_entity_type(value: Any) -> str | None:
         return None
     if text.replace(" ", "_") in ENTITY_TYPE_GROUPS:
         return text.replace(" ", "_")
+    # "Clubhouse 1 entry", "Club house entry": the door of a building, not a site gate.
+    if re.search(r"\b(?:club ?house|clubhouse|tower|wing|block|lobby)\b.*\bentry\b", text):
+        return "other_feature"
     for needle, canonical in TYPE_ALIASES:
         # Match at the start of a word so "pet" does not fire on "competition".
         if re.search(r"(?:^| )" + re.escape(needle), text):
@@ -2731,8 +2912,30 @@ def _derive_confidence(
 # --------------------------------------------------------------------------- #
 
 
+_PREFIXED_CODE_RE = re.compile(r"^([a-z]{1,3})[-\s]?(\d{1,3})$")
+
+
+def bare_number_aliases(codes: list[str]) -> dict[str, str]:
+    """'GR-12' -> {'12': 'gr-12'} when no other code shares the number.
+
+    Legends often prefix their rows by category (GR-, RE-, PT-) while the
+    circles drawn on the plan print only the number. When the numbers are
+    unique across the prefixes, a bare number identifies its row.
+    """
+    numbers: dict[str, list[str]] = {}
+    for code in codes:
+        key = _normalize_code(code)
+        if not key:
+            continue
+        match = _PREFIXED_CODE_RE.match(key)
+        if match:
+            numbers.setdefault(str(int(match.group(2))), []).append(key)
+    return {number: keys[0] for number, keys in numbers.items() if len(keys) == 1}
+
+
 def _build_legend_lookup(raw_items: Any) -> dict[str, tuple[str, str]]:
     lookup: dict[str, tuple[str, str]] = {}
+    codes: list[str] = []
     for raw in raw_items or []:
         if not isinstance(raw, dict):
             continue
@@ -2741,6 +2944,11 @@ def _build_legend_lookup(raw_items: Any) -> dict[str, tuple[str, str]]:
         key = _normalize_code(code)
         if key and label and key not in lookup:
             lookup[key] = (code, label)
+            codes.append(code)
+    # A marker read as "12" resolves to "GR-12" when that number is unique.
+    for number, key in bare_number_aliases(codes).items():
+        if number not in lookup and key in lookup:
+            lookup[number] = lookup[key]
     return lookup
 
 

@@ -54,6 +54,10 @@ def seed_playbook() -> Playbook:
             "Blocks are named from what is printed: a lobby or drop-off letter is not a wing name when a printed key "
             "note explains the letters."
         )),
+        PlaybookRule(id="A9", severity="major", scope="all", added_at=stamp, text=(
+            "A court, pool, lawn, play area or clubhouse that a legend marker places is boxed over its drawn area, "
+            "not left as a marker-sized disc."
+        )),
     ]
     cases = [
         PlaybookCase(id="R1", scope="rendered", added_at=stamp,
@@ -98,6 +102,9 @@ def seed_playbook() -> Playbook:
             action="Drop feature boxes over 35% of the sheet unless the type is exempt (roads, boundary, legend, title)."),
         PlaybookRecipe(id="F6", trigger="estimate_inconsistent", added_at=stamp,
             action="Clamp the green range to the open range and note the adjustment."),
+        PlaybookRecipe(id="F7", trigger="marker_only_area_features", added_at=stamp,
+            action="Crop around each marker and ask for the drawn area's box; adopt it only when it contains the marker and is sized like a feature.",
+            notes="Lodha Corinthia: the futsal court was a disc until boxed this way."),
     ]
     return Playbook(version=1, updated_at=stamp, acceptance_rules=rules, rejection_cases=cases, fix_recipes=recipes, lessons=[
         "Judge detection changes on at least two runs and on rendered overlays; counts alone hide wrong boxes.",

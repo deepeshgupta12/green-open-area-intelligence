@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-78%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-83%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -67,8 +67,10 @@ Rendered from real runs with the production build (headless Chrome, 1440px wide,
 |---|---|
 | ![Birla Taranya with project records: zoning, estimate, home mix, density and allocation](docs/screenshots/birla-taranya-with-records.png) | ![Sattva Lumina from the plan alone: composition, amenities, legend promise, spatial access](docs/screenshots/sattva-lumina.png) |
 | *Birla Taranya, plan URL + Datacenter JSON* | *Sattva Lumina, plan URL only* |
-| ![Mahindra Rainforest Phase-2 block plan: printed records, reservations, phase towers, road frontages](docs/screenshots/mahindra-rainforest-block-plan.png) | ![Hover viewer with the entity overlay and tooltip](docs/screenshots/hover-viewer.png) |
-| *Mahindra Rainforest Phase-2, an architectural block plan* | *The hover viewer on Kalpataru Vian* |
+| ![Mahindra Rainforest Phase-2 block plan: printed records, reservations, phase towers, road frontages](docs/screenshots/mahindra-rainforest-block-plan.png) | ![Lodha Corinthia from the plan alone](docs/screenshots/lodha-corinthia.png) |
+| *Mahindra Rainforest Phase-2, an architectural block plan* | *Lodha Corinthia, plan URL only* |
+| ![Hover viewer with the entity overlay and tooltip on Lodha Corinthia](docs/screenshots/hover-viewer.png) | ![Kalpataru Vian from the plan alone](docs/screenshots/kalpataru-vian.png) |
+| *The hover viewer on Lodha Corinthia: marker-placed courts carry their drawn area* | *Kalpataru Vian: blocks named from the printed key note, no water* |
 
 ## Locked definitions
 
@@ -125,6 +127,8 @@ The comparison is served by the API (`POST /compare-master-plans`) and covered b
 How the extraction works (`app/services/master_plan_entity_extractor.py`):
 
 - **Focused Gemini calls run in parallel**, each with a strict `response_schema` and thinking at its minimum (`thinking_budget=0` on Gemini 2.x, `thinking_level=minimal` on 3.x): a *wings* call for residential building footprints (re-asked once if the boxes look fabricated), a *structures* call for the other large features, a *site* call for the legend text, plot shape, external roads and drawing annotations, and a *marker* call per image tile (2x2 with overlap) for the small numbered circles that key features to the legend.
+- **Prefixed legend codes resolve from bare numbers.** Legends that prefix their rows by category (GR-12, RE-27, PT-44) while the circles on the plan print only the number are matched through a bare-number alias whenever the number is unique across the prefixes; the targeted re-scan asks for both forms. On Birla Taranya this took legend coverage from 15 to 57 of 58 rows.
+- **Marker-placed areas are boxed over the drawing.** A marker places a court, pool, lawn, play area, clubhouse or parking cluster reliably but only as a marker-sized disc; one focused crop call per such feature returns the drawn area's box, adopted only when it contains the marker and is sized like a feature. The hover map then covers the court itself (Lodha Corinthia's futsal court was a disc until this step).
 - **Numbered legend markers are treated as ground truth.** A marker whose code matches a legend row becomes that feature at that spot. A drawn box that agrees with a marker is merged with it (`located_by: both`); a drawn box far from the marker for the same feature is discarded.
 - **Water features need evidence**: a pool or water body that no legend row, declared amenity or legend marker vouches for must be painted in saturated blue or cyan (tower plates and lobbies drawn in pale grey-blue are a known confusion); the ones with blue ink get a second look on their own crop, and only a clear "not water" answer removes them. Plans whose legend or records list water are left untouched.
 - **Blocks named from printed key notes**: when letter keys that are not legend codes are drawn beside the buildings (for example lobby markers C and D with a note "C Lobby- Wing A&B | D Lobby- Wing C&D"), one extra focused call transcribes the notes and the blocks are named from the markers they contain ("Tower 1 (Wing A & B)"); an umbrella box around several buildings is dropped. Plans with numbered markers never trigger this call.
@@ -158,7 +162,7 @@ Every analysis is checked by three backend agents before the response is built. 
 | **Fixer** | `app/agents/fixer.py` | Maps finding codes to recipes that reuse the extractor's verified tools: tiled footprint recovery for missed towers on block plans, blue-ink and crop checks for suspect water, crop checks for suspect blocks, duplicate-label renaming, oversized-box drops, estimate clamping and downgrading. A model opinion alone never removes a feature. |
 | **Teacher** | `app/agents/teacher.py` | Maintains the **playbook** (`app/agents/playbook.py`): acceptance rules, rejection cases and fix recipes, seeded from the Sattva Lumina, Birla Taranya, Kalpataru Vian and Mahindra Rainforest cases. After a cycle with findings it distils new entries from the trail with the text model, deduplicates them against the existing text (at most three per kind per cycle) and always records a deterministic lesson line. The runtime copy lives at `data/agents/playbook.json`; the seed in code never changes. |
 
-The orchestrator (`app/agents/orchestrator.py`) runs review -> fix -> review for at most `QA_MAX_ROUNDS` rounds and adopts the version with the best review score, so the loop can only improve an analysis or leave it as extracted. `python scripts/qa_agents.py playbook` prints the playbook; `python scripts/qa_agents.py review <run_dir>` re-reviews a stored run.
+The orchestrator (`app/agents/orchestrator.py`) runs review -> fix -> review for at most `QA_MAX_ROUNDS` rounds; a failed review always goes to the fixer, and so does a pass scoring below 0.9 so that fixable major findings still get repaired. The version with the best review score is adopted, so the loop can only improve an analysis or leave it as extracted. The fixer never acts on the reviewer's opinion alone: water backed by the legend, the records or a marker is never re-checked, block crop checks run on block plans only, and a one-tower difference in the independent count is treated as noise. `python scripts/qa_agents.py playbook` prints the playbook; `python scripts/qa_agents.py review <run_dir>` re-reviews a stored run.
 
 ## Architecture
 
@@ -199,7 +203,7 @@ green-open-area-intelligence/
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── docs/                         # contract schema, sample responses, screenshots
 ├── scripts/                      # run_single_project.py, qa_agents.py, export_contract.py
-├── tests/                        # pytest suite (78 tests)
+├── tests/                        # pytest suite (83 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
@@ -313,7 +317,8 @@ Full responses of four real runs are in [docs/samples/](docs/samples/) (local pa
 | [sattva-lumina.json](docs/samples/sattva-lumina.json) | Sattva Lumina, Bengaluru | plan URL | rendered plan with a 38-row numbered legend, wings A to H, real pool |
 | [kalpataru-vian.json](docs/samples/kalpataru-vian.json) | Kalpataru Vian, Mumbai | plan URL | letter keys explained by a printed note, water guardrail (no pools) |
 | [mahindra-rainforest.json](docs/samples/mahindra-rainforest.json) | Mahindra Rainforest Phase-2, Mumbai | plan URL | architectural block plan: printed records, 11 parcels, 12 tower footprints |
-| [birla-taranya-with-records.json](docs/samples/birla-taranya-with-records.json) | Birla Taranya, Thane | plan URL + Datacenter JSON | site metrics, density benchmarks, land allocation |
+| [lodha-corinthia.json](docs/samples/lodha-corinthia.json) | Lodha Corinthia, Mumbai | plan URL | six towers, a 16-row legend fully placed, marker-placed courts boxed over their drawn areas |
+| [birla-taranya-with-records.json](docs/samples/birla-taranya-with-records.json) | Birla Taranya, Thane | plan URL + Datacenter JSON | site metrics, density benchmarks, land allocation; a GR/RE/PT prefixed legend whose circles print bare numbers |
 
 Shape, with the sub-keys that are always present:
 

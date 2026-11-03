@@ -1,6 +1,6 @@
 {
-  "run_id": "62953bbe-2a74-4736-9269-8c4f3f6b1a37",
-  "image_url": "/master-plan/runs/62953bbe-2a74-4736-9269-8c4f3f6b1a37/image",
+  "run_id": "46b299aa-38e7-4a40-b569-683d674798ab",
+  "image_url": "/master-plan/runs/46b299aa-38e7-4a40-b569-683d674798ab/image",
   "source_image_url": "https://static.squareyards.com/resources/images/bangalore/project-image/sattva-lumina-project-master-plan-image1-8725.jpg",
   "entity_map": {
     "project_id": null,
@@ -1069,20 +1069,20 @@
         "legend_label": "PET PARK",
         "category_key": "family_community",
         "box": {
-          "x_min": 0.0616,
-          "y_min": 0.2956,
-          "x_max": 0.0835,
-          "y_max": 0.3267
+          "x_min": 0.0576,
+          "y_min": 0.2934,
+          "x_max": 0.0963,
+          "y_max": 0.3583
         },
-        "center_x": 0.0726,
-        "center_y": 0.3111,
-        "relative_area": 0.00068,
+        "center_x": 0.0769,
+        "center_y": 0.3258,
+        "relative_area": 0.00251,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "WING - G",
-        "nearest_residential_distance": 0.0907
+        "nearest_residential_distance": 0.0817
       },
       {
         "entity_id": "m8-1",
@@ -1093,16 +1093,16 @@
         "legend_label": "CRICKET NETS",
         "category_key": "sports_active_lifestyle",
         "box": {
-          "x_min": 0.1338,
-          "y_min": 0.3176,
-          "x_max": 0.1559,
-          "y_max": 0.3488
+          "x_min": 0.1211,
+          "y_min": 0.3097,
+          "x_max": 0.1691,
+          "y_max": 0.3567
         },
-        "center_x": 0.1449,
+        "center_x": 0.1451,
         "center_y": 0.3332,
-        "relative_area": 0.00069,
+        "relative_area": 0.00226,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "WING - G",
@@ -1117,20 +1117,20 @@
         "legend_label": "CRICKET NETS",
         "category_key": "sports_active_lifestyle",
         "box": {
-          "x_min": 0.7625,
-          "y_min": 0.1318,
-          "x_max": 0.7845,
-          "y_max": 0.1629
+          "x_min": 0.7481,
+          "y_min": 0.1288,
+          "x_max": 0.8117,
+          "y_max": 0.1631
         },
-        "center_x": 0.7735,
-        "center_y": 0.1473,
-        "relative_area": 0.00068,
+        "center_x": 0.7799,
+        "center_y": 0.1459,
+        "relative_area": 0.00218,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - A",
-        "nearest_residential_distance": 0.1868
+        "nearest_residential_distance": 0.19
       },
       {
         "entity_id": "m8-3",
@@ -1141,20 +1141,20 @@
         "legend_label": "CRICKET NETS",
         "category_key": "sports_active_lifestyle",
         "box": {
-          "x_min": 0.2529,
-          "y_min": 0.5938,
-          "x_max": 0.2749,
-          "y_max": 0.6249
+          "x_min": 0.2322,
+          "y_min": 0.6043,
+          "x_max": 0.2754,
+          "y_max": 0.6148
         },
-        "center_x": 0.2639,
-        "center_y": 0.6094,
-        "relative_area": 0.00068,
+        "center_x": 0.2538,
+        "center_y": 0.6096,
+        "relative_area": 0.00045,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - F",
-        "nearest_residential_distance": 0.0545
+        "nearest_residential_distance": 0.0565
       },
       {
         "entity_id": "m10-1",
@@ -1213,20 +1213,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.2438,
-          "y_min": 0.3385,
-          "x_max": 0.2658,
-          "y_max": 0.3697
+          "x_min": 0.2495,
+          "y_min": 0.3014,
+          "x_max": 0.2814,
+          "y_max": 0.4347
         },
-        "center_x": 0.2548,
-        "center_y": 0.3541,
-        "relative_area": 0.00069,
+        "center_x": 0.2654,
+        "center_y": 0.368,
+        "relative_area": 0.00425,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - E",
-        "nearest_residential_distance": 0.092
+        "nearest_residential_distance": 0.0802
       },
       {
         "entity_id": "m10-4",
@@ -1237,20 +1237,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.2649,
-          "y_min": 0.3391,
-          "x_max": 0.2869,
-          "y_max": 0.3702
+          "x_min": 0.2473,
+          "y_min": 0.3017,
+          "x_max": 0.2817,
+          "y_max": 0.4353
         },
-        "center_x": 0.2759,
-        "center_y": 0.3547,
-        "relative_area": 0.00068,
+        "center_x": 0.2645,
+        "center_y": 0.3685,
+        "relative_area": 0.0046,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - E",
-        "nearest_residential_distance": 0.0787
+        "nearest_residential_distance": 0.0807
       },
       {
         "entity_id": "m10-5",
@@ -1261,20 +1261,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.3025,
-          "y_min": 0.3211,
-          "x_max": 0.3245,
-          "y_max": 0.3523
+          "x_min": 0.2854,
+          "y_min": 0.3292,
+          "x_max": 0.3421,
+          "y_max": 0.3873
         },
-        "center_x": 0.3135,
-        "center_y": 0.3367,
-        "relative_area": 0.00069,
+        "center_x": 0.3137,
+        "center_y": 0.3582,
+        "relative_area": 0.00329,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - E",
-        "nearest_residential_distance": 0.0704
+        "nearest_residential_distance": 0.0589
       },
       {
         "entity_id": "m10-6",
@@ -1285,20 +1285,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.3025,
-          "y_min": 0.3611,
-          "x_max": 0.3245,
-          "y_max": 0.3923
+          "x_min": 0.2854,
+          "y_min": 0.3288,
+          "x_max": 0.3421,
+          "y_max": 0.3872
         },
-        "center_x": 0.3135,
-        "center_y": 0.3767,
-        "relative_area": 0.00069,
+        "center_x": 0.3137,
+        "center_y": 0.358,
+        "relative_area": 0.00331,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - E",
-        "nearest_residential_distance": 0.0495
+        "nearest_residential_distance": 0.059
       },
       {
         "entity_id": "m10-7",
@@ -1357,20 +1357,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.1273,
-          "y_min": 0.494,
-          "x_max": 0.1493,
-          "y_max": 0.5251
+          "x_min": 0.0994,
+          "y_min": 0.5037,
+          "x_max": 0.1731,
+          "y_max": 0.5384
         },
-        "center_x": 0.1383,
-        "center_y": 0.5095,
-        "relative_area": 0.00068,
+        "center_x": 0.1363,
+        "center_y": 0.5211,
+        "relative_area": 0.00256,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "WING - G",
-        "nearest_residential_distance": 0.0384
+        "nearest_residential_distance": 0.0449
       },
       {
         "entity_id": "m10-10",
@@ -1381,20 +1381,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.1264,
-          "y_min": 0.5154,
-          "x_max": 0.1484,
-          "y_max": 0.5466
+          "x_min": 0.099,
+          "y_min": 0.5041,
+          "x_max": 0.1727,
+          "y_max": 0.5385
         },
-        "center_x": 0.1374,
-        "center_y": 0.531,
-        "relative_area": 0.00069,
+        "center_x": 0.1358,
+        "center_y": 0.5213,
+        "relative_area": 0.00254,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
-        "nearest_residential_block": "Wing - H",
-        "nearest_residential_distance": 0.0427
+        "nearest_residential_block": "WING - G",
+        "nearest_residential_distance": 0.045
       },
       {
         "entity_id": "m10-11",
@@ -1405,20 +1405,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.6812,
-          "y_min": 0.1462,
-          "x_max": 0.7032,
-          "y_max": 0.1774
+          "x_min": 0.6514,
+          "y_min": 0.1533,
+          "x_max": 0.7133,
+          "y_max": 0.1672
         },
-        "center_x": 0.6922,
-        "center_y": 0.1618,
-        "relative_area": 0.00069,
+        "center_x": 0.6824,
+        "center_y": 0.1603,
+        "relative_area": 0.00086,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - A",
-        "nearest_residential_distance": 0.1588
+        "nearest_residential_distance": 0.1589
       },
       {
         "entity_id": "m10-12",
@@ -1429,20 +1429,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.5941,
-          "y_min": 0.2536,
-          "x_max": 0.6161,
-          "y_max": 0.2847
+          "x_min": 0.5989,
+          "y_min": 0.2362,
+          "x_max": 0.6109,
+          "y_max": 0.3198
         },
-        "center_x": 0.6051,
-        "center_y": 0.2692,
-        "relative_area": 0.00068,
+        "center_x": 0.6049,
+        "center_y": 0.278,
+        "relative_area": 0.001,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - C",
-        "nearest_residential_distance": 0.0949
+        "nearest_residential_distance": 0.0911
       },
       {
         "entity_id": "m10-13",
@@ -1453,20 +1453,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.6794,
-          "y_min": 0.4276,
-          "x_max": 0.7015,
-          "y_max": 0.4587
+          "x_min": 0.6855,
+          "y_min": 0.3887,
+          "x_max": 0.6967,
+          "y_max": 0.4795
         },
-        "center_x": 0.6905,
-        "center_y": 0.4431,
-        "relative_area": 0.00069,
+        "center_x": 0.6911,
+        "center_y": 0.4341,
+        "relative_area": 0.00102,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - A",
-        "nearest_residential_distance": 0.0186
+        "nearest_residential_distance": 0.0185
       },
       {
         "entity_id": "m10-14",
@@ -1477,20 +1477,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.5627,
-          "y_min": 0.3542,
-          "x_max": 0.5847,
-          "y_max": 0.3853
+          "x_min": 0.5547,
+          "y_min": 0.3525,
+          "x_max": 0.5795,
+          "y_max": 0.4133
         },
-        "center_x": 0.5737,
-        "center_y": 0.3698,
-        "relative_area": 0.00068,
+        "center_x": 0.5671,
+        "center_y": 0.3829,
+        "relative_area": 0.00151,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - C",
-        "nearest_residential_distance": 0.0409
+        "nearest_residential_distance": 0.0342
       },
       {
         "entity_id": "m10-15",
@@ -1501,20 +1501,20 @@
         "legend_label": "PARKING",
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.4999,
-          "y_min": 0.302,
-          "x_max": 0.5219,
-          "y_max": 0.3331
+          "x_min": 0.4675,
+          "y_min": 0.311,
+          "x_max": 0.5241,
+          "y_max": 0.3267
         },
-        "center_x": 0.5109,
-        "center_y": 0.3175,
-        "relative_area": 0.00068,
+        "center_x": 0.4958,
+        "center_y": 0.3188,
+        "relative_area": 0.00089,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - C",
-        "nearest_residential_distance": 0.0429
+        "nearest_residential_distance": 0.0472
       },
       {
         "entity_id": "m10-18",
@@ -1549,20 +1549,20 @@
         "legend_label": "VOLLEYBALL COURT",
         "category_key": "sports_active_lifestyle",
         "box": {
-          "x_min": 0.2277,
-          "y_min": 0.3115,
-          "x_max": 0.2497,
-          "y_max": 0.3427
+          "x_min": 0.1187,
+          "y_min": 0.307,
+          "x_max": 0.2298,
+          "y_max": 0.3499
         },
-        "center_x": 0.2387,
-        "center_y": 0.3271,
-        "relative_area": 0.00069,
+        "center_x": 0.1743,
+        "center_y": 0.3285,
+        "relative_area": 0.00477,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "WING - G",
-        "nearest_residential_distance": 0.1097
+        "nearest_residential_distance": 0.0746
       },
       {
         "entity_id": "m9-1",
@@ -1669,20 +1669,20 @@
         "legend_label": "KIDS PLAY AREA",
         "category_key": "family_community",
         "box": {
-          "x_min": 0.8225,
-          "y_min": 0.1283,
-          "x_max": 0.8445,
-          "y_max": 0.1594
+          "x_min": 0.815,
+          "y_min": 0.1286,
+          "x_max": 0.8513,
+          "y_max": 0.1638
         },
-        "center_x": 0.8335,
-        "center_y": 0.1438,
-        "relative_area": 0.00068,
+        "center_x": 0.8331,
+        "center_y": 0.1462,
+        "relative_area": 0.00128,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - A",
-        "nearest_residential_distance": 0.2154
+        "nearest_residential_distance": 0.2141
       },
       {
         "entity_id": "m18-1",
@@ -1693,20 +1693,20 @@
         "legend_label": "OUTDOOR GYM",
         "category_key": "sports_active_lifestyle",
         "box": {
-          "x_min": 0.1962,
-          "y_min": 0.4998,
-          "x_max": 0.2182,
-          "y_max": 0.5309
+          "x_min": 0.1966,
+          "y_min": 0.4718,
+          "x_max": 0.2283,
+          "y_max": 0.5303
         },
-        "center_x": 0.2072,
-        "center_y": 0.5153,
-        "relative_area": 0.00068,
+        "center_x": 0.2124,
+        "center_y": 0.501,
+        "relative_area": 0.00185,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - F",
-        "nearest_residential_distance": 0.0546
+        "nearest_residential_distance": 0.0511
       },
       {
         "entity_id": "m18-2",
@@ -1741,20 +1741,20 @@
         "legend_label": "OUTDOOR GYM",
         "category_key": "sports_active_lifestyle",
         "box": {
-          "x_min": 0.4229,
-          "y_min": 0.4586,
-          "x_max": 0.4449,
-          "y_max": 0.4897
+          "x_min": 0.443,
+          "y_min": 0.4497,
+          "x_max": 0.5203,
+          "y_max": 0.4752
         },
-        "center_x": 0.4339,
-        "center_y": 0.4742,
-        "relative_area": 0.00068,
+        "center_x": 0.4817,
+        "center_y": 0.4625,
+        "relative_area": 0.00197,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
-        "nearest_residential_block": "Wing - D",
-        "nearest_residential_distance": 0.0545
+        "nearest_residential_block": "Wing - C",
+        "nearest_residential_distance": 0.0555
       },
       {
         "entity_id": "m33-1",
@@ -1861,20 +1861,20 @@
         "legend_label": "HAMMOCK LAWN",
         "category_key": "green_landscape",
         "box": {
-          "x_min": 0.3975,
-          "y_min": 0.4615,
-          "x_max": 0.4195,
-          "y_max": 0.4926
+          "x_min": 0.3953,
+          "y_min": 0.4549,
+          "x_max": 0.4222,
+          "y_max": 0.4977
         },
-        "center_x": 0.4085,
-        "center_y": 0.477,
-        "relative_area": 0.00068,
+        "center_x": 0.4088,
+        "center_y": 0.4763,
+        "relative_area": 0.00115,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - D",
-        "nearest_residential_distance": 0.0508
+        "nearest_residential_distance": 0.0505
       },
       {
         "entity_id": "m37-1",
@@ -1909,20 +1909,20 @@
         "legend_label": "MUSICAL GARDEN",
         "category_key": "green_landscape",
         "box": {
-          "x_min": 0.052,
-          "y_min": 0.5485,
-          "x_max": 0.074,
-          "y_max": 0.5796
+          "x_min": 0.0498,
+          "y_min": 0.5439,
+          "x_max": 0.0734,
+          "y_max": 0.5956
         },
-        "center_x": 0.063,
-        "center_y": 0.564,
-        "relative_area": 0.00068,
+        "center_x": 0.0616,
+        "center_y": 0.5697,
+        "relative_area": 0.00122,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - H",
-        "nearest_residential_distance": 0.0638
+        "nearest_residential_distance": 0.0637
       },
       {
         "entity_id": "m6-1",
@@ -1981,20 +1981,20 @@
         "legend_label": "SEATING PLAZA",
         "category_key": "open_space",
         "box": {
-          "x_min": 0.5415,
-          "y_min": 0.4394,
-          "x_max": 0.5635,
-          "y_max": 0.4706
+          "x_min": 0.5191,
+          "y_min": 0.4462,
+          "x_max": 0.5763,
+          "y_max": 0.4655
         },
-        "center_x": 0.5525,
-        "center_y": 0.455,
-        "relative_area": 0.00069,
+        "center_x": 0.5477,
+        "center_y": 0.4558,
+        "relative_area": 0.0011,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - C",
-        "nearest_residential_distance": 0.044
+        "nearest_residential_distance": 0.0426
       },
       {
         "entity_id": "m6-4",
@@ -2005,20 +2005,20 @@
         "legend_label": "SEATING PLAZA",
         "category_key": "open_space",
         "box": {
-          "x_min": 0.8609,
-          "y_min": 0.1251,
-          "x_max": 0.8829,
-          "y_max": 0.1562
+          "x_min": 0.8505,
+          "y_min": 0.1186,
+          "x_max": 0.9149,
+          "y_max": 0.1736
         },
-        "center_x": 0.8719,
-        "center_y": 0.1406,
-        "relative_area": 0.00068,
+        "center_x": 0.8827,
+        "center_y": 0.1461,
+        "relative_area": 0.00354,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - A",
-        "nearest_residential_distance": 0.2376
+        "nearest_residential_distance": 0.2416
       },
       {
         "entity_id": "m6-5",
@@ -2029,20 +2029,20 @@
         "legend_label": "SEATING PLAZA",
         "category_key": "open_space",
         "box": {
-          "x_min": 0.1981,
-          "y_min": 0.5967,
-          "x_max": 0.2202,
-          "y_max": 0.6278
+          "x_min": 0.191,
+          "y_min": 0.6013,
+          "x_max": 0.2282,
+          "y_max": 0.6234
         },
-        "center_x": 0.2092,
-        "center_y": 0.6122,
-        "relative_area": 0.00069,
+        "center_x": 0.2096,
+        "center_y": 0.6123,
+        "relative_area": 0.00082,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - H",
-        "nearest_residential_distance": 0.0603
+        "nearest_residential_distance": 0.0607
       },
       {
         "entity_id": "m11-1",
@@ -2101,20 +2101,20 @@
         "legend_label": "STEPPED WATER FEATURE",
         "category_key": "water_leisure",
         "box": {
-          "x_min": 0.6844,
-          "y_min": 0.2315,
-          "x_max": 0.7064,
-          "y_max": 0.2626
+          "x_min": 0.6769,
+          "y_min": 0.2382,
+          "x_max": 0.7256,
+          "y_max": 0.2983
         },
-        "center_x": 0.6954,
-        "center_y": 0.247,
-        "relative_area": 0.00068,
+        "center_x": 0.7012,
+        "center_y": 0.2682,
+        "relative_area": 0.00293,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - A",
-        "nearest_residential_distance": 0.1106
+        "nearest_residential_distance": 0.0999
       },
       {
         "entity_id": "m17-1",
@@ -2221,20 +2221,20 @@
         "legend_label": "OBSTACLE PARK",
         "category_key": "green_landscape",
         "box": {
-          "x_min": 0.4594,
-          "y_min": 0.4403,
-          "x_max": 0.4814,
-          "y_max": 0.4715
+          "x_min": 0.443,
+          "y_min": 0.4494,
+          "x_max": 0.5038,
+          "y_max": 0.4749
         },
-        "center_x": 0.4704,
-        "center_y": 0.4559,
-        "relative_area": 0.00069,
+        "center_x": 0.4734,
+        "center_y": 0.4622,
+        "relative_area": 0.00155,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - C",
-        "nearest_residential_distance": 0.0593
+        "nearest_residential_distance": 0.06
       },
       {
         "entity_id": "m20-1",
@@ -2341,20 +2341,20 @@
         "legend_label": "KIDS ZIP LINE",
         "category_key": "family_community",
         "box": {
-          "x_min": 0.3009,
-          "y_min": 0.5787,
-          "x_max": 0.3229,
-          "y_max": 0.6098
+          "x_min": 0.2985,
+          "y_min": 0.5765,
+          "x_max": 0.3263,
+          "y_max": 0.6173
         },
-        "center_x": 0.3119,
-        "center_y": 0.5942,
-        "relative_area": 0.00068,
+        "center_x": 0.3124,
+        "center_y": 0.5969,
+        "relative_area": 0.00113,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Wing - F",
-        "nearest_residential_distance": 0.0547
+        "nearest_residential_distance": 0.0562
       },
       {
         "entity_id": "m30-1",
@@ -2450,9 +2450,9 @@
           "CRICKET NETS",
           "Kids Play Area",
           "OUTDOOR GYM",
+          "VOLLEYBALL COURT",
           "Multipurpose Court",
-          "PET PARK",
-          "WORKING PODS"
+          "PET PARK"
         ],
         "nearby_green": [
           "MUSICAL GARDEN",
@@ -2491,7 +2491,7 @@
           "SEATING PLAZA",
           "ENTRY PLAZA",
           "Swimming Pool",
-          "OBSTACLE PARK"
+          "STEPPED WATER FEATURE"
         ],
         "nearby_green": [
           "Party Lawn"
@@ -2507,8 +2507,8 @@
         "nearby_amenities": [
           "ENTRY PLAZA",
           "SEATING PLAZA",
-          "OBSTACLE PARK",
           "OUTDOOR GYM",
+          "OBSTACLE PARK",
           "Tennis Court",
           "Swimming Pool"
         ],
@@ -2525,8 +2525,8 @@
       {
         "block_label": "Wing - D",
         "nearby_amenities": [
-          "OUTDOOR GYM",
           "OBSTACLE PARK",
+          "OUTDOOR GYM",
           "GIANT LUDO",
           "Tennis Court",
           "NINE SQUARE",
@@ -2540,7 +2540,7 @@
         "near_external_road": false,
         "near_utility_yard": true,
         "near_parking": true,
-        "nearest_amenity_distance": 0.0545
+        "nearest_amenity_distance": 0.07
       },
       {
         "block_label": "Wing - E",
@@ -2549,8 +2549,8 @@
           "NINE SQUARE",
           "OUTDOOR CHESS",
           "Volleyball Court",
-          "OUTDOOR GYM",
-          "Tennis Court"
+          "Tennis Court",
+          "SNAKES & LADDERS"
         ],
         "nearby_green": [
           "HAMMOCK LAWN",
@@ -2566,10 +2566,10 @@
         "block_label": "Wing - F",
         "nearby_amenities": [
           "SKATING RINK",
-          "Kids Play Area",
-          "CRICKET NETS",
           "OUTDOOR GYM",
+          "Kids Play Area",
           "KIDS ZIP LINE",
+          "CRICKET NETS",
           "GIANT LUDO"
         ],
         "nearby_green": [
@@ -2589,8 +2589,8 @@
         "nearby_amenities": [
           "SEATING PLAZA",
           "Multipurpose Court",
-          "OUTDOOR GYM",
           "WORKING PODS",
+          "OUTDOOR GYM",
           "Kids Play Area",
           "SKATING RINK"
         ],
@@ -2602,7 +2602,7 @@
         "near_external_road": false,
         "near_utility_yard": true,
         "near_parking": true,
-        "nearest_amenity_distance": 0.0603
+        "nearest_amenity_distance": 0.0607
       }
     ],
     "diagnostics": [
@@ -2617,12 +2617,17 @@
         "items": [
           "parking"
         ]
+      },
+      {
+        "code": "marker_features_boxed",
+        "count": 27,
+        "items": []
       }
     ]
   },
   "site_metrics": null,
   "area_estimate": {
-    "project_id": "plan-62953bbe",
+    "project_id": "plan-46b299aa",
     "project_name": "Sattva Lumina Project Master Plan Image1 8725",
     "green_area_percentage": {
       "min": 11.1,
@@ -2645,7 +2650,10 @@
         "Vision model boundary confidence is high.",
         "OpenCV unknown/unclassified area is very high.",
         "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
+        "The plan is a stylized 2D rendering and may not represent exact physical scales.",
+        "The boundary is irregular and follows the plot shape, which may require precise GIS mapping for exact calculations.",
         "Confidence capped because OpenCV unknown/unclassified area is above 70%.",
+        "Confidence capped because the image may be stylized/not to scale and unknown segmentation is very high.",
         "Confidence capped because the final estimate range is wide."
       ]
     },
@@ -2679,7 +2687,9 @@
       "open_space_signal_count": 0
     },
     "warnings": [
-      "Unknown/unclassified area is high. Manual review or improved segmentation may be needed."
+      "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
+      "The plan is a stylized 2D rendering and may not represent exact physical scales.",
+      "The boundary is irregular and follows the plot shape, which may require precise GIS mapping for exact calculations."
     ],
     "notes": [
       "Final values are range-based estimates, not official measurements.",
@@ -2689,7 +2699,7 @@
     ]
   },
   "image_metadata": {
-    "image_path": "<repo>/data/input/analysis_runs/62953bbe-2a74-4736-9269-8c4f3f6b1a37/sattva-lumina-project-master-plan-image1-8725.jpg",
+    "image_path": "<repo>/data/input/analysis_runs/46b299aa-38e7-4a40-b569-683d674798ab/sattva-lumina-project-master-plan-image1-8725.jpg",
     "normalized_image_path": "<repo>/data/output/overlays/sattva-lumina-project-master-plan-image1-8725_normalized.png",
     "file_name": "sattva-lumina-project-master-plan-image1-8725.jpg",
     "file_extension": ".jpg",
@@ -2727,12 +2737,12 @@
     }
   ],
   "run_artifacts": {
-    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/62953bbe-2a74-4736-9269-8c4f3f6b1a37/sattva-lumina-project-master-plan-image1-8725.jpg",
+    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/46b299aa-38e7-4a40-b569-683d674798ab/sattva-lumina-project-master-plan-image1-8725.jpg",
     "input_project_json_path": null,
     "normalized_image_path": "<repo>/data/output/overlays/sattva-lumina-project-master-plan-image1-8725_normalized.png",
-    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/62953bbe-2a74-4736-9269-8c4f3f6b1a37/master_plan_entity_map.json",
-    "area_estimate_json_path": "<repo>/data/output/analysis_runs/62953bbe-2a74-4736-9269-8c4f3f6b1a37/area_estimate.json",
+    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/46b299aa-38e7-4a40-b569-683d674798ab/master_plan_entity_map.json",
+    "area_estimate_json_path": "<repo>/data/output/analysis_runs/46b299aa-38e7-4a40-b569-683d674798ab/area_estimate.json",
     "site_metrics_json_path": null,
-    "qa_trail_json_path": "<repo>/data/output/analysis_runs/62953bbe-2a74-4736-9269-8c4f3f6b1a37/qa_trail.json"
+    "qa_trail_json_path": "<repo>/data/output/analysis_runs/46b299aa-38e7-4a40-b569-683d674798ab/qa_trail.json"
   }
 }

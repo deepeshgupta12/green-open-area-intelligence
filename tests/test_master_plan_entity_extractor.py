@@ -807,3 +807,90 @@ def test_phase_highlight_is_decided_from_measured_fill():
     assert by_label["Wing - A"] == {"wing": "A"}  # the guess is cleared by the measurement
     assert by_label["Wing - B"] == {"highlighted": "yes"}
     assert mark_highlighted_blocks(marked, {}) is marked
+
+
+def test_bare_number_markers_resolve_prefixed_legend_codes():
+    from app.services.master_plan_entity_extractor import bare_number_aliases, build_targeted_marker_prompt
+
+    assert bare_number_aliases(["GR-1", "GR-12", "PT-33", "A"]) == {"1": "gr-1", "12": "gr-12", "33": "pt-33"}
+    # A number shared by two prefixes is ambiguous and gets no alias.
+    assert bare_number_aliases(["GR-1", "PT-1", "RE-2"]) == {"2": "re-2"}
+    assert "GR-13 (the circle may print just 13)" in build_targeted_marker_prompt(["GR-13", "A"])
+
+    payload = build_sample_payload()
+    payload["legend_items"] = [
+        {"code": "GR-1", "label": "Four a Side Football Court"},
+        {"code": "GR-12", "label": "Siddha walk"},
+        {"code": "PT-33", "label": "Skating rink"},
+        {"code": "PT-44", "label": "Swimming pool"},
+    ]
+    payload["entities"] = [
+        {"entity_id": "e1", "entity_type": "residential_block", "label": "Wing - A", "box_2d": [100, 100, 300, 250]},
+        # Circles on the plan print the bare numbers.
+        {"entity_id": "m1", "entity_type": "legend_marker", "legend_code": "12", "label": "", "box_2d": [500, 500, 515, 515]},
+        {"entity_id": "m2", "entity_type": "legend_marker", "legend_code": "33", "label": "", "box_2d": [600, 600, 615, 615]},
+        {"entity_id": "m3", "entity_type": "legend_marker", "legend_code": "GR-1", "label": "", "box_2d": [700, 700, 715, 715]},
+    ]
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    located = {item.code: item.located_on_plan for item in entity_map.legend}
+    assert located == {"GR-1": True, "GR-12": True, "PT-33": True, "PT-44": False}
+    placed = {entity.label: entity.legend_code for entity in entity_map.entities if entity.located_by == "legend_marker"}
+    assert placed == {"Four a Side Football Court": "GR-1", "Siddha walk": "GR-12", "Skating rink": "PT-33"}
+
+
+def test_marker_only_area_features_get_the_drawn_area_box_when_credible():
+    from app.schemas.master_plan_entity_schema import EntityBox
+    from app.services.master_plan_entity_extractor import (
+        apply_region_boxes,
+        expansion_tile,
+        marker_only_area_features,
+        region_box_from_payload,
+    )
+
+    payload = build_sample_payload()
+    payload["legend_items"] = [{"code": "4", "label": "Futsal Court"}, {"code": "9", "label": "Pet Park"}, {"code": "2", "label": "Club House"}]
+    payload["entities"] = [
+        {"entity_id": "e1", "entity_type": "residential_block", "label": "Wing - A", "box_2d": [100, 100, 300, 250]},
+        {"entity_id": "m4", "entity_type": "legend_marker", "legend_code": "4", "label": "", "box_2d": [300, 400, 315, 415]},
+        {"entity_id": "m9", "entity_type": "legend_marker", "legend_code": "9", "label": "", "box_2d": [700, 100, 715, 115]},
+    ]
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    targets = {entity.label: entity for entity in marker_only_area_features(entity_map)}
+    assert set(targets) == {"Futsal Court", "Pet Park"}  # both are area types placed by a marker only
+
+    court = targets["Futsal Court"]
+    tile = expansion_tile(court, aspect=1.0)
+    assert tile[0] < court.center_x < tile[2] and tile[1] < court.center_y < tile[3]
+
+    # A credible answer: a box in crop coordinates that contains the marker and is feature-sized.
+    span = tile[2] - tile[0]
+    local = lambda value, origin: int((value - origin) / span * 1000)  # noqa: E731
+    good = {"found": True, "box_2d": [local(0.26, tile[1]), local(0.36, tile[0]), local(0.36, tile[1]), local(0.46, tile[0])]}
+    box = region_box_from_payload(good, tile, court)
+    assert box is not None and abs(box.x_min - 0.36) < 0.01 and abs(box.y_max - 0.36) < 0.01
+    # Not credible: not found, a box that misses the marker, or one covering most of the sheet.
+    assert region_box_from_payload({"found": False}, tile, court) is None
+    assert region_box_from_payload({"found": True, "box_2d": [0, 0, 100, 100]}, tile, court) is None
+    assert region_box_from_payload({"found": True, "box_2d": [0, 0, 1000, 1000]}, tile, court) is None
+
+    boxed = apply_region_boxes(entity_map, {court.entity_id: box})
+    after = next(entity for entity in boxed.entities if entity.entity_id == court.entity_id)
+    assert after.located_by == "both" and after.relative_area > court.relative_area * 5
+    assert {entity.label for entity in marker_only_area_features(boxed)} == {"Pet Park"}
+    assert boxed.diagnostics[-1].code == "marker_features_boxed" and boxed.diagnostics[-1].count == 1
+    assert apply_region_boxes(entity_map, {}) is entity_map
+
+
+def test_entry_ornaments_building_doors_and_pool_decks_are_not_gates_or_water():
+    assert normalize_entity_type("Entry feature element") == "other_feature"
+    assert normalize_entity_type("Tower entry") == "other_feature"
+    assert normalize_entity_type("Clubhouse 1 Entry") == "other_feature"
+    assert normalize_entity_type("Club House Entry") == "other_feature"
+    assert normalize_entity_type("Poolside deck") == "plaza"
+    assert normalize_entity_type("Entry Plaza") == "plaza"
+    # Real gates and real water are unchanged.
+    assert normalize_entity_type("Pedestrian Entry") == "entry_exit_gate"
+    assert normalize_entity_type("Entry (Pedestrian + Vehicular)") == "entry_exit_gate"
+    assert normalize_entity_type("Entry/Exit") == "entry_exit_gate"
+    assert normalize_entity_type("Swimming pool") == "swimming_pool"
+    assert normalize_entity_type("Kids pool") == "swimming_pool"

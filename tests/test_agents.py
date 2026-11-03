@@ -90,11 +90,13 @@ def test_rule_checks_estimate_and_block_plan_records():
 
 
 def test_review_report_verdict_and_score_without_a_model():
+    # The sample map places "Butterfly Garden" by a marker only, which rule A9 flags as major.
     report = review_analysis(build_map(), build_estimate(), project=None, image=None, image_part=None, playbook=seed_playbook(), call=None)
-    assert report.verdict == "pass" and report.score == 1.0 and not report.model_used
+    assert report.verdict == "pass" and report.score == 0.8 and not report.model_used
+    assert [f.code for f in report.findings] == ["marker_only_area_features"]
 
     bad = review_analysis(build_map(), build_estimate(green=(50, 80), open_=(30, 60)), project=None, image=None, image_part=None, playbook=seed_playbook(), call=None)
-    assert bad.verdict == "fail" and bad.score == 0.5
+    assert bad.verdict == "fail" and bad.score == 0.3
     assert score_findings([Finding(code="x", severity="major", detail="d"), Finding(code="y", severity="minor", detail="d")]) == 0.75
 
 
@@ -274,7 +276,7 @@ def test_teacher_merges_only_new_entries_and_records_a_lesson(tmp_path):
     }
     updated, added = merge_teaching(seed, payload)
     assert added == 4 and updated.version == 2
-    assert updated.acceptance_rules[-1].id == "A9" and updated.acceptance_rules[-1].source == "teacher"
+    assert updated.acceptance_rules[-1].id == "A10" and updated.acceptance_rules[-1].source == "teacher"
     assert updated.rejection_cases[-1].id == "R7" and updated.fix_recipes[-1].trigger == "merged_footprints"
 
     lesson = deterministic_lesson(trail)
@@ -350,3 +352,75 @@ def test_reviewer_drops_model_water_findings_on_supported_water():
     report = review_analysis(entity_map, None, project=None, image=None, image_part=object(), playbook=seed_playbook(), call=fake_call)
     assert not any(f.code == "false_positive_water" for f in report.findings)
     assert report.verdict == "pass"
+
+
+def test_reviewer_flags_marker_only_area_features_and_the_fixer_boxes_them():
+    from app.schemas.master_plan_entity_schema import EntityBox
+
+    payload = build_sample_payload()
+    payload["legend_items"] = [{"code": "4", "label": "Futsal Court"}]
+    payload["entities"] = [
+        {"entity_id": "e1", "entity_type": "residential_block", "label": "Wing - A", "box_2d": [100, 100, 300, 250]},
+        {"entity_id": "m4", "entity_type": "legend_marker", "legend_code": "4", "label": "", "box_2d": [300, 400, 315, 415]},
+    ]
+    from app.services.master_plan_entity_extractor import parse_master_plan_entity_payload as parse
+
+    entity_map = parse(payload, image_width=1000, image_height=1000)
+    findings, _ = run_rule_checks(entity_map, None, None, None)
+    flagged = next(f for f in findings if f.code == "marker_only_area_features")
+    assert flagged.entity_labels == ["Futsal Court"] and flagged.severity == "major"
+
+    white = Image.new("RGB", (1000, 1000), "white")
+
+    def fake_call(prompt, part, schema, temperature=0.0, max_tokens=0):
+        assert schema.__name__ == "GeminiRegionBox" and "Futsal Court" in prompt
+        return {"found": True, "box_2d": [350, 350, 650, 650]}  # the middle of the crop, around the marker
+
+    ctx = FixContext(image=white, image_part=object(), call=fake_call, project=None)
+    fixed, _, actions = apply_fixes(entity_map, None, [flagged], ctx, seed_playbook())
+    assert actions[0].applied and "1 of 1" in actions[0].detail
+    court = next(e for e in fixed.entities if e.label == "Futsal Court")
+    assert court.located_by == "both" and court.box.width > 0.05
+    assert not any(f.code == "marker_only_area_features" for f in run_rule_checks(fixed, None, None, None)[0])
+
+
+def test_cycle_repairs_a_low_scoring_pass_and_keeps_a_high_one():
+    entity_map = build_map()
+    seen = {"n": 0}
+
+    def reviewer(current_map, estimate):
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return ReviewReport(verdict="pass", score=0.6, findings=[Finding(code="marker_only_area_features", severity="major", detail="d")])
+        return ReviewReport(verdict="pass", score=1.0)
+
+    def fixer(current_map, estimate, findings):
+        return current_map.model_copy(update={"project_name": "boxed"}), estimate, [FixAction(finding_code="marker_only_area_features", recipe="F7", applied=True, detail="boxed")]
+
+    final_map, _, trail = run_qa_cycle(entity_map, None, reviewer=reviewer, fixer=fixer, max_rounds=2)
+    assert final_map.project_name == "boxed" and trail.adopted_round == 2 and len(trail.rounds) == 2
+
+    _, _, settled = run_qa_cycle(entity_map, None, reviewer=lambda m, e: ReviewReport(verdict="pass", score=0.95), fixer=fixer, max_rounds=2)
+    assert len(settled.rounds) == 1  # a high-scoring pass is left alone
+
+
+def test_one_tower_of_count_difference_is_minor():
+    def fake_call(prompt, part, schema, temperature=0.0, max_tokens=0):
+        if schema.__name__ == "GeminiCount":
+            return {"towers_seen": 3, "pools_seen": 0, "gates_seen": 1}
+        return {"findings": []}
+
+    report = review_analysis(build_map(), None, project=None, image=None, image_part=object(), playbook=seed_playbook(), call=fake_call)
+    missed = next(f for f in report.findings if f.code == "missed_blocks")
+    assert missed.severity == "minor"  # 3 seen, 2 boxed
+
+
+def test_marker_only_finding_is_minor_once_an_expansion_was_attempted():
+    from app.schemas.master_plan_entity_schema import Diagnostic
+
+    entity_map = build_map()  # "Butterfly Garden" is a marker-only lawn
+    major = next(f for f in run_rule_checks(entity_map, None, None, None)[0] if f.code == "marker_only_area_features")
+    assert major.severity == "major"
+    attempted = entity_map.model_copy(update={"diagnostics": [*entity_map.diagnostics, Diagnostic(code="marker_expansion_attempted", count=1)]})
+    minor = next(f for f in run_rule_checks(attempted, None, None, None)[0] if f.code == "marker_only_area_features")
+    assert minor.severity == "minor" and "after an expansion attempt" in minor.detail

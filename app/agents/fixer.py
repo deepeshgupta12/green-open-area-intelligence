@@ -26,6 +26,8 @@ from app.services.master_plan_entity_extractor import (
     apply_water_verdicts,
     build_footprint_check_prompt,
     build_water_check_prompt,
+    expand_marker_features,
+    marker_only_area_features,
     recover_footprints,
     unsupported_water_entities,
     water_ink_share,
@@ -206,6 +208,14 @@ def apply_fixes(
             fixed = clamp_estimate(area_estimate)
             record(code, fixed is not area_estimate, "green range clamped to the open range" if fixed is not area_estimate else "already consistent")
             area_estimate = fixed
+        elif code == "marker_only_area_features":
+            if ctx.image is not None and ctx.call is not None:
+                before = {entity.entity_id for entity in marker_only_area_features(entity_map)}
+                entity_map = expand_marker_features(entity_map, ctx.image, ctx.call)
+                after = {entity.entity_id for entity in marker_only_area_features(entity_map)}
+                record(code, len(after) < len(before), f"{len(before) - len(after)} of {len(before)} marker-only features boxed as areas")
+            else:
+                record(code, False, "no image or model available to box the areas")
         elif code == "estimate_overconfident" and area_estimate is not None:
             area_estimate = downgrade_estimate(area_estimate, "QA fixer: a line drawing's pixel classes carry little land-use signal.")
             record(code, True, "confidence set to Low")

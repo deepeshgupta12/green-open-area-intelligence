@@ -1,6 +1,6 @@
 {
-  "run_id": "d09b53f3-eaab-4458-81ba-59590cc43736",
-  "image_url": "/master-plan/runs/d09b53f3-eaab-4458-81ba-59590cc43736/image",
+  "run_id": "a93d1b54-0e8f-471a-852a-f579895d9fd3",
+  "image_url": "/master-plan/runs/a93d1b54-0e8f-471a-852a-f579895d9fd3/image",
   "source_image_url": "https://static.squareyards.com/resources/images/mumbai/project-image/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-e14ccd0af67f.jpg",
   "entity_map": {
     "project_id": null,
@@ -625,13 +625,13 @@
         "category_key": null,
         "box": {
           "x_min": 0.049,
-          "y_min": 0.147,
-          "x_max": 0.876,
-          "y_max": 0.888
+          "y_min": 0.148,
+          "x_max": 0.929,
+          "y_max": 0.92
         },
-        "center_x": 0.4625,
-        "center_y": 0.5175,
-        "relative_area": 0.61281,
+        "center_x": 0.489,
+        "center_y": 0.534,
+        "relative_area": 0.67936,
         "confidence_label": "Medium",
         "located_by": "layout_model",
         "attributes": {},
@@ -672,12 +672,12 @@
         "legend_label": null,
         "category_key": null,
         "box": {
-          "x_min": 0.033,
+          "x_min": 0.034,
           "y_min": 0.731,
-          "x_max": 0.061,
+          "x_max": 0.062,
           "y_max": 0.762
         },
-        "center_x": 0.047,
+        "center_x": 0.048,
         "center_y": 0.7465,
         "relative_area": 0.00087,
         "confidence_label": "Medium",
@@ -696,47 +696,23 @@
         "legend_label": null,
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.1,
-          "y_min": 0.089,
-          "x_max": 0.738,
-          "y_max": 0.176
+          "x_min": 0.104,
+          "y_min": 0.088,
+          "x_max": 0.516,
+          "y_max": 0.16
         },
-        "center_x": 0.419,
-        "center_y": 0.1325,
-        "relative_area": 0.05551,
+        "center_x": 0.31,
+        "center_y": 0.124,
+        "relative_area": 0.02966,
         "confidence_label": "Medium",
         "located_by": "layout_model",
         "attributes": {},
         "adjacent_to": [],
-        "nearest_residential_block": "Footprint 2",
-        "nearest_residential_distance": 0.2879
+        "nearest_residential_block": "WING - G",
+        "nearest_residential_distance": 0.2977
       },
       {
         "entity_id": "e22",
-        "entity_type": "external_road",
-        "entity_group": "circulation",
-        "label": "15.25 MT. WIDE PROPOSED D. P. ROAD",
-        "legend_code": null,
-        "legend_label": null,
-        "category_key": "access_circulation",
-        "box": {
-          "x_min": 0.087,
-          "y_min": 0.881,
-          "x_max": 0.871,
-          "y_max": 0.919
-        },
-        "center_x": 0.479,
-        "center_y": 0.9,
-        "relative_area": 0.02979,
-        "confidence_label": "Medium",
-        "located_by": "layout_model",
-        "attributes": {},
-        "adjacent_to": [],
-        "nearest_residential_block": "Footprint 6",
-        "nearest_residential_distance": 0.0583
-      },
-      {
-        "entity_id": "e23",
         "entity_type": "external_road",
         "entity_group": "circulation",
         "label": "13.40 MT. WIDE PROPOSED D. P. ROAD",
@@ -744,20 +720,44 @@
         "legend_label": null,
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.04,
+          "x_min": 0.041,
           "y_min": 0.18,
-          "x_max": 0.098,
-          "y_max": 0.888
+          "x_max": 0.09,
+          "y_max": 0.918
         },
-        "center_x": 0.069,
-        "center_y": 0.534,
-        "relative_area": 0.04106,
+        "center_x": 0.0655,
+        "center_y": 0.549,
+        "relative_area": 0.03616,
         "confidence_label": "Medium",
         "located_by": "layout_model",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Footprint 1",
-        "nearest_residential_distance": 0.0537
+        "nearest_residential_distance": 0.0502
+      },
+      {
+        "entity_id": "e23",
+        "entity_type": "external_road",
+        "entity_group": "circulation",
+        "label": "15.25 MT. WIDE PROPOSED D. P. ROAD",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.088,
+          "y_min": 0.871,
+          "x_max": 0.869,
+          "y_max": 0.918
+        },
+        "center_x": 0.4785,
+        "center_y": 0.8945,
+        "relative_area": 0.03671,
+        "confidence_label": "Medium",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Footprint 6",
+        "nearest_residential_distance": 0.056
       },
       {
         "entity_id": "e24",
@@ -768,20 +768,20 @@
         "legend_label": null,
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.699,
-          "y_min": 0.18,
-          "x_max": 0.929,
-          "y_max": 0.923
+          "x_min": 0.701,
+          "y_min": 0.176,
+          "x_max": 0.81,
+          "y_max": 0.918
         },
-        "center_x": 0.814,
-        "center_y": 0.5515,
-        "relative_area": 0.17089,
+        "center_x": 0.7555,
+        "center_y": 0.547,
+        "relative_area": 0.08088,
         "confidence_label": "Medium",
         "located_by": "layout_model",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Footprint 3",
-        "nearest_residential_distance": 0.0931
+        "nearest_residential_distance": 0.0521
       },
       {
         "entity_id": "e25",
@@ -1301,7 +1301,7 @@
         "nearby_amenities": [],
         "nearby_green": [],
         "near_entry_gate": false,
-        "near_external_road": false,
+        "near_external_road": true,
         "near_utility_yard": false,
         "near_parking": false,
         "nearest_amenity_distance": null
@@ -1391,14 +1391,14 @@
       },
       {
         "code": "footprint_candidates_rejected",
-        "count": 6,
+        "count": 2,
         "items": []
       }
     ]
   },
   "site_metrics": null,
   "area_estimate": {
-    "project_id": "plan-d09b53f3",
+    "project_id": "plan-a93d1b54",
     "project_name": "Mahindra Rainforest Project Master Plan Image1 7011 Opt 69Ca849C 0E5F 47Aa Bcf4 ",
     "green_area_percentage": {
       "min": 1.6,
@@ -1407,9 +1407,9 @@
       "basis": "opencv_green_lower_bound_plus_vision_and_json_green_signals"
     },
     "open_area_percentage": {
-      "min": 17.5,
-      "max": 45.5,
-      "display": "~18–46%",
+      "min": 29.5,
+      "max": 57.5,
+      "display": "~30–58%",
       "basis": "opencv_known_open_pixels_plus_vision_open_and_inverse_built_estimate"
     },
     "confidence": {
@@ -1421,8 +1421,8 @@
         "Vision model boundary confidence is high.",
         "OpenCV unknown/unclassified area is very high.",
         "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
-        "The text on the image is rotated 90 degrees clockwise relative to standard reading orientation.",
-        "The plan contains large 'Future Development' zones which may significantly alter the final open/green area ratios depending on how they are phased.",
+        "The image is rotated 90 degrees counter-clockwise, making the text read vertically.",
+        "Large areas are marked as 'Future Development', which may affect final open/green area calculations depending on phase boundaries.",
         "Confidence capped because OpenCV unknown/unclassified area is above 70%.",
         "Confidence capped because the final estimate range is wide.",
         "The drawing is an architectural block plan (line drawing, no legend): pixel colour carries little land-use signal, so the range rests on the vision reading alone."
@@ -1437,7 +1437,7 @@
       "green_space_label": "Estimated Green Space",
       "green_space_value": "~2–24%",
       "open_area_label": "Estimated Open Area",
-      "open_area_value": "~18–46%",
+      "open_area_value": "~30–58%",
       "confidence_label": "Low Confidence",
       "tooltip": "Estimated using the project master plan, vision-model interpretation, OpenCV segmentation, and available Datacenter project signals. Actual values may vary from official layout or RERA disclosures."
     },
@@ -1448,8 +1448,8 @@
       "opencv_paved_percentage": 4.45,
       "opencv_unknown_percentage": 93.49,
       "vision_green_estimate": "Low",
-      "vision_open_estimate": "Moderate",
-      "vision_built_estimate": "High",
+      "vision_open_estimate": "High",
+      "vision_built_estimate": "Moderate",
       "image_quality_score": 0.72,
       "image_quality_label": "Medium",
       "project_area_acres": null,
@@ -1459,8 +1459,8 @@
     },
     "warnings": [
       "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
-      "The text on the image is rotated 90 degrees clockwise relative to standard reading orientation.",
-      "The plan contains large 'Future Development' zones which may significantly alter the final open/green area ratios depending on how they are phased.",
+      "The image is rotated 90 degrees counter-clockwise, making the text read vertically.",
+      "Large areas are marked as 'Future Development', which may affect final open/green area calculations depending on phase boundaries.",
       "The drawing is an architectural block plan (line drawing, no legend): pixel colour carries little land-use signal, so the range rests on the vision reading alone."
     ],
     "notes": [
@@ -1471,7 +1471,7 @@
     ]
   },
   "image_metadata": {
-    "image_path": "<repo>/data/input/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
+    "image_path": "<repo>/data/input/analysis_runs/a93d1b54-0e8f-471a-852a-f579895d9fd3/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
     "normalized_image_path": "<repo>/data/output/overlays/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-_normalized.png",
     "file_name": "mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
     "file_extension": ".jpg",
@@ -1509,12 +1509,12 @@
     }
   ],
   "run_artifacts": {
-    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
+    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/a93d1b54-0e8f-471a-852a-f579895d9fd3/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
     "input_project_json_path": null,
     "normalized_image_path": "<repo>/data/output/overlays/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-_normalized.png",
-    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/master_plan_entity_map.json",
-    "area_estimate_json_path": "<repo>/data/output/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/area_estimate.json",
+    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/a93d1b54-0e8f-471a-852a-f579895d9fd3/master_plan_entity_map.json",
+    "area_estimate_json_path": "<repo>/data/output/analysis_runs/a93d1b54-0e8f-471a-852a-f579895d9fd3/area_estimate.json",
     "site_metrics_json_path": null,
-    "qa_trail_json_path": "<repo>/data/output/analysis_runs/d09b53f3-eaab-4458-81ba-59590cc43736/qa_trail.json"
+    "qa_trail_json_path": "<repo>/data/output/analysis_runs/a93d1b54-0e8f-471a-852a-f579895d9fd3/qa_trail.json"
   }
 }
