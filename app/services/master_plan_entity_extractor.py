@@ -37,6 +37,7 @@ import json
 import math
 import re
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
@@ -378,6 +379,15 @@ class GeminiWaterCheck(BaseModel):
         description="True only when the centre of the crop clearly shows a swimming pool or a water body.",
     )
     reason: str | None = Field(default=None, description="One short sentence.")
+
+
+class GeminiKeyNotes(BaseModel):
+    """Printed notes that explain letter or number keys drawn on the plan."""
+
+    key_notes: list[str] = Field(
+        default_factory=list,
+        description="Each note exactly as printed, e.g. 'A Tower 1 Drop Off' or 'C Lobby- Wing A&B'.",
+    )
 
 
 class GeminiSiteEntity(BaseModel):
@@ -742,6 +752,17 @@ def extract_master_plan_entities(
             verdicts = list(pool.map(check_water, suspects))
         entity_map = apply_water_verdicts(entity_map, suspects, verdicts)
 
+    # Letter keys drawn beside the buildings mean the wing names live in a
+    # printed note ("C Lobby- Wing A&B"); read it and name the blocks from it.
+    if needs_key_notes(entity_map):
+        try:
+            payload = run_call(build_key_notes_prompt(), full_image_part, GeminiKeyNotes, max_output_tokens=512)
+            notes = parse_key_notes([str(item) for item in payload.get("key_notes", []) or []])
+        except Exception:  # noqa: BLE001 - best effort; the blocks keep their labels
+            notes = {}
+        if notes:
+            entity_map = apply_key_notes(entity_map, notes)
+
     return entity_map
 
 
@@ -1058,11 +1079,27 @@ def apply_water_verdicts(
 
     diagnostics.append(Diagnostic(code="unsupported_water_discarded", count=len(doomed), items=list(doomed.values())))
     entities = [entity for entity in entity_map.entities if entity.entity_id not in doomed]
+    return _with_entities(entity_map, entities, diagnostics)
+
+
+def _with_entities(
+    entity_map: MasterPlanEntityMap, entities: list[MasterPlanEntity], diagnostics: list[Diagnostic]
+) -> MasterPlanEntityMap:
+    """Copy of the map with a new entity list and every derived field rebuilt."""
+    entities = [entity.model_copy() for entity in entities]
+    _attach_nearest_block(entities, image_width=entity_map.image_width, image_height=entity_map.image_height)
     entity_counts: dict[str, int] = {}
     group_counts: dict[str, int] = {}
     for entity in entities:
         entity_counts[entity.entity_type] = entity_counts.get(entity.entity_type, 0) + 1
         group_counts[entity.entity_group] = group_counts.get(entity.entity_group, 0) + 1
+    site = entity_map.site.model_copy(
+        update={
+            "residential_block_labels": sorted(
+                _unique_labels(entity for entity in entities if entity.entity_type == "residential_block")
+            )
+        }
+    )
     return entity_map.model_copy(
         update={
             "entities": entities,
@@ -1071,9 +1108,157 @@ def apply_water_verdicts(
             "block_proximity": _build_block_proximity(
                 entities, image_width=entity_map.image_width, image_height=entity_map.image_height
             ),
+            "site": site,
             "diagnostics": diagnostics,
         }
     )
+
+
+# --------------------------------------------------------------------------- #
+# Blocks named by printed key notes ("C Lobby- Wing A&B")
+# --------------------------------------------------------------------------- #
+#
+# Some plans do not print wing names on the buildings. Instead letter keys are
+# drawn on the plan and a note explains them: "A Tower 1 Drop Off | C Lobby-
+# Wing A&B". Without the note the passes name buildings after the lobby letter
+# and miss the wings entirely. This is a separate, focused call that only runs
+# when such letter keys are present, so plans with numbered markers never see it.
+
+
+@dataclass
+class KeyNote:
+    key: str
+    text: str
+    wings: list[str] = field(default_factory=list)
+    tower: str | None = None
+
+
+_KEY_NOTE_RE = re.compile(r"^\s*([A-Za-z]|\d{1,2})\s*[-–:.)]?\s+(.+)$")
+_NOTE_WINGS_RE = re.compile(
+    r"wings?\s*[-–:]?\s*([A-Za-z0-9]{1,2}(?:\s*(?:&|,|/|\+|and)\s*[A-Za-z0-9]{1,2})*)", re.IGNORECASE
+)
+_NOTE_WING_SPLIT_RE = re.compile(r"\s*(?:&|,|/|\+|and)\s*", re.IGNORECASE)
+_NOTE_TOWER_RE = re.compile(r"\b(tower|block|building)\s*[-–:]?\s*([A-Za-z0-9]{1,2})\b", re.IGNORECASE)
+# How far outside a block box a key marker may sit and still belong to it:
+# drop-off and lobby markers are drawn at the building edge.
+KEY_MARKER_PAD = 0.025
+
+
+def build_key_notes_prompt() -> str:
+    return (
+        "This real-estate master plan drawing prints short notes that explain the letter or number "
+        "keys drawn on the plan, for example \"A Tower 1 Drop Off\" or \"C Lobby- Wing A&B\". "
+        "Transcribe every such note exactly as printed, one string per note, in \"key_notes\". "
+        "Do not include the numbered legend rows. Return an empty list if there are no such notes. "
+        "Return JSON only."
+    )
+
+
+def needs_key_notes(entity_map: MasterPlanEntityMap) -> bool:
+    """True when letter keys that are not legend codes are drawn next to residential blocks."""
+    if not any(entity.entity_type == "residential_block" for entity in entity_map.entities):
+        return False
+    legend_codes = {_normalize_code(item.code) for item in entity_map.legend}
+    return any(
+        entity.entity_type == "legend_marker"
+        and entity.legend_code
+        and len(entity.legend_code) == 1
+        and entity.legend_code.isalpha()
+        and _normalize_code(entity.legend_code) not in legend_codes
+        for entity in entity_map.entities
+    )
+
+
+def parse_key_notes(notes: list[str]) -> dict[str, KeyNote]:
+    """'C Lobby- Wing A&B' -> {'c': KeyNote(wings=['A', 'B'])}; 'A Tower 1 Drop Off' -> tower 'Tower 1'."""
+    parsed: dict[str, KeyNote] = {}
+    for raw in notes:
+        for piece in re.split(r"\s*[|;]\s*", _clean_text(raw)):
+            match = _KEY_NOTE_RE.match(piece)
+            if not match:
+                continue
+            key, rest = match.group(1).lower(), match.group(2)
+            note = KeyNote(key=key, text=piece.strip())
+            wings_match = _NOTE_WINGS_RE.search(rest)
+            if wings_match:
+                note.wings = [part.upper() for part in _NOTE_WING_SPLIT_RE.split(wings_match.group(1)) if part]
+            tower_match = _NOTE_TOWER_RE.search(rest)
+            if tower_match:
+                note.tower = f"{tower_match.group(1).title()} {tower_match.group(2).upper()}"
+            parsed[key] = note
+    return parsed
+
+
+def apply_key_notes(entity_map: MasterPlanEntityMap, notes: dict[str, KeyNote]) -> MasterPlanEntityMap:
+    """Name residential blocks from the key markers they contain.
+
+    A block holding the lobby marker for "Wing A&B" becomes "Wing A & B"
+    (prefixed with the tower name when a drop-off marker names one). A block
+    that holds the lobby markers of several buildings is an umbrella box
+    around all of them and is dropped when each building also has its own
+    box. Blocks without a key marker keep their label unless it *is* a key.
+    """
+    if not any(note.wings for note in notes.values()):
+        return entity_map
+    blocks = [entity for entity in entity_map.entities if entity.entity_type == "residential_block"]
+    markers = [
+        entity
+        for entity in entity_map.entities
+        if entity.entity_type == "legend_marker" and entity.legend_code and entity.legend_code.lower() in notes
+    ]
+    if not blocks:
+        return entity_map
+
+    assignments: dict[str, tuple[list[tuple[str, ...]], list[str]]] = {}
+    for block in blocks:
+        keys = {
+            marker.legend_code.lower()  # type: ignore[union-attr]
+            for marker in markers
+            if _point_near_box(marker.center_x, marker.center_y, block.box, pad=KEY_MARKER_PAD)
+        }
+        if not keys:
+            claimed = wing_key(block.label)
+            if claimed in notes:
+                keys = {claimed}
+        wing_groups = [tuple(notes[key].wings) for key in sorted(keys) if notes[key].wings]
+        towers = [str(notes[key].tower) for key in sorted(keys) if notes[key].tower]
+        assignments[block.entity_id] = (wing_groups, towers)
+
+    singles = {groups[0] for groups, _ in assignments.values() if len(groups) == 1}
+    doomed = {
+        entity_id
+        for entity_id, (groups, _) in assignments.items()
+        if len(groups) >= 2 and all(group in singles for group in groups)
+    }
+
+    relabelled: dict[str, MasterPlanEntity] = {}
+    for block in blocks:
+        if block.entity_id in doomed:
+            continue
+        groups, towers = assignments[block.entity_id]
+        if len(groups) != 1:
+            continue
+        wing_text = " & ".join(groups[0])
+        tower = towers[0] if len(towers) == 1 else None
+        label = f"{tower} (Wing {wing_text})" if tower else f"Wing {wing_text}"
+        if label == block.label:
+            continue
+        attributes = {**block.attributes, "wing": wing_text}
+        if tower:
+            attributes["tower"] = tower
+        relabelled[block.entity_id] = block.model_copy(update={"label": label, "attributes": attributes})
+
+    if not doomed and not relabelled:
+        return entity_map
+    entities = [relabelled.get(entity.entity_id, entity) for entity in entity_map.entities if entity.entity_id not in doomed]
+    diagnostics = list(entity_map.diagnostics) + [
+        Diagnostic(
+            code="blocks_named_from_key_notes",
+            count=len(relabelled) + len(doomed),
+            items=[f"relabelled:{len(relabelled)}", f"umbrella_dropped:{len(doomed)}"] + [note.text for note in notes.values()][:6],
+        )
+    ]
+    return _with_entities(entity_map, entities, diagnostics)
 
 
 _WING_KEY_RE = re.compile(r"(?:wing|tower|block|building|bldg)\s*[-–:.]?\s*([a-z]{1,2}|\d{1,3})\b")

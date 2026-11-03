@@ -618,3 +618,68 @@ def test_water_ink_share_separates_blue_water_from_pale_plates():
     plate = water_ink_share(image, EntityBox(x_min=0.55, y_min=0.1, x_max=0.95, y_max=0.9))
     assert pool >= 0.9 > WATER_MIN_BLUE_SHARE
     assert plate < WATER_MIN_BLUE_SHARE
+
+
+def _key_note_payload() -> dict:
+    """A plan like Kalpataru Vian: lobby letters on the buildings, wing names only in a printed note."""
+    payload = build_sample_payload()
+    payload["legend_items"] = [{"code": "1", "label": "Pet Park"}, {"code": "2", "label": "Party Lawn"}]
+    payload["entities"] = [
+        # Umbrella box around both buildings, named after a drop-off note.
+        {"entity_id": "u", "entity_type": "residential_block", "label": "Tower 1", "box_2d": [356, 91, 526, 909]},
+        # Right building holds lobby marker C and drop-off marker A just below it.
+        {"entity_id": "r", "entity_type": "residential_block", "label": "Wing - C", "box_2d": [359, 543, 526, 910]},
+        # Left building holds lobby marker D and drop-off marker B just below it.
+        {"entity_id": "l", "entity_type": "residential_block", "label": "Wing - D", "box_2d": [359, 90, 526, 473]},
+        {"entity_id": "mC", "entity_type": "legend_marker", "legend_code": "C", "label": "", "box_2d": [430, 720, 447, 735]},
+        {"entity_id": "mA", "entity_type": "legend_marker", "legend_code": "A", "label": "", "box_2d": [530, 720, 546, 735]},
+        {"entity_id": "mD", "entity_type": "legend_marker", "legend_code": "D", "label": "", "box_2d": [431, 265, 447, 280]},
+        {"entity_id": "mB", "entity_type": "legend_marker", "legend_code": "B", "label": "", "box_2d": [532, 266, 547, 281]},
+        {"entity_id": "m1", "entity_type": "legend_marker", "legend_code": "1", "label": "", "box_2d": [600, 100, 615, 115]},
+        {"entity_id": "p", "entity_type": "parking", "label": "Parking", "box_2d": [560, 400, 620, 600]},
+    ]
+    return payload
+
+
+def test_key_notes_are_parsed_into_wings_and_towers():
+    from app.services.master_plan_entity_extractor import parse_key_notes
+
+    notes = parse_key_notes(["A Tower 1 Drop Off | B Tower 2 Drop Off", "C Lobby- Wing A&B", "D Lobby- Wing C & D", "Legend"])
+    assert set(notes) == {"a", "b", "c", "d"}
+    assert notes["a"].tower == "Tower 1" and notes["a"].wings == []
+    assert notes["b"].tower == "Tower 2"
+    assert notes["c"].wings == ["A", "B"] and notes["c"].tower is None
+    assert notes["d"].wings == ["C", "D"]
+
+
+def test_key_notes_only_trigger_for_letter_keys_outside_the_legend():
+    from app.services.master_plan_entity_extractor import needs_key_notes
+
+    assert needs_key_notes(parse_master_plan_entity_payload(_key_note_payload(), image_width=1000, image_height=1000))
+    # Numbered markers that match legend rows (the common case) never trigger the extra call.
+    assert not needs_key_notes(parse_master_plan_entity_payload(build_sample_payload(), image_width=1000, image_height=1000))
+
+
+def test_blocks_are_named_from_key_notes_and_the_umbrella_box_is_dropped():
+    from app.services.master_plan_entity_extractor import apply_key_notes, parse_key_notes
+
+    entity_map = parse_master_plan_entity_payload(_key_note_payload(), image_width=1000, image_height=1000)
+    assert entity_map.site.residential_block_labels == ["Tower 1", "Wing - C", "Wing - D"]
+
+    notes = parse_key_notes(["A Tower 1 Drop Off", "B Tower 2 Drop Off", "C Lobby- Wing A&B", "D Lobby- Wing C&D"])
+    named = apply_key_notes(entity_map, notes)
+
+    blocks = {entity.entity_id: entity for entity in named.entities if entity.entity_type == "residential_block"}
+    assert set(blocks) == {"r", "l"}
+    assert blocks["r"].label == "Tower 1 (Wing A & B)" and blocks["r"].attributes["wing"] == "A & B"
+    assert blocks["l"].label == "Tower 2 (Wing C & D)" and blocks["l"].attributes["tower"] == "Tower 2"
+    assert named.site.residential_block_labels == ["Tower 1 (Wing A & B)", "Tower 2 (Wing C & D)"]
+    assert named.entity_counts["residential_block"] == 2
+    assert {block.block_label for block in named.block_proximity} == {"Tower 1 (Wing A & B)", "Tower 2 (Wing C & D)"}
+    parking = next(entity for entity in named.entities if entity.entity_type == "parking")
+    assert parking.nearest_residential_block in {"Tower 1 (Wing A & B)", "Tower 2 (Wing C & D)"}
+    codes = {diagnostic.code: diagnostic for diagnostic in named.diagnostics}
+    assert codes["blocks_named_from_key_notes"].items[:2] == ["relabelled:2", "umbrella_dropped:1"]
+
+    # Notes without any wing mapping leave the map untouched.
+    assert apply_key_notes(entity_map, parse_key_notes(["A Tower 1 Drop Off"])) is entity_map

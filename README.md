@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-51%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-55%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -116,6 +116,7 @@ How the extraction works (`app/services/master_plan_entity_extractor.py`):
 - **Focused Gemini calls run in parallel**, each with a strict `response_schema` and thinking at its minimum (`thinking_budget=0` on Gemini 2.x, `thinking_level=minimal` on 3.x): a *wings* call for residential building footprints (re-asked once if the boxes look fabricated), a *structures* call for the other large features, a *site* call for the legend text, plot shape, external roads and drawing annotations, and a *marker* call per image tile (2x2 with overlap) for the small numbered circles that key features to the legend.
 - **Numbered legend markers are treated as ground truth.** A marker whose code matches a legend row becomes that feature at that spot. A drawn box that agrees with a marker is merged with it (`located_by: both`); a drawn box far from the marker for the same feature is discarded.
 - **Water features need evidence**: a pool or water body that no legend row, declared amenity or legend marker vouches for must be painted in saturated blue or cyan (tower plates and lobbies drawn in pale grey-blue are a known confusion); the ones with blue ink get a second look on their own crop, and only a clear "not water" answer removes them. Plans whose legend or records list water are left untouched.
+- **Blocks named from printed key notes**: when letter keys that are not legend codes are drawn beside the buildings (for example lobby markers C and D with a note "C Lobby- Wing A&B | D Lobby- Wing C&D"), one extra focused call transcribes the notes and the blocks are named from the markers they contain ("Tower 1 (Wing A & B)"); an umbrella box around several buildings is dropped. Plans with numbered markers never trigger this call.
 - **Known model failure modes are filtered**: identical boxes reused across features, evenly spaced same-size runs, boxes covering most of the drawing, and circles detected on blank paper (a pixel check).
 - **Derived metadata**: category key for the nine comparison categories, nearest residential block and distance, per-block proximity notes ("Wing E sits closest to Entry Plaza, Outdoor Gym and Obstacle Park; ..."), legend coverage, entity and group counts.
 
@@ -172,7 +173,7 @@ green-open-area-intelligence/
 │   └── utils/                    # file, image and Gemini client helpers
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── scripts/run_single_project.py # CLI runner for a single project
-├── tests/                        # pytest suite (51 tests)
+├── tests/                        # pytest suite (55 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
@@ -253,8 +254,8 @@ Entity map plus key-value site metrics for the dashboards (see [above](#site-met
 |-------|------|---------|-------|
 | `master_plan_image_file` | file | one of file / URL | PNG / JPG / JPEG / WEBP |
 | `master_plan_image_url` | string | one of file / URL | Public http(s) image URL, fetched server-side (size-capped, public hosts only) |
-| `project_json_file` | file | optional | Datacenter JSON; without it only the entity map is returned |
-| `run_area_estimate` | bool | `true` | Runs Gemini vision + OpenCV segmentation to estimate open and green area |
+| `project_json_file` | file | optional | Datacenter JSON; without it the entity map and an image-only green / open estimate are returned, but no site metrics |
+| `run_area_estimate` | bool | `true` | Runs Gemini vision + OpenCV segmentation to estimate open and green area (with or without project records; records raise the confidence) |
 | `site_records_json` | string | optional | JSON with any of `sanctioned_fsi`, `built_up_area_sq_m`, `clubhouse_area_sq_m`, `undivided_land_share_sq_m`, `open_area_percent`, `building_footprint_sq_m`, `homes_per_floor_min`, `homes_per_floor_max` |
 
 Response: `run_id`, `image_url` (backend path serving the stored plan), `source_image_url`, `entity_map`, `site_metrics` (or `null`), `area_estimate` (or `null`), `image_metadata`, `diagnostics`, `run_artifacts`. Typical latency is 40 to 70 seconds with the area estimate, 20 to 40 without.

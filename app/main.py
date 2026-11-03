@@ -15,6 +15,7 @@ from app.services.frontend_contract_validator import finalize_frontend_compariso
 from app.services.json_parser import parse_datacenter_json_file
 from app.services.master_plan_compare_engine import build_master_plan_comparison
 from app.services.master_plan_comparison_report_writer import write_master_plan_comparison_outputs
+from app.schemas.project_schema import ParsedProjectMetadata
 from app.schemas.site_metrics_schema import SiteRecords
 from app.services.density_benchmarks import load_density_benchmarks
 from app.services.master_plan_entity_extractor import extract_master_plan_entities
@@ -599,10 +600,10 @@ async def analyse_master_plan(
     """Entity map plus key-value site metrics for the analysis dashboards.
 
     The plan comes either as an upload or as a public image URL fetched
-    server-side. Without a project JSON only the entity map is produced. With
-    one, the open/green estimate pipeline runs (unless disabled) and the
-    metrics engine combines project records, the estimate, the entity map and
-    the density benchmark dataset. ``site_records_json`` can carry sanction
+    server-side. The open/green estimate pipeline runs on the image alone
+    (unless disabled); project records raise its confidence. With a project
+    JSON the metrics engine also combines project records, the estimate, the
+    entity map and the density benchmark dataset. ``site_records_json`` can carry sanction
     figures (FSI, clubhouse area, UDS) that are not in the Datacenter feed.
     """
     settings = get_settings()
@@ -634,12 +635,21 @@ async def analyse_master_plan(
         diagnostics: list[dict] = []
         area_estimate = None
         area_estimate_path: Path | None = None
-        if project is not None and run_area_estimate:
+        if run_area_estimate:
+            # Without project records the estimate still runs on the image
+            # alone (vision + OpenCV); the missing records lower its confidence.
+            estimate_project = project or ParsedProjectMetadata(
+                project_id=f"plan-{run_id[:8]}",
+                project_name=entity_map.project_name or image_path.stem.replace("-", " ").replace("_", " ").title(),
+                source_flags={"has_project_json": False},
+            )
             try:
-                vision = analyze_master_plan_with_gemini(project=project, image_metadata=image_metadata)
-                segmentation = run_opencv_segmentation(image_metadata=image_metadata, project_id=project.project_id)
+                vision = analyze_master_plan_with_gemini(project=estimate_project, image_metadata=image_metadata)
+                segmentation = run_opencv_segmentation(
+                    image_metadata=image_metadata, project_id=estimate_project.project_id
+                )
                 area_estimate = build_area_estimate(
-                    project=project, image_metadata=image_metadata, vision=vision, segmentation=segmentation
+                    project=estimate_project, image_metadata=image_metadata, vision=vision, segmentation=segmentation
                 )
                 area_estimate_path = run_output_dir / "area_estimate.json"
                 write_json_file(area_estimate_path, area_estimate.model_dump(mode="json"))

@@ -43,8 +43,8 @@ export function MasterPlanAnalysisPanel({ title, imageFile, analysis }: MasterPl
         <div className="cta-banner">
           <FileJson size={18} aria-hidden="true" />
           <p>
-            <strong>Add the project&apos;s Datacenter JSON</strong> to unlock the green and open area estimate, site zoning,
-            home mix, density benchmark and land allocation dashboards for this plan.
+            <strong>Add the project&apos;s Datacenter JSON</strong> to unlock the site zoning, home mix, density benchmark
+            and land allocation dashboards, and to back the green and open area estimate with project records.
           </p>
         </div>
       )}

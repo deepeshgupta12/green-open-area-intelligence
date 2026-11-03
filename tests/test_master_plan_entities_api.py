@@ -194,3 +194,40 @@ def test_master_plan_entities_endpoint_without_project_json(monkeypatch):
 
     assert response.status_code == 200, response.text
     assert response.json()["entity_map"]["project_id"] is None
+
+
+def test_master_plan_analysis_estimates_green_and_open_area_without_project_json(monkeypatch):
+    seen: dict = {}
+
+    def fake_extract(image_metadata, project=None):
+        return parse_master_plan_entity_payload(
+            build_sample_payload(),
+            image_width=image_metadata.dimensions.width,
+            image_height=image_metadata.dimensions.height,
+        )
+
+    def fake_vision(project, image_metadata):
+        seen["project"] = project
+        return build_mock_vision(project_id=project.project_id, project_name=project.project_name)
+
+    monkeypatch.setattr("app.main.extract_master_plan_entities", fake_extract)
+    monkeypatch.setattr("app.main.analyze_master_plan_with_gemini", fake_vision)
+
+    with find_master_plan_image().open("rb") as image_file:
+        response = client.post(
+            "/master-plan/analysis",
+            files={"master_plan_image_file": ("plan.jpg", image_file, "image/jpeg")},
+            data={"run_area_estimate": "true"},
+        )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    # The estimate runs on the image alone with an empty project record...
+    assert seen["project"].project_id.startswith("plan-")
+    assert seen["project"].source_flags == {"has_project_json": False}
+    assert payload["area_estimate"] is not None
+    assert payload["area_estimate"]["green_area_percentage"]["max"] <= payload["area_estimate"]["open_area_percentage"]["max"]
+    assert "Project Datacenter JSON is available." not in payload["area_estimate"]["confidence"]["reasons"]
+    # ...while the record-based metrics stay absent and the diagnostic says why.
+    assert payload["site_metrics"] is None
+    assert any(item["code"] == "project_json_missing" for item in payload["diagnostics"])
