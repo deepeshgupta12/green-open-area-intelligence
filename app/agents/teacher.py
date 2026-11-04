@@ -14,7 +14,7 @@ from typing import Any, Callable
 from pydantic import BaseModel, Field
 
 from app.agents.playbook import normalize_text, stamp_now
-from app.schemas.agent_schema import Playbook, PlaybookCase, PlaybookRecipe, PlaybookRule, QaTrail
+from app.schemas.agent_schema import BacklogItem, Playbook, PlaybookCase, PlaybookRecipe, PlaybookRule, QaTrail
 
 MAX_NEW_PER_KIND = 3
 
@@ -24,6 +24,7 @@ class GeminiTeaching(BaseModel):
     new_cases: list[dict[str, str]] = Field(default_factory=list, description="Each: symptom, check, resolution, scope.")
     new_recipes: list[dict[str, str]] = Field(default_factory=list, description="Each: trigger (finding code), action, notes.")
     lessons: list[str] = Field(default_factory=list)
+    code_gaps: list[dict[str, str]] = Field(default_factory=list, description="For findings no recipe could fix: finding_code and the code change needed, in one or two sentences.")
 
 
 def build_teaching_prompt(playbook: Playbook, trail: QaTrail) -> str:
@@ -39,7 +40,9 @@ def build_teaching_prompt(playbook: Playbook, trail: QaTrail) -> str:
         "one review-and-fix cycle and write what the agents should learn, as additions to their playbook. Only "
         "propose entries that are new relative to the existing ones, specific, and checkable. Rules say what an "
         "accepted analysis looks like; cases describe a symptom, how to check it and how to resolve it; recipes map "
-        "a finding code to an action. Prefer no entry over a vague one. Return JSON only.\n\n"
+        "a finding code to an action. For every finding the fixer could not act on (no recipe, or a recipe that was "
+        "not applied), describe in code_gaps the change to the extraction or fixer code that would resolve it. "
+        "Prefer no entry over a vague one. Return JSON only.\n\n"
         f"PLAN STYLE: {trail.plan_style}\nFINAL: {trail.final_verdict}, score {trail.final_score}, adopted round {trail.adopted_round}\n"
         + "\n".join(rounds)
         + f"\n\nEXISTING RULES:\n{existing_rules}\n\nEXISTING CASES:\n{existing_cases}"
@@ -115,6 +118,52 @@ def merge_teaching(playbook: Playbook, payload: dict[str, Any]) -> tuple[Playboo
     }), added
 
 
+def unresolved_findings(trail: QaTrail) -> list[tuple[Any, Any]]:
+    """(finding, action) pairs the fixer could not act on in the adopted round or later."""
+    pairs: list[tuple[Any, Any]] = []
+    for item in trail.rounds:
+        actions = {action.finding_code: action for action in item.actions}
+        for finding in item.review.findings:
+            action = actions.get(finding.code)
+            if action is None or not action.applied:
+                pairs.append((finding, action))
+    return pairs
+
+
+def record_code_gaps(playbook: Playbook, trail: QaTrail, suggestions: dict[str, str] | None = None) -> tuple[Playbook, int]:
+    """Upsert a backlog item per (finding code, plan style) the fixer could not resolve."""
+    pairs = unresolved_findings(trail)
+    if not pairs:
+        return playbook, 0
+    stamp = stamp_now()
+    backlog = [item.model_copy() for item in playbook.backlog]
+    seen_codes: set[str] = set()
+    touched = 0
+    for finding, action in pairs:
+        if finding.code in seen_codes:
+            continue
+        seen_codes.add(finding.code)
+        suggestion = (suggestions or {}).get(finding.code)
+        existing = next((item for item in backlog if item.finding_code == finding.code and item.plan_style == trail.plan_style and item.status == "open"), None)
+        if existing is not None:
+            existing.occurrences += 1
+            existing.last_seen = stamp
+            existing.detail = finding.detail
+            if trail.run_id and trail.run_id not in existing.example_runs:
+                existing.example_runs = (existing.example_runs + [trail.run_id])[-5:]
+            if suggestion and not existing.suggested_change:
+                existing.suggested_change = suggestion
+        else:
+            backlog.append(BacklogItem(
+                id=f"B{len(backlog) + 1}", finding_code=finding.code, plan_style=trail.plan_style,
+                first_seen=stamp, last_seen=stamp, example_runs=[trail.run_id] if trail.run_id else [],
+                detail=finding.detail + (f" Fixer: {action.detail}" if action is not None else " Fixer: no recipe."),
+                suggested_change=suggestion,
+            ))
+        touched += 1
+    return playbook.model_copy(update={"backlog": backlog, "updated_at": stamp}), touched
+
+
 def deterministic_lesson(trail: QaTrail) -> str | None:
     """A lesson line that needs no model: what failed and whether the fixer resolved it."""
     if not trail.rounds:
@@ -128,24 +177,37 @@ def deterministic_lesson(trail: QaTrail) -> str | None:
 
 
 def teach(playbook: Playbook, trail: QaTrail, call_text: Callable[[str], dict[str, Any]] | None) -> tuple[Playbook, int]:
-    """Update the playbook from one trail; returns the playbook and how many entries were added."""
+    """Update the playbook from one trail; returns the playbook and how many entries were added or touched.
+
+    Rules, cases and recipes are learned only from evidence (a rule-based
+    finding or an applied fix). Code gaps are recorded from every finding the
+    fixer could not act on, with the model's suggested change when available:
+    the agents cannot change the pipeline's code, so this backlog is how a
+    developer learns what they keep running into.
+    """
     if not any(item.review.findings for item in trail.rounds):
         return playbook, 0
-    # Learn only from evidence: a rule-based finding, or a fix that was actually
-    # applied. A model opinion nobody could verify is not a lesson.
     evidence = any(finding.source == "rule" for item in trail.rounds for finding in item.review.findings) or any(
         action.applied for item in trail.rounds for action in item.actions
     )
-    if not evidence:
-        return playbook, 0
     added = 0
-    if call_text is not None:
+    suggestions: dict[str, str] = {}
+    if call_text is not None and (evidence or unresolved_findings(trail)):
         try:
-            playbook, added = merge_teaching(playbook, call_text(build_teaching_prompt(playbook, trail)))
+            payload = call_text(build_teaching_prompt(playbook, trail))
+            for gap in payload.get("code_gaps") or []:
+                code = str((gap or {}).get("finding_code") or "").strip().lower()
+                change = str((gap or {}).get("suggestion") or (gap or {}).get("change") or (gap or {}).get("code_change") or "").strip()
+                if code and change:
+                    suggestions[code] = change
+            if evidence:
+                playbook, added = merge_teaching(playbook, payload)
         except Exception:  # noqa: BLE001 - teaching is best effort
             added = 0
-    lesson = deterministic_lesson(trail)
-    if lesson and _is_new(lesson, playbook.lessons):
-        playbook = playbook.model_copy(update={"lessons": [*playbook.lessons, lesson], "updated_at": stamp_now()})
-        added += 1
-    return playbook, added
+    if evidence:
+        lesson = deterministic_lesson(trail)
+        if lesson and _is_new(lesson, playbook.lessons):
+            playbook = playbook.model_copy(update={"lessons": [*playbook.lessons, lesson], "updated_at": stamp_now()})
+            added += 1
+    playbook, touched = record_code_gaps(playbook, trail, suggestions)
+    return playbook, added + touched

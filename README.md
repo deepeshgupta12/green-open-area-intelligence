@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-92%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-93%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -164,6 +164,8 @@ Every analysis is checked by three backend agents before the response is built. 
 | **Fixer** | `app/agents/fixer.py` | Maps finding codes to recipes that reuse the extractor's verified tools: tiled footprint recovery for missed towers on block plans, blue-ink and crop checks for suspect water, crop checks for suspect blocks, duplicate-label renaming, oversized-box drops, estimate clamping and downgrading. A model opinion alone never removes a feature. |
 | **Teacher** | `app/agents/teacher.py` | Maintains the **playbook** (`app/agents/playbook.py`): acceptance rules, rejection cases and fix recipes, seeded from the Sattva Lumina, Birla Taranya, Kalpataru Vian and Mahindra Rainforest cases. After a cycle with findings it distils new entries from the trail with the text model, deduplicates them against the existing text (at most three per kind per cycle) and always records a deterministic lesson line. The runtime copy lives at `data/agents/playbook.json`; the seed in code never changes. |
 
+**What the agents cannot do, and what happens then.** The fixer only runs recipes that exist as tested code, and the teacher writes the playbook, never the pipeline's source: agents editing the extraction code while a request is served would put untested changes into production. Every finding the fixer could not act on is therefore recorded by the teacher as a **backlog item** in the playbook, keyed by finding code and plan style, with occurrence counts, example run ids and the model's suggested code change. `python scripts/qa_agents.py backlog` lists it; `python scripts/qa_agents.py teach <run_dir>...` feeds stored trails to the teacher. That backlog is the hand-off to a developer, who turns an item into code with tests; the Kalpataru small-sheet marker pass and the contradicted-box check were both of that kind.
+
 The orchestrator (`app/agents/orchestrator.py`) runs review -> fix -> review for at most `QA_MAX_ROUNDS` rounds; a failed review always goes to the fixer, and so does a pass scoring below 0.9 so that fixable major findings still get repaired. The version with the best review score is adopted, so the loop can only improve an analysis or leave it as extracted. The fixer never acts on the reviewer's opinion alone: water backed by the legend, the records or a marker is never re-checked, block crop checks run on block plans only, and a one-tower difference in the independent count is treated as noise. `python scripts/qa_agents.py playbook` prints the playbook; `python scripts/qa_agents.py review <run_dir>` re-reviews a stored run.
 
 ## Architecture
@@ -205,7 +207,7 @@ green-open-area-intelligence/
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── docs/                         # contract schema, sample responses, screenshots
 ├── scripts/                      # run_single_project.py, qa_agents.py, export_contract.py
-├── tests/                        # pytest suite (92 tests)
+├── tests/                        # pytest suite (93 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)

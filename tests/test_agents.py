@@ -317,7 +317,10 @@ def test_teacher_ignores_model_only_cycles_without_an_applied_fix():
         rounds=[QaRound(round=1, review=ReviewReport(verdict="pass", score=0.95, findings=[opinion]), actions=[FixAction(finding_code="mislabelled_block", recipe="none", applied=False, detail="no recipe")])],
         final_verdict="pass", final_score=0.95, adopted_round=1,
     )
-    assert teach(seed, trail, lambda prompt: {"lessons": ["should not be recorded"]}) == (seed, 0)
+    taught, count = teach(seed, trail, lambda prompt: {"lessons": ["should not be recorded"], "code_gaps": [{"finding_code": "mislabelled_block", "suggestion": "Read the printed name again at 2x zoom."}]})
+    # No rule or lesson from an unverified opinion, but the gap is on the backlog with the suggested change.
+    assert taught.lessons == seed.lessons and taught.acceptance_rules == seed.acceptance_rules and count == 1
+    assert [item.finding_code for item in taught.backlog] == ["mislabelled_block"] and taught.backlog[0].suggested_change.startswith("Read the printed")
 
 
 def test_fixer_never_touches_supported_water_or_rendered_blocks():
@@ -461,3 +464,31 @@ def test_reviewer_notes_markers_whose_codes_are_not_in_the_legend():
     findings, applied = run_rule_checks(entity_map, None, None, None)
     flagged = next(f for f in findings if f.code == "unreadable_markers")
     assert flagged.severity == "minor" and len(flagged.entity_ids) == 5 and "A10" in applied
+
+
+def test_teacher_records_code_gaps_for_findings_the_fixer_could_not_act_on():
+    from app.agents.teacher import record_code_gaps, unresolved_findings
+
+    seed = seed_playbook()
+    opinion = Finding(code="missed_blocks", severity="major", detail="The reviewer sees 9 towers; 8 are boxed (1 missing).", source="model")
+    rule = Finding(code="unreadable_markers", severity="minor", detail="7 circle markers carry codes that are not in the legend.", source="rule")
+    trail = QaTrail(
+        run_id="run-1", plan_style="rendered",
+        rounds=[QaRound(round=1, review=ReviewReport(verdict="pass", score=0.75, findings=[opinion, rule]),
+                        actions=[FixAction(finding_code="missed_blocks", recipe="F1", applied=False, detail="no automatic recipe for rendered plans"),
+                                 FixAction(finding_code="unreadable_markers", recipe="none", applied=False, detail="no recipe")])],
+        final_verdict="pass", final_score=0.75, adopted_round=1,
+    )
+    assert [f.code for f, _ in unresolved_findings(trail)] == ["missed_blocks", "unreadable_markers"]
+
+    updated, touched = record_code_gaps(seed, trail, {"missed_blocks": "Add a by-name wing locate pass for rendered plans driven by the independent count."})
+    assert touched == 2 and [item.finding_code for item in updated.backlog] == ["missed_blocks", "unreadable_markers"]
+    assert updated.backlog[0].suggested_change.startswith("Add a by-name") and updated.backlog[0].example_runs == ["run-1"]
+
+    # The same finding on another run of the same plan style counts up instead of duplicating.
+    again, _ = record_code_gaps(updated, trail.model_copy(update={"run_id": "run-2"}))
+    assert len(again.backlog) == 2 and again.backlog[0].occurrences == 2 and again.backlog[0].example_runs == ["run-1", "run-2"]
+
+    # teach() records gaps even without a model and even when nothing was evidence-backed enough for a lesson.
+    taught, count = teach(seed, trail.model_copy(update={"rounds": [trail.rounds[0].model_copy(update={"review": ReviewReport(verdict="pass", score=0.8, findings=[opinion])})]}), None)
+    assert count == 1 and taught.backlog[0].finding_code == "missed_blocks" and taught.lessons == seed.lessons

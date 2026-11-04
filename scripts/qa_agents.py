@@ -40,6 +40,42 @@ def show_playbook() -> None:
     print("\nLessons")
     for lesson in playbook.lessons:
         print(f"  - {lesson}")
+    show_backlog(playbook)
+
+
+def show_backlog(playbook=None) -> None:
+    playbook = playbook or load_playbook()
+    items = sorted((item for item in playbook.backlog if item.status == "open"), key=lambda item: -item.occurrences)
+    print("\nBacklog: findings the fixer has no code for (a developer's list)")
+    if not items:
+        print("  (empty)")
+    for item in items:
+        print(f"  {item.id} {item.finding_code} [{item.plan_style}] x{item.occurrences}, last {item.last_seen[:10]}, runs {', '.join(run[:8] for run in item.example_runs)}")
+        print(f"       {item.detail[:160]}")
+        if item.suggested_change:
+            print(f"       change: {item.suggested_change[:200]}")
+
+
+def teach_from_trails(run_dirs: list[Path]) -> int:
+    """Feed stored qa_trail.json files to the teacher (no model), e.g. after a batch of runs."""
+    from app.agents.playbook import save_playbook
+    from app.agents.teacher import teach
+    from app.schemas.agent_schema import QaTrail
+
+    playbook = load_playbook()
+    total = 0
+    for run_dir in run_dirs:
+        trail_path = run_dir / "qa_trail.json"
+        if not trail_path.is_file():
+            continue
+        trail = QaTrail.model_validate(json.loads(trail_path.read_text(encoding="utf-8")))
+        playbook, touched = teach(playbook, trail, None)
+        total += touched
+        print(f"  {run_dir.name[:8]}: {trail.plan_style} {trail.final_verdict} {trail.final_score} -> {touched} playbook entries touched")
+    save_playbook(playbook)
+    print(f"playbook saved ({total} entries touched)")
+    show_backlog(playbook)
+    return 0
 
 
 def review_run(run_dir: Path, teach: bool, max_rounds: int) -> int:
@@ -82,14 +118,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Backend QA agents")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("playbook", help="print the playbook")
+    sub.add_parser("backlog", help="print the code-change backlog the teacher has collected")
     review = sub.add_parser("review", help="review (and fix) a stored run")
     review.add_argument("run_dir")
     review.add_argument("--no-teach", action="store_true", help="do not let the teacher update the playbook")
     review.add_argument("--rounds", type=int, default=2)
+    teach = sub.add_parser("teach", help="feed stored qa_trail.json files to the teacher")
+    teach.add_argument("run_dirs", nargs="+")
     args = parser.parse_args()
     if args.command == "playbook":
         show_playbook()
         return 0
+    if args.command == "backlog":
+        show_backlog()
+        return 0
+    if args.command == "teach":
+        return teach_from_trails([Path(path).resolve() for path in args.run_dirs])
     return review_run(Path(args.run_dir).resolve(), teach=not args.no_teach, max_rounds=args.rounds)
 
 

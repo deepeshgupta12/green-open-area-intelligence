@@ -92,8 +92,23 @@ class PlaybookRecipe(BaseModel):
     added_at: str
 
 
+class BacklogItem(BaseModel):
+    """A finding the fixer has no recipe for: a code change a developer must make."""
+
+    id: str
+    finding_code: str
+    plan_style: str
+    occurrences: int = 1
+    first_seen: str
+    last_seen: str
+    example_runs: list[str] = Field(default_factory=list)
+    detail: str
+    suggested_change: str | None = None
+    status: Literal["open", "done"] = "open"
+
+
 class Playbook(BaseModel):
-    """What the reviewer accepts, what it rejects, and how the fixer resolves it."""
+    """What the reviewer accepts, what it rejects, how the fixer resolves it, and what code is still missing."""
 
     version: int = 1
     updated_at: str
@@ -101,3 +116,4 @@ class Playbook(BaseModel):
     rejection_cases: list[PlaybookCase] = Field(default_factory=list)
     fix_recipes: list[PlaybookRecipe] = Field(default_factory=list)
     lessons: list[str] = Field(default_factory=list)
+    backlog: list[BacklogItem] = Field(default_factory=list)
