@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-83%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-92%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -129,6 +129,8 @@ How the extraction works (`app/services/master_plan_entity_extractor.py`):
 - **Focused Gemini calls run in parallel**, each with a strict `response_schema` and thinking at its minimum (`thinking_budget=0` on Gemini 2.x, `thinking_level=minimal` on 3.x): a *wings* call for residential building footprints (re-asked once if the boxes look fabricated), a *structures* call for the other large features, a *site* call for the legend text, plot shape, external roads and drawing annotations, and a *marker* call per image tile (2x2 with overlap) for the small numbered circles that key features to the legend.
 - **Prefixed legend codes resolve from bare numbers.** Legends that prefix their rows by category (GR-12, RE-27, PT-44) while the circles on the plan print only the number are matched through a bare-number alias whenever the number is unique across the prefixes; the targeted re-scan asks for both forms. On Birla Taranya this took legend coverage from 15 to 57 of 58 rows.
 - **Marker-placed areas are boxed over the drawing.** A marker places a court, pool, lawn, play area, clubhouse or parking cluster reliably but only as a marker-sized disc; one focused crop call per such feature returns the drawn area's box, adopted only when it contains the marker and is sized like a feature. The hover map then covers the court itself (Lodha Corinthia's futsal court was a disc until this step).
+- **Small sheets get a named-code marker pass.** When the image's longest side is under 1000px the circles are a few pixels across and the open marker pass pads them with invented codes; every legend code is then also asked for by name on each tile, and the two marker lists are merged by position. Markers whose codes are not in the legend are kept only as annotations.
+- **A misread marker never erases a drawn feature.** A drawn box that disagrees with a marker read elsewhere for the same feature used to be discarded; it is now kept and checked on its own crop, and dropped only when the crop does not show that feature (Kalpataru Vian's two multiplay courts came back this way).
 - **Numbered legend markers are treated as ground truth.** A marker whose code matches a legend row becomes that feature at that spot. A drawn box that agrees with a marker is merged with it (`located_by: both`); a drawn box far from the marker for the same feature is discarded.
 - **Water features need evidence**: a pool or water body that no legend row, declared amenity or legend marker vouches for must be painted in saturated blue or cyan (tower plates and lobbies drawn in pale grey-blue are a known confusion); the ones with blue ink get a second look on their own crop, and only a clear "not water" answer removes them. Plans whose legend or records list water are left untouched.
 - **Blocks named from printed key notes**: when letter keys that are not legend codes are drawn beside the buildings (for example lobby markers C and D with a note "C Lobby- Wing A&B | D Lobby- Wing C&D"), one extra focused call transcribes the notes and the blocks are named from the markers they contain ("Tower 1 (Wing A & B)"); an umbrella box around several buildings is dropped. Plans with numbered markers never trigger this call.
@@ -203,7 +205,7 @@ green-open-area-intelligence/
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── docs/                         # contract schema, sample responses, screenshots
 ├── scripts/                      # run_single_project.py, qa_agents.py, export_contract.py
-├── tests/                        # pytest suite (83 tests)
+├── tests/                        # pytest suite (92 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)

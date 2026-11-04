@@ -451,3 +451,13 @@ def test_count_blocker_relaxes_after_two_recovery_attempts():
     attempted = block_plan.model_copy(update={"diagnostics": [*block_plan.diagnostics, Diagnostic(code="footprint_recovery_attempted", count=3), Diagnostic(code="footprint_recovery_attempted", count=0)]})
     second = review_analysis(attempted, None, project=None, image=None, image_part=object(), playbook=seed_playbook(), call=fake_call)
     assert next(f for f in second.findings if f.code == "missed_blocks").severity == "major" and second.verdict == "pass"
+
+
+def test_reviewer_notes_markers_whose_codes_are_not_in_the_legend():
+    # Varied positions and sizes so the parser's even-run filter leaves them alone.
+    spots = [(100, 600), (170, 640), (260, 605), (350, 690), (430, 620)]
+    unknown = [{"entity_id": f"u{i}", "entity_type": "legend_marker", "legend_code": code, "label": "", "box_2d": [y, x, y + 12 + i, x + 12 + i]} for i, (code, (y, x)) in enumerate(zip(["F", "G", "H", "11", "13"], spots))]
+    entity_map = build_map(extra_entities=unknown)
+    findings, applied = run_rule_checks(entity_map, None, None, None)
+    flagged = next(f for f in findings if f.code == "unreadable_markers")
+    assert flagged.severity == "minor" and len(flagged.entity_ids) == 5 and "A10" in applied

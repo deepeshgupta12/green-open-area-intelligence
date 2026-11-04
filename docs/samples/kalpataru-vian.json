@@ -1,6 +1,6 @@
 {
-  "run_id": "44b492ef-62a7-41f2-bb65-27311e0d74b7",
-  "image_url": "/master-plan/runs/44b492ef-62a7-41f2-bb65-27311e0d74b7/image",
+  "run_id": "a2360bf2-aab0-4c47-880c-93c8fe149842",
+  "image_url": "/master-plan/runs/a2360bf2-aab0-4c47-880c-93c8fe149842/image",
   "source_image_url": "https://static.squareyards.com/resources/images/mumbai/project-image/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21749efe4.jpg",
   "entity_map": {
     "project_id": null,
@@ -42,7 +42,7 @@
         "normalized_label": "pet park",
         "category_key": "family_community",
         "located_on_plan": true,
-        "marker_count": 3
+        "marker_count": 5
       },
       {
         "code": "2",
@@ -50,7 +50,7 @@
         "normalized_label": "pet seating corner",
         "category_key": "family_community",
         "located_on_plan": true,
-        "marker_count": 3
+        "marker_count": 4
       },
       {
         "code": "3",
@@ -58,7 +58,7 @@
         "normalized_label": "multiplay court",
         "category_key": "family_community",
         "located_on_plan": true,
-        "marker_count": 1
+        "marker_count": 6
       },
       {
         "code": "4",
@@ -66,7 +66,7 @@
         "normalized_label": "party lawn",
         "category_key": "family_community",
         "located_on_plan": true,
-        "marker_count": 1
+        "marker_count": 3
       },
       {
         "code": "5",
@@ -82,7 +82,7 @@
         "normalized_label": "trellis",
         "category_key": null,
         "located_on_plan": true,
-        "marker_count": 1
+        "marker_count": 2
       },
       {
         "code": "7",
@@ -90,7 +90,7 @@
         "normalized_label": "seating pocket",
         "category_key": "open_space",
         "located_on_plan": true,
-        "marker_count": 1
+        "marker_count": 2
       },
       {
         "code": "8",
@@ -98,7 +98,7 @@
         "normalized_label": "lawn",
         "category_key": "green_landscape",
         "located_on_plan": true,
-        "marker_count": 4
+        "marker_count": 2
       },
       {
         "code": "9",
@@ -106,12 +106,108 @@
         "normalized_label": "nature trail",
         "category_key": null,
         "located_on_plan": true,
-        "marker_count": 1
+        "marker_count": 2
       }
     ],
     "entities": [
       {
+        "entity_id": "e1",
+        "entity_type": "sports_court",
+        "entity_group": "amenity",
+        "label": "Multiplay Court",
+        "legend_code": "3",
+        "legend_label": "Multiplay Court",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.231,
+          "y_min": 0.363,
+          "x_max": 0.299,
+          "y_max": 0.402
+        },
+        "center_x": 0.265,
+        "center_y": 0.3825,
+        "relative_area": 0.00265,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.0459
+      },
+      {
         "entity_id": "e2",
+        "entity_type": "sports_court",
+        "entity_group": "amenity",
+        "label": "Multiplay Court",
+        "legend_code": "3",
+        "legend_label": "Multiplay Court",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.698,
+          "y_min": 0.363,
+          "x_max": 0.766,
+          "y_max": 0.402
+        },
+        "center_x": 0.732,
+        "center_y": 0.3825,
+        "relative_area": 0.00265,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 1 (Wing A & B)",
+        "nearest_residential_distance": 0.0447
+      },
+      {
+        "entity_id": "e3",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Party Lawn",
+        "legend_code": "4",
+        "legend_label": "Party Lawn",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.473,
+          "y_min": 0.363,
+          "x_max": 0.544,
+          "y_max": 0.401
+        },
+        "center_x": 0.5085,
+        "center_y": 0.382,
+        "relative_area": 0.0027,
+        "confidence_label": "High",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 1 (Wing A & B)",
+        "nearest_residential_distance": 0.1526
+      },
+      {
+        "entity_id": "e5",
+        "entity_type": "parking",
+        "entity_group": "circulation",
+        "label": "Parking",
+        "legend_code": null,
+        "legend_label": null,
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.443,
+          "y_min": 0.549,
+          "x_max": 0.668,
+          "y_max": 0.6
+        },
+        "center_x": 0.5555,
+        "center_y": 0.5745,
+        "relative_area": 0.01147,
+        "confidence_label": "High",
+        "located_by": "layout_model",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 1 (Wing A & B)",
+        "nearest_residential_distance": 0.1507
+      },
+      {
+        "entity_id": "e6",
         "entity_type": "entry_exit_gate",
         "entity_group": "structure",
         "label": "Entry/Exit Gate",
@@ -121,21 +217,21 @@
         "box": {
           "x_min": 0.06,
           "y_min": 0.346,
-          "x_max": 0.09,
+          "x_max": 0.089,
           "y_max": 0.399
         },
-        "center_x": 0.075,
+        "center_x": 0.0745,
         "center_y": 0.3725,
-        "relative_area": 0.00159,
-        "confidence_label": "Medium",
+        "relative_area": 0.00154,
+        "confidence_label": "High",
         "located_by": "layout_model",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 2 (Wing C & D)",
-        "nearest_residential_distance": 0.1476
+        "nearest_residential_distance": 0.1479
       },
       {
-        "entity_id": "e3",
+        "entity_id": "e7",
         "entity_type": "entry_exit_gate",
         "entity_group": "structure",
         "label": "Entry/Exit Gate",
@@ -143,44 +239,20 @@
         "legend_label": null,
         "category_key": "access_circulation",
         "box": {
-          "x_min": 0.904,
-          "y_min": 0.323,
-          "x_max": 0.939,
-          "y_max": 0.358
+          "x_min": 0.905,
+          "y_min": 0.325,
+          "x_max": 0.938,
+          "y_max": 0.36
         },
         "center_x": 0.9215,
-        "center_y": 0.3405,
-        "relative_area": 0.00122,
-        "confidence_label": "Medium",
+        "center_y": 0.3425,
+        "relative_area": 0.00115,
+        "confidence_label": "High",
         "located_by": "layout_model",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.1509
-      },
-      {
-        "entity_id": "e4",
-        "entity_type": "parking",
-        "entity_group": "circulation",
-        "label": "Parking Area",
-        "legend_code": null,
-        "legend_label": null,
-        "category_key": "access_circulation",
-        "box": {
-          "x_min": 0.442,
-          "y_min": 0.549,
-          "x_max": 0.669,
-          "y_max": 0.6
-        },
-        "center_x": 0.5555,
-        "center_y": 0.5745,
-        "relative_area": 0.01158,
-        "confidence_label": "Medium",
-        "located_by": "layout_model",
-        "attributes": {},
-        "adjacent_to": [],
-        "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.1507
+        "nearest_residential_distance": 0.1501
       },
       {
         "entity_id": "e9",
@@ -269,14 +341,14 @@
         "legend_label": null,
         "category_key": null,
         "box": {
-          "x_min": 0.068,
+          "x_min": 0.067,
           "y_min": 0.599,
           "x_max": 0.326,
           "y_max": 0.799
         },
-        "center_x": 0.197,
+        "center_x": 0.1965,
         "center_y": 0.699,
-        "relative_area": 0.0516,
+        "relative_area": 0.0518,
         "confidence_label": "Medium",
         "located_by": "layout_model",
         "attributes": {},
@@ -294,13 +366,13 @@
         "category_key": null,
         "box": {
           "x_min": 0.041,
-          "y_min": 0.344,
+          "y_min": 0.341,
           "x_max": 0.991,
           "y_max": 0.694
         },
         "center_x": 0.516,
-        "center_y": 0.519,
-        "relative_area": 0.3325,
+        "center_y": 0.5175,
+        "relative_area": 0.33535,
         "confidence_label": "Medium",
         "located_by": "layout_model",
         "attributes": {},
@@ -318,19 +390,19 @@
         "category_key": "access_circulation",
         "box": {
           "x_min": 0.0,
-          "y_min": 0.3,
+          "y_min": 0.247,
           "x_max": 1.0,
           "y_max": 0.348
         },
         "center_x": 0.5,
-        "center_y": 0.324,
-        "relative_area": 0.048,
+        "center_y": 0.2975,
+        "relative_area": 0.101,
         "confidence_label": "Medium",
         "located_by": "layout_model",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 2 (Wing C & D)",
-        "nearest_residential_distance": 0.1707
+        "nearest_residential_distance": 0.1816
       },
       {
         "entity_id": "e15",
@@ -389,20 +461,20 @@
         "legend_label": "Pet Park",
         "category_key": "family_community",
         "box": {
-          "x_min": 0.048,
-          "y_min": 0.5436,
-          "x_max": 0.0851,
-          "y_max": 0.6127
+          "x_min": 0.0743,
+          "y_min": 0.5517,
+          "x_max": 0.3143,
+          "y_max": 0.6103
         },
-        "center_x": 0.0665,
-        "center_y": 0.5781,
-        "relative_area": 0.00256,
+        "center_x": 0.1943,
+        "center_y": 0.581,
+        "relative_area": 0.01406,
         "confidence_label": "Medium",
         "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 2 (Wing C & D)",
-        "nearest_residential_distance": 0.1756
+        "nearest_residential_distance": 0.1183
       },
       {
         "entity_id": "m1-3",
@@ -429,6 +501,54 @@
         "nearest_residential_distance": 0.1526
       },
       {
+        "entity_id": "m1-4",
+        "entity_type": "pet_park",
+        "entity_group": "amenity",
+        "label": "Pet Park",
+        "legend_code": "1",
+        "legend_label": "Pet Park",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.2897,
+          "y_min": 0.3937,
+          "x_max": 0.3117,
+          "y_max": 0.4136
+        },
+        "center_x": 0.3007,
+        "center_y": 0.4037,
+        "relative_area": 0.00044,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.0316
+      },
+      {
+        "entity_id": "m1-5",
+        "entity_type": "pet_park",
+        "entity_group": "amenity",
+        "label": "Pet Park",
+        "legend_code": "1",
+        "legend_label": "Pet Park",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.048,
+          "y_min": 0.5433,
+          "x_max": 0.0843,
+          "y_max": 0.612
+        },
+        "center_x": 0.0662,
+        "center_y": 0.5776,
+        "relative_area": 0.00249,
+        "confidence_label": "Medium",
+        "located_by": "both",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.1756
+      },
+      {
         "entity_id": "m5-1",
         "entity_type": "other_feature",
         "entity_group": "amenity",
@@ -451,6 +571,54 @@
         "adjacent_to": [],
         "nearest_residential_block": "Tower 1 (Wing A & B)",
         "nearest_residential_distance": 0.128
+      },
+      {
+        "entity_id": "m9-1",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Nature Trail",
+        "legend_code": "9",
+        "legend_label": "Nature Trail",
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.0546,
+          "y_min": 0.5687,
+          "x_max": 0.0765,
+          "y_max": 0.5885
+        },
+        "center_x": 0.0655,
+        "center_y": 0.5786,
+        "relative_area": 0.00043,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.1764
+      },
+      {
+        "entity_id": "m9-2",
+        "entity_type": "walkway_pathway",
+        "entity_group": "circulation",
+        "label": "Nature Trail",
+        "legend_code": "9",
+        "legend_label": "Nature Trail",
+        "category_key": "access_circulation",
+        "box": {
+          "x_min": 0.5249,
+          "y_min": 0.4298,
+          "x_max": 0.5469,
+          "y_max": 0.4496
+        },
+        "center_x": 0.5359,
+        "center_y": 0.4397,
+        "relative_area": 0.00044,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 1 (Wing A & B)",
+        "nearest_residential_distance": 0.1275
       },
       {
         "entity_id": "m2-1",
@@ -485,20 +653,20 @@
         "legend_label": "Pet Seating Corner",
         "category_key": "family_community",
         "box": {
-          "x_min": 0.183,
-          "y_min": 0.5792,
-          "x_max": 0.205,
-          "y_max": 0.599
+          "x_min": 0.8383,
+          "y_min": 0.5262,
+          "x_max": 0.9601,
+          "y_max": 0.6257
         },
-        "center_x": 0.194,
-        "center_y": 0.5891,
-        "relative_area": 0.00044,
+        "center_x": 0.8992,
+        "center_y": 0.5759,
+        "relative_area": 0.01212,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
-        "nearest_residential_block": "Tower 2 (Wing C & D)",
-        "nearest_residential_distance": 0.1237
+        "nearest_residential_block": "Tower 1 (Wing A & B)",
+        "nearest_residential_distance": 0.1522
       },
       {
         "entity_id": "m2-3",
@@ -509,20 +677,44 @@
         "legend_label": "Pet Seating Corner",
         "category_key": "family_community",
         "box": {
-          "x_min": 0.8387,
-          "y_min": 0.5253,
-          "x_max": 0.9599,
-          "y_max": 0.6257
+          "x_min": 0.25,
+          "y_min": 0.5319,
+          "x_max": 0.4038,
+          "y_max": 0.5947
         },
-        "center_x": 0.8993,
-        "center_y": 0.5755,
-        "relative_area": 0.01217,
+        "center_x": 0.3269,
+        "center_y": 0.5633,
+        "relative_area": 0.00966,
         "confidence_label": "Medium",
         "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.0948
+      },
+      {
+        "entity_id": "m2-4",
+        "entity_type": "pet_park",
+        "entity_group": "amenity",
+        "label": "Pet Seating Corner",
+        "legend_code": "2",
+        "legend_label": "Pet Seating Corner",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.7541,
+          "y_min": 0.3897,
+          "x_max": 0.7761,
+          "y_max": 0.4095
+        },
+        "center_x": 0.7651,
+        "center_y": 0.3996,
+        "relative_area": 0.00044,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
         "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.1521
+        "nearest_residential_distance": 0.041
       },
       {
         "entity_id": "m7-1",
@@ -533,12 +725,12 @@
         "legend_label": "Seating Pocket",
         "category_key": "open_space",
         "box": {
-          "x_min": 0.359,
+          "x_min": 0.3588,
           "y_min": 0.5556,
-          "x_max": 0.381,
+          "x_max": 0.3808,
           "y_max": 0.5755
         },
-        "center_x": 0.37,
+        "center_x": 0.3698,
         "center_y": 0.5655,
         "relative_area": 0.00044,
         "confidence_label": "Medium",
@@ -546,16 +738,40 @@
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 2 (Wing C & D)",
-        "nearest_residential_distance": 0.1089
+        "nearest_residential_distance": 0.1088
       },
       {
-        "entity_id": "m6-1",
+        "entity_id": "m7-2",
         "entity_type": "other_feature",
         "entity_group": "amenity",
-        "label": "Trellis",
-        "legend_code": "6",
-        "legend_label": "Trellis",
-        "category_key": "amenity_richness",
+        "label": "Seating Pocket",
+        "legend_code": "7",
+        "legend_label": "Seating Pocket",
+        "category_key": "open_space",
+        "box": {
+          "x_min": 0.7701,
+          "y_min": 0.6244,
+          "x_max": 0.7921,
+          "y_max": 0.6442
+        },
+        "center_x": 0.7811,
+        "center_y": 0.6343,
+        "relative_area": 0.00044,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 1 (Wing A & B)",
+        "nearest_residential_distance": 0.1472
+      },
+      {
+        "entity_id": "m8-1",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Lawn",
+        "legend_code": "8",
+        "legend_label": "Lawn",
+        "category_key": "green_landscape",
         "box": {
           "x_min": 0.4988,
           "y_min": 0.6273,
@@ -573,28 +789,28 @@
         "nearest_residential_distance": 0.2048
       },
       {
-        "entity_id": "m9-1",
-        "entity_type": "walkway_pathway",
-        "entity_group": "circulation",
-        "label": "Nature Trail",
-        "legend_code": "9",
-        "legend_label": "Nature Trail",
-        "category_key": "access_circulation",
+        "entity_id": "m8-2",
+        "entity_type": "lawn_garden",
+        "entity_group": "landscape",
+        "label": "Lawn",
+        "legend_code": "8",
+        "legend_label": "Lawn",
+        "category_key": "green_landscape",
         "box": {
-          "x_min": 0.5249,
-          "y_min": 0.4295,
-          "x_max": 0.5469,
-          "y_max": 0.4493
+          "x_min": 0.6062,
+          "y_min": 0.609,
+          "x_max": 0.671,
+          "y_max": 0.6913
         },
-        "center_x": 0.5359,
-        "center_y": 0.4394,
-        "relative_area": 0.00044,
+        "center_x": 0.6386,
+        "center_y": 0.6502,
+        "relative_area": 0.00533,
         "confidence_label": "Medium",
-        "located_by": "legend_marker",
+        "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.1275
+        "nearest_residential_distance": 0.1652
       },
       {
         "entity_id": "m3-1",
@@ -607,18 +823,90 @@
         "box": {
           "x_min": 0.7518,
           "y_min": 0.6031,
-          "x_max": 0.8075,
-          "y_max": 0.6508
+          "x_max": 0.807,
+          "y_max": 0.6499
         },
-        "center_x": 0.7796,
-        "center_y": 0.627,
-        "relative_area": 0.00266,
+        "center_x": 0.7794,
+        "center_y": 0.6265,
+        "relative_area": 0.00258,
         "confidence_label": "Medium",
         "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.1417
+        "nearest_residential_distance": 0.1413
+      },
+      {
+        "entity_id": "m3-2",
+        "entity_type": "sports_court",
+        "entity_group": "amenity",
+        "label": "Multiplay Court",
+        "legend_code": "3",
+        "legend_label": "Multiplay Court",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.1444,
+          "y_min": 0.3442,
+          "x_max": 0.1664,
+          "y_max": 0.364
+        },
+        "center_x": 0.1554,
+        "center_y": 0.3541,
+        "relative_area": 0.00044,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.1069
+      },
+      {
+        "entity_id": "m3-3",
+        "entity_type": "sports_court",
+        "entity_group": "amenity",
+        "label": "Multiplay Court",
+        "legend_code": "3",
+        "legend_label": "Multiplay Court",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.8283,
+          "y_min": 0.3436,
+          "x_max": 0.8503,
+          "y_max": 0.3634
+        },
+        "center_x": 0.8393,
+        "center_y": 0.3535,
+        "relative_area": 0.00044,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 1 (Wing A & B)",
+        "nearest_residential_distance": 0.1004
+      },
+      {
+        "entity_id": "m3-4",
+        "entity_type": "sports_court",
+        "entity_group": "amenity",
+        "label": "Multiplay Court",
+        "legend_code": "3",
+        "legend_label": "Multiplay Court",
+        "category_key": "family_community",
+        "box": {
+          "x_min": 0.1827,
+          "y_min": 0.5789,
+          "x_max": 0.2047,
+          "y_max": 0.5987
+        },
+        "center_x": 0.1937,
+        "center_y": 0.5888,
+        "relative_area": 0.00044,
+        "confidence_label": "Medium",
+        "located_by": "legend_marker",
+        "attributes": {},
+        "adjacent_to": [],
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.1236
       },
       {
         "entity_id": "m4-1",
@@ -645,100 +933,76 @@
         "nearest_residential_distance": 0.1651
       },
       {
-        "entity_id": "m8-1",
+        "entity_id": "m4-2",
         "entity_type": "lawn_garden",
         "entity_group": "landscape",
-        "label": "Lawn",
-        "legend_code": "8",
-        "legend_label": "Lawn",
-        "category_key": "green_landscape",
+        "label": "Party Lawn",
+        "legend_code": "4",
+        "legend_label": "Party Lawn",
+        "category_key": "family_community",
         "box": {
-          "x_min": 0.4718,
-          "y_min": 0.3617,
-          "x_max": 0.5453,
-          "y_max": 0.4023
+          "x_min": 0.5293,
+          "y_min": 0.3462,
+          "x_max": 0.7156,
+          "y_max": 0.3595
         },
-        "center_x": 0.5086,
-        "center_y": 0.382,
-        "relative_area": 0.00298,
+        "center_x": 0.6224,
+        "center_y": 0.3528,
+        "relative_area": 0.00248,
         "confidence_label": "Medium",
         "located_by": "both",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.1525
+        "nearest_residential_distance": 0.0964
       },
       {
-        "entity_id": "m8-2",
-        "entity_type": "lawn_garden",
-        "entity_group": "landscape",
-        "label": "Lawn",
-        "legend_code": "8",
-        "legend_label": "Lawn",
-        "category_key": "green_landscape",
+        "entity_id": "m6-1",
+        "entity_type": "other_feature",
+        "entity_group": "amenity",
+        "label": "Trellis",
+        "legend_code": "6",
+        "legend_label": "Trellis",
+        "category_key": "amenity_richness",
         "box": {
-          "x_min": 0.7541,
-          "y_min": 0.3897,
-          "x_max": 0.7761,
-          "y_max": 0.4095
+          "x_min": 0.4986,
+          "y_min": 0.627,
+          "x_max": 0.5206,
+          "y_max": 0.6469
         },
-        "center_x": 0.7651,
-        "center_y": 0.3996,
+        "center_x": 0.5096,
+        "center_y": 0.637,
         "relative_area": 0.00044,
         "confidence_label": "Medium",
         "located_by": "legend_marker",
         "attributes": {},
         "adjacent_to": [],
         "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.041
+        "nearest_residential_distance": 0.2048
       },
       {
-        "entity_id": "m8-3",
-        "entity_type": "lawn_garden",
-        "entity_group": "landscape",
-        "label": "Lawn",
-        "legend_code": "8",
-        "legend_label": "Lawn",
-        "category_key": "green_landscape",
+        "entity_id": "m6-2",
+        "entity_type": "other_feature",
+        "entity_group": "amenity",
+        "label": "Trellis",
+        "legend_code": "6",
+        "legend_label": "Trellis",
+        "category_key": "amenity_richness",
         "box": {
-          "x_min": 0.5162,
-          "y_min": 0.4153,
-          "x_max": 0.6014,
-          "y_max": 0.476
+          "x_min": 0.3741,
+          "y_min": 0.343,
+          "x_max": 0.3961,
+          "y_max": 0.3628
         },
-        "center_x": 0.5588,
-        "center_y": 0.4456,
-        "relative_area": 0.00517,
+        "center_x": 0.3851,
+        "center_y": 0.3529,
+        "relative_area": 0.00044,
         "confidence_label": "Medium",
-        "located_by": "both",
+        "located_by": "legend_marker",
         "attributes": {},
         "adjacent_to": [],
-        "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.1122
-      },
-      {
-        "entity_id": "m8-4",
-        "entity_type": "lawn_garden",
-        "entity_group": "landscape",
-        "label": "Lawn",
-        "legend_code": "8",
-        "legend_label": "Lawn",
-        "category_key": "green_landscape",
-        "box": {
-          "x_min": 0.8386,
-          "y_min": 0.526,
-          "x_max": 0.9603,
-          "y_max": 0.6283
-        },
-        "center_x": 0.8995,
-        "center_y": 0.5772,
-        "relative_area": 0.01245,
-        "confidence_label": "Medium",
-        "located_by": "both",
-        "attributes": {},
-        "adjacent_to": [],
-        "nearest_residential_block": "Tower 1 (Wing A & B)",
-        "nearest_residential_distance": 0.153
+        "nearest_residential_block": "Tower 2 (Wing C & D)",
+        "nearest_residential_distance": 0.0961
       },
       {
         "entity_id": "e16",
@@ -885,7 +1149,7 @@
         "nearest_residential_distance": 0.0409
       },
       {
-        "entity_id": "e33",
+        "entity_id": "e31",
         "entity_type": "legend_marker",
         "entity_group": "annotation",
         "label": "Marker C",
@@ -909,7 +1173,7 @@
         "nearest_residential_distance": 0.003
       },
       {
-        "entity_id": "e34",
+        "entity_id": "e32",
         "entity_type": "legend_marker",
         "entity_group": "annotation",
         "label": "Marker A",
@@ -943,18 +1207,18 @@
       "external_road": 2,
       "internal_road": 0,
       "driveway": 0,
-      "walkway_pathway": 1,
+      "walkway_pathway": 2,
       "parking": 1,
       "swimming_pool": 0,
       "water_feature": 0,
-      "sports_court": 1,
+      "sports_court": 6,
       "kids_play_area": 0,
       "outdoor_game": 0,
       "outdoor_gym": 0,
       "plaza": 0,
-      "pet_park": 6,
+      "pet_park": 9,
       "working_pods": 0,
-      "other_feature": 3,
+      "other_feature": 5,
       "lawn_garden": 5,
       "tree_canopy_buffer": 0,
       "legend_marker": 8,
@@ -965,8 +1229,8 @@
     },
     "group_counts": {
       "structure": 4,
-      "circulation": 4,
-      "amenity": 10,
+      "circulation": 5,
+      "amenity": 20,
       "landscape": 5,
       "water": 0,
       "annotation": 11
@@ -975,37 +1239,40 @@
       {
         "block_label": "Tower 1 (Wing A & B)",
         "nearby_amenities": [
-          "Party Hall",
-          "Multiplay Court",
           "Pet Seating Corner",
+          "Multiplay Court",
+          "Party Hall",
+          "Seating Pocket",
           "Pet Park"
         ],
         "nearby_green": [
-          "Lawn",
-          "Party Lawn"
-        ],
-        "near_entry_gate": false,
-        "near_external_road": false,
-        "near_utility_yard": false,
-        "near_parking": false,
-        "nearest_amenity_distance": 0.128
-      },
-      {
-        "block_label": "Tower 2 (Wing C & D)",
-        "nearby_amenities": [
-          "Seating Pocket",
-          "Pet Seating Corner",
-          "Pet Park",
-          "Party Hall"
-        ],
-        "nearby_green": [
+          "Party Lawn",
           "Lawn"
         ],
         "near_entry_gate": false,
         "near_external_road": false,
         "near_utility_yard": false,
         "near_parking": false,
-        "nearest_amenity_distance": 0.1089
+        "nearest_amenity_distance": 0.041
+      },
+      {
+        "block_label": "Tower 2 (Wing C & D)",
+        "nearby_amenities": [
+          "Pet Park",
+          "Multiplay Court",
+          "Pet Seating Corner",
+          "Trellis",
+          "Seating Pocket",
+          "Party Hall"
+        ],
+        "nearby_green": [
+          "Party Lawn"
+        ],
+        "near_entry_gate": false,
+        "near_external_road": false,
+        "near_utility_yard": false,
+        "near_parking": false,
+        "nearest_amenity_distance": 0.0316
       }
     ],
     "diagnostics": [
@@ -1018,11 +1285,9 @@
         ]
       },
       {
-        "code": "marker_recovery_pass",
-        "count": 4,
-        "items": [
-          "8"
-        ]
+        "code": "small_sheet_marker_pass",
+        "count": 23,
+        "items": []
       },
       {
         "code": "oversized_boxes_discarded",
@@ -1031,12 +1296,25 @@
       },
       {
         "code": "marker_contradicted_boxes_discarded",
-        "count": 3,
+        "count": 2,
         "items": []
       },
       {
+        "code": "contradicted_boxes_checked",
+        "count": 2,
+        "items": [
+          "confirmed:2",
+          "dropped:0"
+        ]
+      },
+      {
         "code": "marker_features_boxed",
-        "count": 9,
+        "count": 10,
+        "items": []
+      },
+      {
+        "code": "marker_expansion_attempted",
+        "count": 17,
         "items": []
       },
       {
@@ -1055,7 +1333,7 @@
   },
   "site_metrics": null,
   "area_estimate": {
-    "project_id": "plan-44b492ef",
+    "project_id": "plan-a2360bf2",
     "project_name": "Kalpataru Vian Project Master Plan Image1 6699 Opt 3D73F302 F4B9 476D B1Ac C0B21",
     "green_area_percentage": {
       "min": 13.0,
@@ -1064,9 +1342,9 @@
       "basis": "opencv_green_lower_bound_plus_vision_and_json_green_signals"
     },
     "open_area_percentage": {
-      "min": 39.2,
-      "max": 49.8,
-      "display": "~39–50%",
+      "min": 41.8,
+      "max": 61.8,
+      "display": "~42–62%",
       "basis": "opencv_known_open_pixels_plus_vision_open_and_inverse_built_estimate"
     },
     "confidence": {
@@ -1078,7 +1356,8 @@
         "Vision model boundary confidence is high.",
         "OpenCV unknown/unclassified area is high.",
         "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
-        "The master plan is a stylized 2D schematic representation and may not be perfectly to scale."
+        "The image is a stylized 2D master plan and may not be perfectly to scale.",
+        "Low resolution might obscure fine text details, but major zones are clearly legible."
       ]
     },
     "guardrails": {
@@ -1090,7 +1369,7 @@
       "green_space_label": "Estimated Green Space",
       "green_space_value": "~13–31%",
       "open_area_label": "Estimated Open Area",
-      "open_area_value": "~39–50%",
+      "open_area_value": "~42–62%",
       "confidence_label": "Low Confidence",
       "tooltip": "Estimated using the project master plan, vision-model interpretation, OpenCV segmentation, and available Datacenter project signals. Actual values may vary from official layout or RERA disclosures."
     },
@@ -1101,8 +1380,8 @@
       "opencv_paved_percentage": 35.63,
       "opencv_unknown_percentage": 54.7,
       "vision_green_estimate": "Moderate",
-      "vision_open_estimate": "Moderate",
-      "vision_built_estimate": "High",
+      "vision_open_estimate": "High",
+      "vision_built_estimate": "Moderate",
       "image_quality_score": 0.52,
       "image_quality_label": "Low",
       "project_area_acres": null,
@@ -1112,7 +1391,8 @@
     },
     "warnings": [
       "Unknown/unclassified area is high. Manual review or improved segmentation may be needed.",
-      "The master plan is a stylized 2D schematic representation and may not be perfectly to scale."
+      "The image is a stylized 2D master plan and may not be perfectly to scale.",
+      "Low resolution might obscure fine text details, but major zones are clearly legible."
     ],
     "notes": [
       "Final values are range-based estimates, not official measurements.",
@@ -1122,7 +1402,7 @@
     ]
   },
   "image_metadata": {
-    "image_path": "<repo>/data/input/analysis_runs/44b492ef-62a7-41f2-bb65-27311e0d74b7/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21.jpg",
+    "image_path": "<repo>/data/input/analysis_runs/a2360bf2-aab0-4c47-880c-93c8fe149842/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21.jpg",
     "normalized_image_path": "<repo>/data/output/overlays/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21_normalized.png",
     "file_name": "kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21.jpg",
     "file_extension": ".jpg",
@@ -1162,12 +1442,12 @@
     }
   ],
   "run_artifacts": {
-    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/44b492ef-62a7-41f2-bb65-27311e0d74b7/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21.jpg",
+    "input_master_plan_image_path": "<repo>/data/input/analysis_runs/a2360bf2-aab0-4c47-880c-93c8fe149842/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21.jpg",
     "input_project_json_path": null,
     "normalized_image_path": "<repo>/data/output/overlays/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21_normalized.png",
-    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/44b492ef-62a7-41f2-bb65-27311e0d74b7/master_plan_entity_map.json",
-    "area_estimate_json_path": "<repo>/data/output/analysis_runs/44b492ef-62a7-41f2-bb65-27311e0d74b7/area_estimate.json",
+    "master_plan_entity_map_json_path": "<repo>/data/output/analysis_runs/a2360bf2-aab0-4c47-880c-93c8fe149842/master_plan_entity_map.json",
+    "area_estimate_json_path": "<repo>/data/output/analysis_runs/a2360bf2-aab0-4c47-880c-93c8fe149842/area_estimate.json",
     "site_metrics_json_path": null,
-    "qa_trail_json_path": "<repo>/data/output/analysis_runs/44b492ef-62a7-41f2-bb65-27311e0d74b7/qa_trail.json"
+    "qa_trail_json_path": "<repo>/data/output/analysis_runs/a2360bf2-aab0-4c47-880c-93c8fe149842/qa_trail.json"
   }
 }

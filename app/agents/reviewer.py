@@ -22,6 +22,8 @@ from app.schemas.master_plan_entity_schema import MasterPlanEntityMap
 from app.schemas.project_schema import ParsedProjectMetadata
 from app.services.master_plan_entity_extractor import (
     WATER_MIN_BLUE_SHARE,
+    _normalize_code,
+    bare_number_aliases,
     marker_only_area_features,
     plan_declares_water,
     unsupported_water_entities,
@@ -166,6 +168,22 @@ def run_rule_checks(
             entity_labels=[entity.label for entity in marker_only],
             suggested_fix="Box the drawn area around each marker.",
         ))
+
+    # A10: markers whose codes are not in the legend mean the circles were misread
+    applied.append("A10")
+    if entity_map.legend:
+        codes = [item.code for item in entity_map.legend]
+        legend_keys = {_normalize_code(code) for code in codes} | set(bare_number_aliases(codes))
+        unknown = [
+            entity for entity in entity_map.entities
+            if entity.entity_type == "legend_marker" and entity.legend_code and _normalize_code(entity.legend_code) not in legend_keys
+        ]
+        if len(unknown) >= 5:
+            findings.append(Finding(
+                code="unreadable_markers", severity="minor",
+                detail=f"{len(unknown)} circle markers carry codes that are not in the legend ({', '.join(sorted({e.legend_code or '' for e in unknown})[:8])}); the circles are too small to read reliably on this sheet.",
+                entity_ids=[entity.entity_id for entity in unknown],
+            ))
 
     # A1 (deterministic part): no blocks at all is a blocker
     applied.append("A1")

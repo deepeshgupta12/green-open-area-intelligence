@@ -722,7 +722,40 @@ def extract_master_plan_entities(
             image_height=height,
             project_id=project.project_id if project else None,
             project_name=project.project_name if project else None,
+            keep_contradicted=True,
         )
+
+    def run_targeted_markers(tile: tuple[float, float, float, float], codes: list[str]) -> list[dict[str, Any]]:
+        try:
+            payload = run_call(
+                build_targeted_marker_prompt(codes),
+                _tile_part(image, tile),
+                GeminiMarkerExtraction,
+                max_output_tokens=MARKER_MAX_OUTPUT_TOKENS,
+            )
+        except Exception:  # noqa: BLE001 - recovery is best effort
+            return []
+        # Accept the prefixed code or its bare number ("GR-13" or "13").
+        wanted = {_normalize_code(code) for code in codes} | set(bare_number_aliases(codes))
+        return [
+            marker
+            for marker in map_markers_to_full_image(payload.get("markers", []), tile)
+            if _normalize_code(marker.get("legend_code")) in wanted and marker_has_ink(image, marker["box_2d"])
+        ]
+
+    # On a small sheet the circles are a few pixels across and the open marker
+    # pass pads them with invented codes; a pass that names the legend codes
+    # reads them far better, so every code gets one before the first parse.
+    legend_codes = [
+        _clean_code(item.get("code"))
+        for item in site_payload.get("legend_items", []) or []
+        if isinstance(item, dict) and _clean_code(item.get("code"))
+    ][:MAX_MARKER_RECOVERY_CODES]
+    if legend_codes and max(width, height) < SMALL_IMAGE_SIDE:
+        with ThreadPoolExecutor(max_workers=len(tiles)) as pool:
+            named = [marker for batch in pool.map(lambda tile: run_targeted_markers(tile, legend_codes), tiles) for marker in batch]
+        on_drawing = merge_markers(on_drawing, named)
+        diagnostics.append({"code": "small_sheet_marker_pass", "count": len(named)})
 
     entity_map = parse(on_drawing)
 
@@ -730,26 +763,8 @@ def extract_master_plan_entities(
     # the codes keeps the model from inventing circles and keeps lists short.
     unlocated = [item.code for item in entity_map.legend if not item.located_on_plan][:MAX_MARKER_RECOVERY_CODES]
     if unlocated:
-        def run_targeted_markers(tile: tuple[float, float, float, float]) -> list[dict[str, Any]]:
-            try:
-                payload = run_call(
-                    build_targeted_marker_prompt(unlocated),
-                    _tile_part(image, tile),
-                    GeminiMarkerExtraction,
-                    max_output_tokens=MARKER_MAX_OUTPUT_TOKENS,
-                )
-            except Exception:  # noqa: BLE001 - recovery is best effort
-                return []
-            # Accept the prefixed code or its bare number ("GR-13" or "13").
-            wanted = {_normalize_code(code) for code in unlocated} | set(bare_number_aliases(unlocated))
-            return [
-                marker
-                for marker in map_markers_to_full_image(payload.get("markers", []), tile)
-                if _normalize_code(marker.get("legend_code")) in wanted and marker_has_ink(image, marker["box_2d"])
-            ]
-
         with ThreadPoolExecutor(max_workers=len(tiles)) as pool:
-            recovered_markers = [marker for batch in pool.map(run_targeted_markers, tiles) for marker in batch]
+            recovered_markers = [marker for batch in pool.map(lambda tile: run_targeted_markers(tile, unlocated), tiles) for marker in batch]
         diagnostics.append({
             "code": "marker_recovery_pass",
             "count": len(recovered_markers),
@@ -757,6 +772,10 @@ def extract_master_plan_entities(
         })
         if recovered_markers:
             entity_map = parse(on_drawing + recovered_markers)
+
+    # A drawn box that a marker elsewhere "contradicted" is kept only if its
+    # crop shows the feature; a misread marker must not erase a real court.
+    entity_map = verify_contradicted_boxes(entity_map, image, run_call)
 
     # A marker places a court or pool reliably but only as a disc; box the
     # drawn area it labels so the hover map covers the feature itself.
@@ -984,6 +1003,100 @@ def expand_marker_features(entity_map: MasterPlanEntityMap, image: Image.Image, 
     return boxed.model_copy(
         update={"diagnostics": list(boxed.diagnostics) + [Diagnostic(code="marker_expansion_attempted", count=len(targets))]}
     )
+
+
+# --------------------------------------------------------------------------- #
+# Small sheets and contradicted boxes
+# --------------------------------------------------------------------------- #
+
+# Below this longest side the numbered circles are too small for the open
+# marker pass to read reliably.
+SMALL_IMAGE_SIDE = 1000
+MARKER_MERGE_DISTANCE = 0.02
+
+
+def merge_markers(primary: list[dict[str, Any]], extra: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Union of two marker lists; an extra marker within MARKER_MERGE_DISTANCE of one with the same code is the same circle."""
+    merged = list(primary)
+    for marker in extra:
+        box = _box_from_payload(marker.get("box_2d"))
+        if box is None:
+            continue
+        code = _normalize_code(marker.get("legend_code"))
+        cx, cy = box.center
+        duplicate = False
+        for other in merged:
+            other_box = _box_from_payload(other.get("box_2d"))
+            if other_box is None or _normalize_code(other.get("legend_code")) != code:
+                continue
+            ox, oy = other_box.center
+            if abs(ox - cx) <= MARKER_MERGE_DISTANCE and abs(oy - cy) <= MARKER_MERGE_DISTANCE:
+                duplicate = True
+                break
+        if not duplicate:
+            merged.append(marker)
+    return merged
+
+
+class GeminiFeatureCheck(BaseModel):
+    """Whether a crop really shows the feature a drawn box claims."""
+
+    is_feature: bool = Field(default=False, description="True when the centre of the crop shows the named feature.")
+    what: str | None = Field(default=None, description="What the centre of the crop shows, in a few words.")
+
+
+def build_feature_check_prompt(label: str, entity_type: str) -> str:
+    return (
+        f"This crop of a real-estate master plan is centred on a box the extraction labelled \"{label}\" "
+        f"({humanize_type(entity_type)}). Does the centre of the crop actually show that kind of feature? "
+        "Judge only what is drawn. Return \"is_feature\" and a few words in \"what\". Return JSON only."
+    )
+
+
+def contradicted_entities(entity_map: MasterPlanEntityMap) -> list[MasterPlanEntity]:
+    return [entity for entity in entity_map.entities if entity.attributes.get("contradicted") == "yes"]
+
+
+def apply_feature_verdicts(entity_map: MasterPlanEntityMap, verdicts: dict[str, bool | None]) -> MasterPlanEntityMap:
+    """Keep contradicted boxes the crop confirmed (flag cleared), drop the ones it rejected, keep unverifiable ones."""
+    flagged = contradicted_entities(entity_map)
+    if not flagged:
+        return entity_map
+    confirmed = 0
+    dropped: list[str] = []
+    entities: list[MasterPlanEntity] = []
+    for entity in entity_map.entities:
+        if entity.attributes.get("contradicted") != "yes":
+            entities.append(entity)
+            continue
+        verdict = verdicts.get(entity.entity_id)
+        if verdict is False:
+            dropped.append(entity.label)
+            continue
+        if verdict:
+            confirmed += 1
+        entities.append(entity.model_copy(update={"attributes": {k: v for k, v in entity.attributes.items() if k != "contradicted"}}))
+    diagnostics = list(entity_map.diagnostics) + [
+        Diagnostic(code="contradicted_boxes_checked", count=len(flagged), items=[f"confirmed:{confirmed}", f"dropped:{len(dropped)}"] + dropped[:6])
+    ]
+    return _with_entities(entity_map, entities, diagnostics)
+
+
+def verify_contradicted_boxes(entity_map: MasterPlanEntityMap, image: Image.Image, call: ModelCall) -> MasterPlanEntityMap:
+    flagged = contradicted_entities(entity_map)
+    if not flagged:
+        return entity_map
+
+    def check(entity: MasterPlanEntity) -> tuple[str, bool | None]:
+        try:
+            payload = call(build_feature_check_prompt(entity.label, entity.entity_type), _crop_part(image, entity.box, pad=0.6), GeminiFeatureCheck, 0.0, 128)
+        except Exception:  # noqa: BLE001 - unverifiable keeps the box
+            return entity.entity_id, None
+        return entity.entity_id, bool(payload.get("is_feature"))
+
+    with ThreadPoolExecutor(max_workers=min(8, len(flagged))) as pool:
+        verdicts = dict(pool.map(check, flagged))
+    return apply_feature_verdicts(entity_map, verdicts)
 
 
 # --------------------------------------------------------------------------- #
@@ -2417,8 +2530,14 @@ def parse_master_plan_entity_payload(
     image_height: int,
     project_id: str | None = None,
     project_name: str | None = None,
+    keep_contradicted: bool = False,
 ) -> MasterPlanEntityMap:
-    """Pure transformation from the merged Gemini payload to the frontend contract."""
+    """Pure transformation from the merged Gemini payload to the frontend contract.
+
+    With ``keep_contradicted`` a drawn box that disagrees with a marker for
+    the same feature is kept and flagged (``attributes.contradicted``)
+    instead of dropped, for a later crop check.
+    """
     diagnostics: list[Diagnostic] = [
         Diagnostic(
             code=str(item.get("code") or "note"),
@@ -2447,7 +2566,9 @@ def parse_master_plan_entity_payload(
     entities, oversized = _drop_oversized_boxes(entities)
     entities, collapsed = _drop_collapsed_boxes(entities)
     entities, patterned = _drop_patterned_runs(entities)
-    entities, contradicted = _derive_marker_features(entities, image_width=image_width, image_height=image_height)
+    entities, contradicted = _derive_marker_features(
+        entities, image_width=image_width, image_height=image_height, keep_contradicted=keep_contradicted
+    )
     entities, capped = _apply_type_caps(entities)
     _attach_nearest_block(entities, image_width=image_width, image_height=image_height)
 
@@ -2799,7 +2920,7 @@ def _evenly_spaced(values: list[float]) -> bool:
 
 
 def _derive_marker_features(
-    entities: list[MasterPlanEntity], *, image_width: int, image_height: int
+    entities: list[MasterPlanEntity], *, image_width: int, image_height: int, keep_contradicted: bool = False
 ) -> tuple[list[MasterPlanEntity], int]:
     """Reconcile drawing boxes with numbered legend markers.
 
@@ -2857,6 +2978,11 @@ def _derive_marker_features(
         ]
         if not near:
             contradicted += 1
+            if keep_contradicted:
+                # A misread marker elsewhere on the sheet is not proof the drawn
+                # box is wrong; flag it so a crop check can decide.
+                other.attributes = {**other.attributes, "contradicted": "yes"}
+                kept_others.append(other)
             continue
 
         other.located_by = "both"

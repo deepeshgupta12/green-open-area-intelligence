@@ -985,3 +985,33 @@ def test_umbrella_remainder_is_accepted_from_row_alignment_when_the_crop_check_d
     wing_g = next(e for e in split.entities if e.label == "WING - G")
     assert abs(wing_g.box.x_min - 0.153) < 0.002 and abs(wing_g.box.x_max - 0.26) < 0.002
     assert split.diagnostics[-1].items == ["dropped:0", "split:1"]
+
+
+def test_contradicted_boxes_are_kept_for_a_crop_check_when_asked():
+    from app.services.master_plan_entity_extractor import apply_feature_verdicts, contradicted_entities, merge_markers
+
+    payload = build_sample_payload()
+    payload["legend_items"] = [{"code": "3", "label": "Multiplay Court"}]
+    payload["entities"] = [
+        {"entity_id": "e1", "entity_type": "residential_block", "label": "Wing - A", "box_2d": [100, 100, 300, 250]},
+        # The drawn court sits top-left; a misread marker "3" lands bottom-right.
+        {"entity_id": "court", "entity_type": "sports_court", "label": "Multiplay Court", "box_2d": [380, 230, 470, 330]},
+        {"entity_id": "m3", "entity_type": "legend_marker", "legend_code": "3", "label": "", "box_2d": [630, 780, 645, 795]},
+    ]
+    dropped = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    assert not any(e.entity_id == "court" for e in dropped.entities)  # old behaviour: contradicted and gone
+    kept = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000, keep_contradicted=True)
+    court = next(e for e in kept.entities if e.entity_id == "court")
+    assert court.attributes.get("contradicted") == "yes" and [e.entity_id for e in contradicted_entities(kept)] == ["court"]
+
+    confirmed = apply_feature_verdicts(kept, {"court": True})
+    court2 = next(e for e in confirmed.entities if e.entity_id == "court")
+    assert "contradicted" not in court2.attributes and confirmed.diagnostics[-1].items[:2] == ["confirmed:1", "dropped:0"]
+    rejected = apply_feature_verdicts(kept, {"court": False})
+    assert not any(e.entity_id == "court" for e in rejected.entities) and rejected.diagnostics[-1].items[:2] == ["confirmed:0", "dropped:1"]
+    unverifiable = apply_feature_verdicts(kept, {})
+    assert any(e.entity_id == "court" and "contradicted" not in e.attributes for e in unverifiable.entities)
+
+    primary = [{"legend_code": "8", "box_2d": [0.30, 0.30, 0.32, 0.32]}]
+    extra = [{"legend_code": "8", "box_2d": [0.305, 0.31, 0.325, 0.33]}, {"legend_code": "8", "box_2d": [0.6, 0.3, 0.62, 0.32]}, {"legend_code": "3", "box_2d": [0.3, 0.3, 0.32, 0.32]}]
+    assert len(merge_markers(primary, extra)) == 3  # the near-duplicate "8" is dropped, the far "8" and the "3" are added
