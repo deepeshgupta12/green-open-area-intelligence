@@ -45,6 +45,13 @@ def show_playbook() -> None:
 
 def show_backlog(playbook=None) -> None:
     playbook = playbook or load_playbook()
+    from app.agents.playbook import DEFAULT_TUNING
+
+    print("\nTuning (reviewer tolerances the teacher adjusts from evidence)")
+    for key, default in DEFAULT_TUNING.items():
+        print(f"  {key} = {playbook.tuning.get(key, default):g}")
+    for line in playbook.tuning_history[-6:]:
+        print(f"  - {line}")
     items = sorted((item for item in playbook.backlog if item.status == "open"), key=lambda item: -item.occurrences)
     print("\nBacklog: findings the fixer has no code for (a developer's list)")
     if not items:
@@ -54,6 +61,16 @@ def show_backlog(playbook=None) -> None:
         print(f"       {item.detail[:160]}")
         if item.suggested_change:
             print(f"       change: {item.suggested_change[:200]}")
+
+
+def _backfill_checked(raw: dict) -> dict:
+    """Trails written before the fixer reported `checked`: infer it from the recipe's own wording."""
+    for round_ in raw.get("rounds", []):
+        for action in round_.get("actions", []):
+            if "checked" not in action:
+                detail = str(action.get("detail", ""))
+                action["checked"] = not action.get("applied") and (detail.startswith("0 of") or detail.startswith("footprint recovery added 0"))
+    return raw
 
 
 def teach_from_trails(run_dirs: list[Path]) -> int:
@@ -68,7 +85,7 @@ def teach_from_trails(run_dirs: list[Path]) -> int:
         trail_path = run_dir / "qa_trail.json"
         if not trail_path.is_file():
             continue
-        trail = QaTrail.model_validate(json.loads(trail_path.read_text(encoding="utf-8")))
+        trail = QaTrail.model_validate(_backfill_checked(json.loads(trail_path.read_text(encoding="utf-8"))))
         playbook, touched = teach(playbook, trail, None)
         total += touched
         print(f"  {run_dir.name[:8]}: {trail.plan_style} {trail.final_verdict} {trail.final_score} -> {touched} playbook entries touched")

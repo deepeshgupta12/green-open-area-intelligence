@@ -144,11 +144,14 @@ def record_code_gaps(playbook: Playbook, trail: QaTrail, suggestions: dict[str, 
             continue
         seen_codes.add(finding.code)
         suggestion = (suggestions or {}).get(finding.code)
+        detail = finding.detail + (f" Fixer: {action.detail}" if action is not None else " Fixer: no recipe.")
+        verified_clean = 1 if action is not None and action.checked else 0
         existing = next((item for item in backlog if item.finding_code == finding.code and item.plan_style == trail.plan_style and item.status == "open"), None)
         if existing is not None:
             existing.occurrences += 1
+            existing.verified_clean += verified_clean
             existing.last_seen = stamp
-            existing.detail = finding.detail
+            existing.detail = detail
             if trail.run_id and trail.run_id not in existing.example_runs:
                 existing.example_runs = (existing.example_runs + [trail.run_id])[-5:]
             if suggestion and not existing.suggested_change:
@@ -157,11 +160,52 @@ def record_code_gaps(playbook: Playbook, trail: QaTrail, suggestions: dict[str, 
             backlog.append(BacklogItem(
                 id=f"B{len(backlog) + 1}", finding_code=finding.code, plan_style=trail.plan_style,
                 first_seen=stamp, last_seen=stamp, example_runs=[trail.run_id] if trail.run_id else [],
-                detail=finding.detail + (f" Fixer: {action.detail}" if action is not None else " Fixer: no recipe."),
-                suggested_change=suggestion,
+                detail=detail, suggested_change=suggestion, verified_clean=verified_clean,
             ))
         touched += 1
     return playbook.model_copy(update={"backlog": backlog, "updated_at": stamp}), touched
+
+
+MIN_EVIDENCE_FOR_TUNING = 3
+TUNED_FINDING_KEYS = {"false_positive_block": "count_over_tolerance", "missed_blocks": "count_gap_tolerance"}
+
+
+def tune_from_backlog(playbook: Playbook) -> tuple[Playbook, list[str]]:
+    """Adjust reviewer tolerances from backlog items the fixer has repeatedly checked and found nothing wrong with.
+
+    * ``false_positive_block`` recurring on a plan style while every crop check
+      kept the boxes -> raise that style's over-count tolerance by one.
+    * ``missed_blocks`` recurring while the recovery pass kept finding no more
+      towers -> raise that style's gap tolerance by one.
+    The evidence is the fixer's own ``checked`` flag counted into
+    ``verified_clean``, never the wording of a finding. Each step is bounded,
+    applied once per evidence batch, and logged.
+    """
+    from app.agents.playbook import DEFAULT_TUNING, TUNING_BOUNDS
+
+    tuning = {**DEFAULT_TUNING, **playbook.tuning}
+    history = list(playbook.tuning_history)
+    backlog = [item.model_copy() for item in playbook.backlog]
+    changes: list[str] = []
+    for item in backlog:
+        if item.status != "open" or item.verified_clean < MIN_EVIDENCE_FOR_TUNING:
+            continue
+        prefix = TUNED_FINDING_KEYS.get(item.finding_code)
+        key = f"{prefix}_{item.plan_style}" if prefix else None
+        if key is None or key not in TUNING_BOUNDS:
+            continue
+        low, high = TUNING_BOUNDS[key]
+        current = float(tuning.get(key, 0))
+        if current >= high:
+            continue
+        tuning[key] = min(high, current + 1)
+        item.status = "done"
+        line = f"{stamp_now()[:10]}: {key} {current:g} -> {tuning[key]:g} after {item.verified_clean} runs where the fixer verified '{item.finding_code}' and found nothing wrong ({item.id})."
+        history.append(line)
+        changes.append(line)
+    if not changes:
+        return playbook, []
+    return playbook.model_copy(update={"tuning": tuning, "tuning_history": history, "backlog": backlog, "updated_at": stamp_now()}), changes
 
 
 def deterministic_lesson(trail: QaTrail) -> str | None:
@@ -210,4 +254,5 @@ def teach(playbook: Playbook, trail: QaTrail, call_text: Callable[[str], dict[st
             playbook = playbook.model_copy(update={"lessons": [*playbook.lessons, lesson], "updated_at": stamp_now()})
             added += 1
     playbook, touched = record_code_gaps(playbook, trail, suggestions)
-    return playbook, added + touched
+    playbook, tuned = tune_from_backlog(playbook)
+    return playbook, added + touched + len(tuned)

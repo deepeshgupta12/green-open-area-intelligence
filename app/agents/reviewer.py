@@ -15,7 +15,7 @@ from google.genai import types
 from PIL import Image
 from pydantic import BaseModel, Field
 
-from app.agents.playbook import playbook_prompt_text, scoped
+from app.agents.playbook import playbook_prompt_text, scoped, tuning_value
 from app.schemas.agent_schema import Finding, Playbook, ReviewReport
 from app.schemas.area_schema import AreaEstimateResult
 from app.schemas.master_plan_entity_schema import MasterPlanEntityMap
@@ -174,6 +174,13 @@ def run_rule_checks(
     if entity_map.legend:
         codes = [item.code for item in entity_map.legend]
         legend_keys = {_normalize_code(code) for code in codes} | set(bare_number_aliases(codes))
+        # Letter keys explained by a printed note ("C Lobby- Wing A&B") are real markers, not misreads.
+        for diagnostic in entity_map.diagnostics:
+            if diagnostic.code == "blocks_named_from_key_notes":
+                for note in diagnostic.items:
+                    head = note.strip().split(" ")[0].strip(" -:.").lower() if note.strip() else ""
+                    if len(head) == 1 and head.isalpha():
+                        legend_keys.add(head)
         unknown = [
             entity for entity in entity_map.entities
             if entity.entity_type == "legend_marker" and entity.legend_code and _normalize_code(entity.legend_code) not in legend_keys
@@ -304,12 +311,17 @@ def run_model_review(
     findings: list[Finding] = []
     boxed = sum(1 for entity in entity_map.entities if entity.entity_type == "residential_block")
     seen = observed["towers_seen"]
+    gap_tolerance = tuning_value(playbook, f"count_gap_tolerance_{scope}")
+    over_tolerance = tuning_value(playbook, f"count_over_tolerance_{scope}")
+    observed["tolerances"] = {"gap": gap_tolerance, "over": over_tolerance}
 
     # A1 from the model's count: the count decides the severity, not the model's
     # wording. On a block plan every gap is worth a repair round because the
     # footprint recovery is cheap and only adds verified outlines; on a
     # rendered plan, with no recipe, a single tower is within the count's noise.
-    if seen > 0 and boxed < seen:
+    # The teacher's learned tolerance absorbs a gap the fixer has repeatedly
+    # shown to be the count's error.
+    if seen > 0 and boxed < seen and (seen - boxed) > gap_tolerance:
         gap = seen - boxed
         if gap >= 3 or (seen >= 5 and boxed < 0.7 * seen):
             severity = "blocker"
@@ -334,6 +346,10 @@ def run_model_review(
             continue
         code = str(raw.get("code") or "other").strip().lower()
         if code not in MODEL_FINDING_CODES or code == "missed_blocks":
+            continue
+        # A "false positive block" claim driven only by the count being a
+        # tower or two below the boxes is absorbed by the learned tolerance.
+        if code == "false_positive_block" and 0 < boxed - seen <= over_tolerance:
             continue
         severity = str(raw.get("severity") or "major").strip().lower()
         if severity not in SEVERITY_PENALTY:

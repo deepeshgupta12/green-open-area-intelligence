@@ -173,9 +173,9 @@ def apply_fixes(
     actions: list[FixAction] = []
     recipes = {recipe.trigger: recipe for recipe in playbook.fix_recipes}
 
-    def record(code: str, applied: bool, detail: str) -> None:
+    def record(code: str, applied: bool, detail: str, checked: bool = False) -> None:
         recipe = recipes.get(code)
-        actions.append(FixAction(finding_code=code, recipe=recipe.id if recipe else "none", applied=applied, detail=detail))
+        actions.append(FixAction(finding_code=code, recipe=recipe.id if recipe else "none", applied=applied, detail=detail, checked=checked))
 
     for finding in findings:
         code = finding.code
@@ -188,15 +188,15 @@ def apply_fixes(
                 before = sum(1 for entity in entity_map.entities if entity.entity_type == "residential_block")
                 entity_map = recover_footprints(entity_map, ctx.image, ctx.image_part, ctx.call)
                 after = sum(1 for entity in entity_map.entities if entity.entity_type == "residential_block")
-                record(code, after > before, f"footprint recovery added {after - before} blocks ({before} -> {after})")
+                record(code, after > before, f"footprint recovery added {after - before} blocks ({before} -> {after})", checked=after == before)
             else:
                 record(code, False, "no automatic recipe for rendered plans; recorded for the teacher")
         elif code == "false_positive_water":
             entity_map, detail = verify_water(entity_map, ids, ctx)
-            record(code, "dropped" in detail and not detail.startswith("0 of"), detail)
+            record(code, "dropped" in detail and not detail.startswith("0 of"), detail, checked=detail.startswith("0 of"))
         elif code == "false_positive_block":
             entity_map, detail = verify_blocks(entity_map, ids, ctx)
-            record(code, "dropped" in detail and not detail.startswith("0 of"), detail)
+            record(code, "dropped" in detail and not detail.startswith("0 of"), detail, checked=detail.startswith("0 of"))
         elif code == "oversized_entity":
             doomed = {
                 entity.entity_id for entity in entity_map.entities

@@ -42,6 +42,7 @@ class FixAction(BaseModel):
     recipe: str
     applied: bool
     detail: str
+    checked: bool = Field(default=False, description="The recipe ran its verification and found nothing to change.")
 
 
 class QaRound(BaseModel):
@@ -105,6 +106,7 @@ class BacklogItem(BaseModel):
     detail: str
     suggested_change: str | None = None
     status: Literal["open", "done"] = "open"
+    verified_clean: int = Field(default=0, description="Occurrences where the fixer verified the disputed items and found nothing wrong.")
 
 
 class Playbook(BaseModel):
@@ -117,3 +119,5 @@ class Playbook(BaseModel):
     fix_recipes: list[PlaybookRecipe] = Field(default_factory=list)
     lessons: list[str] = Field(default_factory=list)
     backlog: list[BacklogItem] = Field(default_factory=list)
+    tuning: dict[str, float] = Field(default_factory=dict, description="Reviewer tolerances the teacher adjusts from evidence, within bounds.")
+    tuning_history: list[str] = Field(default_factory=list)

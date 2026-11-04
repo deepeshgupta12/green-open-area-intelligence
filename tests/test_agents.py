@@ -488,7 +488,70 @@ def test_teacher_records_code_gaps_for_findings_the_fixer_could_not_act_on():
     # The same finding on another run of the same plan style counts up instead of duplicating.
     again, _ = record_code_gaps(updated, trail.model_copy(update={"run_id": "run-2"}))
     assert len(again.backlog) == 2 and again.backlog[0].occurrences == 2 and again.backlog[0].example_runs == ["run-1", "run-2"]
+    assert again.backlog[0].verified_clean == 0 and again.backlog[0].detail.endswith("Fixer: no automatic recipe for rendered plans")
+
+    # A recipe that ran its verification and kept everything is evidence the finding was noise: it counts into verified_clean.
+    verified = trail.model_copy(update={"run_id": "run-3", "plan_style": "block_plan", "rounds": [QaRound(
+        round=1, review=ReviewReport(verdict="pass", score=0.8, findings=[Finding(code="false_positive_block", severity="major", detail="12 boxed, 11 counted.", source="model")]),
+        actions=[FixAction(finding_code="false_positive_block", recipe="F4", applied=False, detail="0 of 12 flagged blocks failed the crop check and were dropped", checked=True)],
+    )]})
+    clean, _ = record_code_gaps(again, verified)
+    item = next(item for item in clean.backlog if item.finding_code == "false_positive_block")
+    assert item.verified_clean == 1 and item.plan_style == "block_plan"
+    assert next(item for item in record_code_gaps(clean, verified.model_copy(update={"run_id": "run-4"}))[0].backlog if item.finding_code == "false_positive_block").verified_clean == 2
 
     # teach() records gaps even without a model and even when nothing was evidence-backed enough for a lesson.
     taught, count = teach(seed, trail.model_copy(update={"rounds": [trail.rounds[0].model_copy(update={"review": ReviewReport(verdict="pass", score=0.8, findings=[opinion])})]}), None)
     assert count == 1 and taught.backlog[0].finding_code == "missed_blocks" and taught.lessons == seed.lessons
+
+
+def test_teacher_tunes_reviewer_tolerances_from_repeated_verified_evidence():
+    from app.agents.playbook import tuning_value
+    from app.agents.teacher import tune_from_backlog
+    from app.schemas.agent_schema import BacklogItem
+
+    seed = seed_playbook()
+    assert tune_from_backlog(seed) == (seed, [])  # nothing to learn from yet
+    stamp = "2026-11-04T00:00:00+00:00"
+    evidence = [
+        BacklogItem(id="B1", finding_code="false_positive_block", plan_style="block_plan", occurrences=5, verified_clean=5, first_seen=stamp, last_seen=stamp,
+                    detail="The count identifies 11 towers; 12 boxed. Fixer: 0 of 6 flagged blocks failed the crop check and were dropped"),
+        BacklogItem(id="B2", finding_code="missed_blocks", plan_style="rendered", occurrences=4, verified_clean=0, first_seen=stamp, last_seen=stamp,
+                    detail="1 missing. Fixer: no automatic recipe for rendered plans"),  # recurring, but never verified: no evidence
+    ]
+    playbook = seed.model_copy(update={"backlog": evidence})
+    tuned, changes = tune_from_backlog(playbook)
+    assert len(changes) == 1 and "count_over_tolerance_block_plan 0 -> 1" in changes[0]
+    assert tuning_value(tuned, "count_over_tolerance_block_plan") == 1 and tuned.backlog[0].status == "done"
+    assert tuning_value(tuned, "count_gap_tolerance_rendered") == 0 and tuned.backlog[1].status == "open"
+    # Bounded: it never exceeds the upper limit.
+    maxed = tuned.model_copy(update={"tuning": {**tuned.tuning, "count_over_tolerance_block_plan": 2}, "backlog": [evidence[0].model_copy(update={"status": "open"})]})
+    assert tune_from_backlog(maxed)[1] == []
+
+    # The reviewer honours the learned tolerance: a count one below the boxes no longer yields a false-positive-block finding.
+    def fake_call(prompt, part, schema, temperature=0.0, max_tokens=0):
+        if schema.__name__ == "GeminiCount":
+            return {"towers_seen": 1, "pools_seen": 0, "gates_seen": 1}
+        return {"findings": [{"code": "false_positive_block", "severity": "major", "detail": "one too many", "entity_labels": ["Wing - B"]}]}
+
+    block_plan = build_map(legend=[], drawing_style="block_plan")  # two blocks boxed, count says one
+    strict = review_analysis(block_plan, None, project=None, image=None, image_part=object(), playbook=seed, call=fake_call)
+    assert any(f.code == "false_positive_block" for f in strict.findings)
+    lenient = review_analysis(block_plan, None, project=None, image=None, image_part=object(), playbook=tuned, call=fake_call)
+    assert not any(f.code == "false_positive_block" for f in lenient.findings) and lenient.observed["tolerances"] == {"gap": 0, "over": 1}
+
+
+def test_loaded_playbook_gains_seed_entries_added_after_it_was_written(tmp_path):
+    from app.agents.playbook import load_playbook, save_playbook
+
+    seed = seed_playbook()
+    stale = seed.model_copy(update={
+        "acceptance_rules": [rule for rule in seed.acceptance_rules if rule.id != "A9"],
+        "fix_recipes": [recipe for recipe in seed.fix_recipes if recipe.id != "F7"],
+        "lessons": ["learned on disk"],
+    })
+    path = save_playbook(stale, tmp_path / "playbook.json")
+    loaded = load_playbook(path)
+    assert [rule.id for rule in loaded.acceptance_rules] == [rule.id for rule in seed.acceptance_rules]
+    assert [recipe.id for recipe in loaded.fix_recipes] == [recipe.id for recipe in seed.fix_recipes]
+    assert loaded.lessons == ["learned on disk"]  # what the teacher wrote is untouched

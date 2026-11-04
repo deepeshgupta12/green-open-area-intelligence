@@ -112,18 +112,48 @@ def seed_playbook() -> Playbook:
     ])
 
 
+# Tolerances the reviewer reads and the teacher may adjust, with their bounds.
+# Each is a count of towers the independent count may be off by before a
+# finding is raised; the teacher raises one only when the fixer has verified
+# the same disputed boxes repeatedly and found nothing wrong.
+DEFAULT_TUNING: dict[str, float] = {
+    "count_gap_tolerance_block_plan": 0,
+    "count_gap_tolerance_rendered": 0,
+    "count_over_tolerance_block_plan": 0,
+    "count_over_tolerance_rendered": 0,
+}
+TUNING_BOUNDS: dict[str, tuple[float, float]] = {key: (0, 2) for key in DEFAULT_TUNING}
+
+
+def tuning_value(playbook: Playbook, key: str) -> float:
+    return float(playbook.tuning.get(key, DEFAULT_TUNING.get(key, 0)))
+
+
 def default_playbook_path() -> Path:
     settings = get_settings()
     configured = Path(settings.qa_playbook_path)
     return configured if configured.is_absolute() else settings.project_root / configured
 
 
+def merge_seed(playbook: Playbook) -> Playbook:
+    """Add seed rules, cases and recipes the on-disk copy predates; what the teacher wrote stays first."""
+    seed = seed_playbook()
+    updates: dict[str, list] = {}
+    for field in ("acceptance_rules", "rejection_cases", "fix_recipes"):
+        current = list(getattr(playbook, field))
+        known = {item.id for item in current}
+        missing = [item for item in getattr(seed, field) if item.id not in known]
+        if missing:
+            updates[field] = current + missing
+    return playbook.model_copy(update=updates) if updates else playbook
+
+
 def load_playbook(path: Path | None = None) -> Playbook:
-    """The on-disk playbook, or the seed when there is none yet (or it is unreadable)."""
+    """The on-disk playbook (plus any seed entries added since it was written), or the seed when there is none yet."""
     target = path or default_playbook_path()
     if target.is_file():
         try:
-            return Playbook.model_validate_json(target.read_text(encoding="utf-8"))
+            return merge_seed(Playbook.model_validate_json(target.read_text(encoding="utf-8")))
         except Exception:  # noqa: BLE001 - a corrupt file must not stop reviews
             pass
     return seed_playbook()
