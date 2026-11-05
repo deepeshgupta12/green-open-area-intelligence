@@ -132,6 +132,8 @@ def make_repo(root: Path) -> Path:
     (root / "data" / "input" / "runs").mkdir(parents=True)  # git-ignored fixtures the suite reads; run folders are not copied
     (root / "data" / "input" / "342956.json").write_text("{}", encoding="utf-8")
     (root / "data" / "input" / "runs" / "big.jpg").write_bytes(b"x")
+    (root / "data" / "agents").mkdir()
+    (root / "data" / "agents" / "playbook.json").write_text("{}", encoding="utf-8")  # the runtime playbook travels too
     git(["init", "-q", "-b", "master"], root)
     git(["config", "user.email", "tests@example.com"], root)
     git(["config", "user.name", "tests"], root)
@@ -164,6 +166,7 @@ def test_propose_opens_a_branch_only_when_every_gate_passes(tmp_path):
     def publish(worktree: Path, branch: str, title: str, body: str) -> str:
         assert (worktree / ".env").is_file()  # credentials copied so the pipeline can run there
         assert (worktree / "data" / "input" / "342956.json").is_file() and not (worktree / "data" / "input" / "runs").exists()
+        assert (worktree / "data" / "agents" / "playbook.json").is_file()
         assert "B7" in body and "Plan P" in body and "Guards the change: yes" in body
         assert "Raise the tolerance" in git(["log", "-1", "--pretty=%s"], worktree)
         published["branch"] = branch

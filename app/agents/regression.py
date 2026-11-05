@@ -113,12 +113,20 @@ def run_plan_pipeline(image_path: Path, run_id: str, qa_enabled: bool = True) ->
     from app.services.image_preprocessor import preprocess_master_plan_image
     from app.services.master_plan_entity_extractor import extract_master_plan_entities
 
+    settings = get_settings()
     image_metadata = preprocess_master_plan_image(str(image_path))
     entity_map = extract_master_plan_entities(image_metadata=image_metadata, project=None)
-    if qa_enabled and get_settings().qa_agents_enabled:
+    output_dir = settings.data_output_dir / "regression_runs" / run_id
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "master_plan_entity_map.extracted.json").write_text(json.dumps(entity_map.model_dump(mode="json"), indent=2), encoding="utf-8")
+    except Exception:  # noqa: BLE001 - diagnostics only
+        pass
+    if qa_enabled and settings.qa_agents_enabled:
+        # The trail is written beside the extracted map so a failed check can be traced to the extractor or to the fixer.
         entity_map, _, _ = run_qa_loop(
             entity_map, None, image_path=image_metadata.normalized_image_path or str(image_path),
-            project=None, run_id=run_id, output_dir=None, teach_enabled=False,
+            project=None, run_id=run_id, output_dir=output_dir, teach_enabled=False,
         )
     return entity_map
 

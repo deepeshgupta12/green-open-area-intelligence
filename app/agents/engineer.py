@@ -342,6 +342,10 @@ def create_worktree(repo_root: Path, branch: str, path: Path) -> Path:
         for item in fixtures.iterdir():
             if item.is_file() and not item.name.startswith("."):
                 shutil.copy2(item, path / "data" / "input" / item.name)
+    playbook = repo_root / "data" / "agents" / "playbook.json"
+    if playbook.is_file():  # the runtime playbook (learned rules, tuned tolerances), so the regression behaves like production
+        (path / "data" / "agents").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(playbook, path / "data" / "agents" / "playbook.json")
     return path
 
 
