@@ -73,6 +73,15 @@ Rendered from real runs with the production build (headless Chrome, 1440px wide,
 | ![Hover viewer with the entity overlay and tooltip on Lodha Corinthia](docs/screenshots/hover-viewer.png) | ![Kalpataru Vian from the plan alone](docs/screenshots/kalpataru-vian.png) |
 | *The hover viewer on Lodha Corinthia: marker-placed courts carry their drawn area* | *Kalpataru Vian: blocks named from the printed key note, no water* |
 
+The backend agents have no UI; what they produce is a backlog, a trail and, from the engineer, pull requests. Real output from this repository, captured the same way:
+
+| | |
+|---|---|
+| ![The backlog command: self-tuned reviewer tolerances with their history, the open backlog items with occurrence counts and example runs, and the pull request already open](docs/screenshots/qa-backlog-cli.png) | ![The propose command on backlog item B3: branch, title, pull request URL and the five fixture plans passing](docs/screenshots/engineer-propose-cli.png) |
+| *`qa_agents.py backlog`: tolerances the teacher tuned from evidence, the engineer's queue, the open proposal* | *`qa_agents.py propose B3`: one attempt, every gate passed, pull request opened* |
+| ![Pull request #1 opened by the engineer agent on GitHub, with the backlog evidence, rationale, tests, guard result and fixture-plan table](docs/screenshots/engineer-pull-request.png) | |
+| *The pull request the engineer opened ([#1](https://github.com/deepeshgupta12/green-open-area-intelligence/pull/1)): evidence, rationale, tests, guard result and the regression table, waiting for a human. See [the first live proposal](#the-first-live-proposal) for why it should be closed rather than merged.* | |
+
 ## Locked definitions
 
 **Green Area** is landscaped, planted, garden, lawn, tree-covered or green recreational area that is visible or declared in project data. Roads, driveways, parking, pools, concrete decks, bare paving, clubhouses, retail and non-grass sports courts are excluded.
@@ -200,6 +209,14 @@ The engineer's gates, in order. A proposal that fails any of them is not publish
 Only then does it commit on a `qa/engineer-<item>-<finding>-<date>` branch, push, and open the pull request with `gh`, whose body carries the backlog evidence, the rationale, the new tests, the guard result and the regression table. The backlog item becomes `proposed` with the pull request URL; merging it (or closing it) is a human decision, after which `teach` on new runs stops recording the finding.
 
 Why this shape rather than self-modifying code: the pipeline's quality was won by hand through many probe runs, and run-to-run variance on the vision model is large. An agent that edits production code on its own would have no way to tell a real fix from a lucky run; the regression manifest is the only ground truth, and a pull request is the only place a human can weigh the trade-off. The engineer needs Gemini and a configured `gh`; `--no-pr` keeps everything local.
+
+### The first live proposal
+
+The engineer's first real run took backlog item B3 (marker-placed courts and lawns left as discs on rendered plans, seen on five runs) and opened [pull request #1](https://github.com/deepeshgupta12/green-open-area-intelligence/pull/1) after one attempt: the suite passed, the new test failed on the base branch and passed with the change, and all five fixture plans held, 12 towers on Mahindra and no water on Kalpataru included. The run is shown in the [screenshots](#screenshots).
+
+Every gate passed and the pull request should still be **closed, not merged**. The patch only marks the marker-expansion recipe as "checked" when it boxes nothing: safe, but it changes nothing on the plan, and it would count those runs as verified clean when the court simply could not be boxed. The model took the easiest route to a green build. That is exactly the judgement the gates cannot make and the reason a human stays in the loop. The prompt now requires a proposal to change what the extractor or the fixer produces for the example runs, and to decline otherwise; the pull request is kept as the worked example.
+
+Two harness lessons from the same run, both fixed: the worktree must carry the git-ignored test fixtures (`data/input/342956.json` and the master plan image) and the credentials, otherwise the API tests fail and the failure is blamed on the patch; and the suite is run once on the base commit before any model call is spent.
 
 **What the agents do learn on their own.** Three things change without a developer, all of them in the playbook file and all of them bounded. (1) Rules, rejection cases and lessons: the teacher adds a rule only when a trail shows the same fix working, so the reviewer's prompt and the fixer's prompt grow from evidence. (2) Reviewer tolerances: each fixer recipe reports whether it verified the disputed items and found nothing wrong (`checked`); the teacher counts those into the backlog item (`verified_clean`), and after three such runs for the same finding and plan style it raises the matching tolerance by one tower, never above two, and logs the step in `tuning_history`. The Mahindra block plan is the worked example: the independent count kept saying 11 towers against 12 verified footprints, and after three verified-clean rounds the reviewer stops raising that over-count. (3) The backlog itself, which is the list of things only code can fix. `python scripts/qa_agents.py backlog` prints the tolerances and their history above the open items.
 
