@@ -129,6 +129,9 @@ def make_repo(root: Path) -> Path:
     make_tree(root)
     (root / ".gitignore").write_text("data/\n.env\n", encoding="utf-8")
     (root / ".env").write_text("SECRET=1\n", encoding="utf-8")
+    (root / "data" / "input" / "runs").mkdir(parents=True)  # git-ignored fixtures the suite reads; run folders are not copied
+    (root / "data" / "input" / "342956.json").write_text("{}", encoding="utf-8")
+    (root / "data" / "input" / "runs" / "big.jpg").write_bytes(b"x")
     git(["init", "-q", "-b", "master"], root)
     git(["config", "user.email", "tests@example.com"], root)
     git(["config", "user.name", "tests"], root)
@@ -149,7 +152,7 @@ def fake_tests_for(root_marker: str = "def tolerance():\n    return 1"):
         module = (worktree / MODULE).read_text(encoding="utf-8")
         if names:  # the new test alone: it passes only with the change
             return (root_marker in module), "1 passed" if root_marker in module else "1 failed"
-        return (root_marker in module), "all passed" if root_marker in module else "FAILED test_tolerance_is_one"
+        return True, "all passed"  # the whole suite: fine on the base commit and with the full patch
 
     return tests
 
@@ -160,6 +163,7 @@ def test_propose_opens_a_branch_only_when_every_gate_passes(tmp_path):
 
     def publish(worktree: Path, branch: str, title: str, body: str) -> str:
         assert (worktree / ".env").is_file()  # credentials copied so the pipeline can run there
+        assert (worktree / "data" / "input" / "342956.json").is_file() and not (worktree / "data" / "input" / "runs").exists()
         assert "B7" in body and "Plan P" in body and "Guards the change: yes" in body
         assert "Raise the tolerance" in git(["log", "-1", "--pretty=%s"], worktree)
         published["branch"] = branch
@@ -197,7 +201,12 @@ def test_propose_retries_with_feedback_and_records_a_failed_attempt(tmp_path):
             return GeminiPatch(title="t", rationale="r", edits=[good_patch().edits[0]]).model_dump()
         return good_patch().model_dump()
 
+    runs: list[int] = []
+
     def failing_tests(worktree: Path, names):
+        runs.append(1)
+        if len(runs) == 1:  # the base commit is fine; every patched run fails
+            return True, "base ok"
         return False, "FAILED tests/test_agents.py::test_tolerance_is_one - AssertionError"
 
     tools = EngineerTools(draft=draft, tests=failing_tests, regression=None, publish=lambda *a: pytest.fail("must not publish"))
@@ -220,6 +229,34 @@ def test_propose_refuses_when_the_fixture_plans_regress(tmp_path):
     assert updated.backlog[0].status == "open" and "regressed" in updated.backlog[0].last_attempt
     assert git(["branch", "--list", "qa/*"], repo).strip() == ""
     assert "residential_block 10 (FAIL, expected [12, 12])" in report_markdown(regression)
+
+
+def test_propose_stops_when_the_suite_already_fails_on_the_base_commit(tmp_path):
+    repo = make_repo(tmp_path / "repo")
+    drafted: list[str] = []
+
+    def tests(worktree: Path, names):
+        return (False, "FAILED tests/test_api.py::test_estimate - AssertionError: Expected one master plan image") if not drafted else (True, "passed")
+
+    tools = EngineerTools(draft=lambda prompt: drafted.append(prompt) or good_patch().model_dump(), tests=tests, regression=None, publish=lambda *a: pytest.fail("must not publish"))
+    updated, proposal = propose(backlog_playbook(), "B7", repo, tools, worktrees_dir=tmp_path / "wt", proposals_dir=tmp_path / "proposals")
+    assert proposal.status == "failed" and proposal.attempts == 0 and drafted == []  # no model call was spent
+    assert "fails on the base commit" in updated.backlog[0].last_attempt
+    assert git(["branch", "--list", "qa/*"], repo).strip() == ""
+
+
+def test_propose_keeps_the_failed_patch_for_the_developer(tmp_path):
+    repo = make_repo(tmp_path / "repo")
+    calls: list[int] = []
+
+    def tests(worktree: Path, names):
+        calls.append(1)
+        return (True, "base ok") if len(calls) == 1 else (False, "FAILED tests/test_agents.py::test_tolerance_is_one")
+
+    tools = EngineerTools(draft=lambda prompt: good_patch().model_dump(), tests=tests, regression=None, publish=lambda *a: pytest.fail("must not publish"))
+    _, proposal = propose(backlog_playbook(), "B7", repo, tools, attempts=1, worktrees_dir=tmp_path / "wt", proposals_dir=tmp_path / "proposals")
+    assert proposal.status == "failed" and proposal.title == "Raise the tolerance" and "+    return 1" in proposal.patch_text
+    assert list((tmp_path / "proposals").glob("B7-*.patch"))
 
 
 def test_propose_refuses_a_test_that_does_not_guard_the_change(tmp_path):

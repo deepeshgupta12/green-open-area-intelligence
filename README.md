@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-105%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -244,7 +244,7 @@ green-open-area-intelligence/
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── docs/                         # contract schema, sample responses, screenshots, regression manifest (fixture plans)
 ├── scripts/                      # run_single_project.py, qa_agents.py, export_contract.py
-├── tests/                        # pytest suite (105 tests)
+├── tests/                        # pytest suite (107 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)

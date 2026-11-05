@@ -326,11 +326,18 @@ def branch_name(item: BacklogItem) -> str:
 
 
 def create_worktree(repo_root: Path, branch: str, path: Path) -> Path:
+    """A fresh worktree on a new branch, plus the git-ignored files the suite and the pipeline need there."""
     path.parent.mkdir(parents=True, exist_ok=True)
     git(["worktree", "add", "-b", branch, str(path), "HEAD"], repo_root)
     env_file = repo_root / ".env"
     if env_file.is_file():
-        shutil.copy2(env_file, path / ".env")  # git-ignored; the pipeline needs its credentials in the worktree
+        shutil.copy2(env_file, path / ".env")  # credentials for the pipeline
+    fixtures = repo_root / "data" / "input"
+    if fixtures.is_dir():  # the API tests read a project JSON and a master plan image from here
+        (path / "data" / "input").mkdir(parents=True, exist_ok=True)
+        for item in fixtures.iterdir():
+            if item.is_file() and not item.name.startswith("."):
+                shutil.copy2(item, path / "data" / "input" / item.name)
     return path
 
 
@@ -541,6 +548,13 @@ def propose(
 
     create_worktree(repo_root, branch, worktree)
     try:
+        # The suite must pass on the base commit, otherwise a failure would be blamed on the patch.
+        base_ok, base_output = tools.tests(worktree, None)
+        if not base_ok:
+            proposal.tests_output = base_output
+            proposal.notes.append("the unit suite fails on the base commit in a clean worktree; fix that before proposing: " + base_output.splitlines()[-1][:200])
+            return _finish(playbook, item, proposal, worktree, reports, committed=False), proposal
+
         files = gather_context(worktree)
         trails = trail_summaries(repo_root, item)
         facts = confirmed_facts(worktree)
@@ -567,9 +581,11 @@ def propose(
             apply_patch(candidate, worktree)
             ok, output = tools.tests(worktree, None)
             proposal.tests_output = output
+            proposal.title, proposal.rationale = candidate.title, candidate.rationale
             if not ok:
                 feedback = "the unit suite failed with your patch applied:\n" + output[-3000:]
                 proposal.notes.append(f"attempt {attempt}: unit suite failed")
+                proposal.patch_text = staged_diff(worktree)  # kept for the developer even though it failed
                 continue
             patch = candidate
             break
