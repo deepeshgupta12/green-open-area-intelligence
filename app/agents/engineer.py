@@ -346,7 +346,24 @@ def create_worktree(repo_root: Path, branch: str, path: Path) -> Path:
     if playbook.is_file():  # the runtime playbook (learned rules, tuned tolerances), so the regression behaves like production
         (path / "data" / "agents").mkdir(parents=True, exist_ok=True)
         shutil.copy2(playbook, path / "data" / "agents" / "playbook.json")
+    for rel in fixture_image_paths(repo_root):  # the very bytes the confirmed facts were checked on, not a fresh download
+        source = repo_root / rel
+        if source.is_file():
+            (path / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, path / rel)
     return path
+
+
+def fixture_image_paths(repo_root: Path) -> list[str]:
+    """The manifest's stored input images, repo-relative."""
+    manifest = repo_root / "docs" / "regression" / "plans.json"
+    if not manifest.is_file():
+        return []
+    try:
+        plans = json.loads(manifest.read_text(encoding="utf-8")).get("plans", [])
+    except Exception:  # noqa: BLE001
+        return []
+    return [str(plan["local_image"]) for plan in plans if plan.get("local_image")]
 
 
 def reset_worktree(path: Path, touched: list[str] | None = None) -> None:
@@ -666,6 +683,9 @@ def _finish(playbook: Playbook, item: BacklogItem, proposal: Proposal, worktree:
         report.write_text(json.dumps(proposal.as_dict(), indent=2), encoding="utf-8")
         if proposal.patch_text:
             (reports / f"{item.id}-{stamp}.patch").write_text(proposal.patch_text, encoding="utf-8")
+        runs = worktree / "data" / "output" / "regression_runs"
+        if runs.is_dir():  # the extracted maps and QA trails of the fixture runs outlive the worktree
+            shutil.copytree(runs, reports / f"{item.id}-{stamp}-regression_runs", dirs_exist_ok=True)
         proposal.report_path = str(report)
     except Exception as exc:  # noqa: BLE001
         proposal.notes.append(f"could not write the report: {exc}")

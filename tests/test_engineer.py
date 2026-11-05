@@ -39,7 +39,9 @@ def make_tree(root: Path) -> None:
     (root / "app" / "agents" / "fixer.py").write_text("def fix():\n    return None\n", encoding="utf-8")
     (root / TESTS).write_text("def test_existing():\n    assert True\n", encoding="utf-8")
     (root / "docs" / "regression").mkdir(parents=True)
-    (root / "docs" / "regression" / "plans.json").write_text(json.dumps({"plans": [{"name": "p", "title": "Plan P", "expect": {"residential_block": [12, 12]}}]}), encoding="utf-8")
+    (root / "docs" / "regression" / "plans.json").write_text(json.dumps({"plans": [
+        {"name": "p", "title": "Plan P", "local_image": "data/input/analysis_runs/run-1/plan.jpg", "expect": {"residential_block": [12, 12]}}
+    ]}), encoding="utf-8")
 
 
 def good_patch() -> GeminiPatch:
@@ -134,6 +136,8 @@ def make_repo(root: Path) -> Path:
     (root / "data" / "input" / "runs" / "big.jpg").write_bytes(b"x")
     (root / "data" / "agents").mkdir()
     (root / "data" / "agents" / "playbook.json").write_text("{}", encoding="utf-8")  # the runtime playbook travels too
+    (root / "data" / "input" / "analysis_runs" / "run-1").mkdir(parents=True)
+    (root / "data" / "input" / "analysis_runs" / "run-1" / "plan.jpg").write_bytes(b"jpeg")  # the manifest's stored image travels too
     git(["init", "-q", "-b", "master"], root)
     git(["config", "user.email", "tests@example.com"], root)
     git(["config", "user.name", "tests"], root)
@@ -167,6 +171,7 @@ def test_propose_opens_a_branch_only_when_every_gate_passes(tmp_path):
         assert (worktree / ".env").is_file()  # credentials copied so the pipeline can run there
         assert (worktree / "data" / "input" / "342956.json").is_file() and not (worktree / "data" / "input" / "runs").exists()
         assert (worktree / "data" / "agents" / "playbook.json").is_file()
+        assert (worktree / "data" / "input" / "analysis_runs" / "run-1" / "plan.jpg").read_bytes() == b"jpeg"
         assert "B7" in body and "Plan P" in body and "Guards the change: yes" in body
         assert "Raise the tolerance" in git(["log", "-1", "--pretty=%s"], worktree)
         published["branch"] = branch
