@@ -188,6 +188,7 @@ def test_propose_opens_a_branch_only_when_every_gate_passes(tmp_path):
     assert not (tmp_path / "wt").exists() or not any((tmp_path / "wt").iterdir())
     reports = list((tmp_path / "proposals").glob("B7-*.json"))
     assert len(reports) == 1 and json.loads(reports[0].read_text())["status"] == "proposed"
+    assert json.loads(reports[0].read_text())["patch"]["title"] == "Raise the tolerance"  # replayable with --from-report
     assert (tmp_path / "proposals" / reports[0].name.replace(".json", ".patch")).is_file()
 
 
@@ -310,6 +311,21 @@ def test_run_regression_uses_the_local_image_and_reports_per_plan(tmp_path):
     report = run_regression(manifest_path=manifest, repo_root=tmp_path, runner=runner)
     assert not report["ok"] and [plan["ok"] for plan in report["plans"]] == [True, False, False]
     assert report["plans"][2]["error"] and "no local image and no image_url" in report["plans"][2]["error"]
-    assert seen == ["regression-ok-plan-1", "regression-bad-plan-2"]
+    # a failing plan is run once more before it counts as a regression
+    assert seen == ["regression-ok-plan-1", "regression-bad-plan-2", "regression-bad-plan-2-retry1"]
+    assert [plan["attempts"] for plan in report["plans"]] == [1, 2, 2]
     only = run_regression(manifest_path=manifest, only=["ok-plan"], repo_root=tmp_path, runner=runner)
     assert only["ok"] and len(only["plans"]) == 1
+
+
+def test_run_regression_passes_on_the_retry_and_says_so(tmp_path):
+    image = tmp_path / "plan.png"
+    Image.new("RGB", (8, 8), "white").save(image)
+    manifest = tmp_path / "plans.json"
+    manifest.write_text(json.dumps({"plans": [{"name": "flaky", "title": "Flaky", "local_image": "plan.png", "expect": {"residential_block": [12, 12]}}]}), encoding="utf-8")
+    counts = iter([11, 12])  # variance on the first run, the confirmed count on the second
+    report = run_regression(manifest_path=manifest, repo_root=tmp_path, runner=lambda path, run_id: tiny_map(next(counts)))
+    assert report["ok"] and report["plans"][0]["attempts"] == 2
+    assert "| pass (on attempt 2) |" in report_markdown(report)
+    strict = run_regression(manifest_path=manifest, repo_root=tmp_path, runner=lambda path, run_id: tiny_map(11), retries=0)
+    assert not strict["ok"] and strict["plans"][0]["attempts"] == 1

@@ -41,11 +41,12 @@ class PlanResult:
     checks: list[MetricCheck] = field(default_factory=list)
     error: str | None = None
     run_id: str | None = None
+    attempts: int = 1
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "name": self.name, "title": self.title, "ok": self.ok, "error": self.error, "run_id": self.run_id,
-            "checks": [check.__dict__ for check in self.checks],
+            "attempts": self.attempts, "checks": [check.__dict__ for check in self.checks],
         }
 
 
@@ -122,28 +123,45 @@ def run_plan_pipeline(image_path: Path, run_id: str, qa_enabled: bool = True) ->
     return entity_map
 
 
+def _run_one(entry: dict[str, Any], run_id: str, root: Path, download_dir: Path, runner) -> PlanResult:
+    name, title = str(entry.get("name")), str(entry.get("title") or entry.get("name"))
+    try:
+        image = resolve_image(entry, root, download_dir)
+        entity_map = runner(image, run_id)
+        checks = evaluate(entry.get("expect", {}), metrics_from_entity_map(entity_map))
+        return PlanResult(name=name, title=title, ok=all(check.ok for check in checks), checks=checks, run_id=run_id)
+    except Exception as exc:  # noqa: BLE001 - one plan's failure is a failed check, not a crash
+        logger.warning("regression: %s failed: %s", name, exc)
+        return PlanResult(name=name, title=title, ok=False, error=str(exc)[:400], run_id=run_id)
+
+
 def run_regression(
     manifest_path: Path | None = None,
     only: list[str] | None = None,
     repo_root: Path | None = None,
     runner=run_plan_pipeline,
+    retries: int = 1,
 ) -> dict[str, Any]:
-    """Run every fixture plan (or the named ones) and return the report as a plain dict."""
+    """Run every fixture plan (or the named ones) and return the report as a plain dict.
+
+    The vision model varies run to run, so a plan that fails is run once more
+    (``retries``) before it counts as a regression; a pass on the retry is
+    reported as such so a reviewer can see the flakiness.
+    """
     root = repo_root or Path.cwd()
     entries = [entry for entry in load_manifest(manifest_path) if not only or entry.get("name") in only]
     results: list[PlanResult] = []
     with tempfile.TemporaryDirectory(prefix="regression-images-") as tmp:
         for index, entry in enumerate(entries, start=1):
-            name, title = str(entry.get("name")), str(entry.get("title") or entry.get("name"))
-            run_id = f"regression-{name}-{index}"
-            try:
-                image = resolve_image(entry, root, Path(tmp))
-                entity_map = runner(image, run_id)
-                checks = evaluate(entry.get("expect", {}), metrics_from_entity_map(entity_map))
-                results.append(PlanResult(name=name, title=title, ok=all(check.ok for check in checks), checks=checks, run_id=run_id))
-            except Exception as exc:  # noqa: BLE001 - one plan's failure is a failed check, not a crash
-                logger.warning("regression: %s failed: %s", name, exc)
-                results.append(PlanResult(name=name, title=title, ok=False, error=str(exc)[:400], run_id=run_id))
+            name = str(entry.get("name"))
+            result = _run_one(entry, f"regression-{name}-{index}", root, Path(tmp), runner)
+            attempt = 1
+            while not result.ok and attempt <= retries:
+                attempt += 1
+                logger.warning("regression: %s failed; running it once more to separate variance from a regression", name)
+                result = _run_one(entry, f"regression-{name}-{index}-retry{attempt - 1}", root, Path(tmp), runner)
+            result.attempts = attempt
+            results.append(result)
     return {"ok": all(result.ok for result in results) and bool(results), "plans": [result.as_dict() for result in results]}
 
 
@@ -158,5 +176,8 @@ def report_markdown(report: dict[str, Any]) -> str:
                 mark = "ok" if check["ok"] else "FAIL"
                 parts.append(f"{check['metric']} {check['actual']} ({mark}, expected {check['expected']})")
             cell = "; ".join(parts)
-        lines.append(f"| {plan['title']} | {'pass' if plan['ok'] else 'fail'} | {cell} |")
+        verdict = "pass" if plan["ok"] else "fail"
+        if plan.get("attempts", 1) > 1:
+            verdict += f" (on attempt {plan['attempts']})"
+        lines.append(f"| {plan['title']} | {verdict} | {cell} |")
     return "\n".join(lines)

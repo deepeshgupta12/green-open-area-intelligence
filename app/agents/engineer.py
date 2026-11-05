@@ -91,6 +91,7 @@ class Proposal:
     guard_failed_before: bool | None = None
     regression: dict[str, Any] | None = None
     patch_text: str = ""
+    patch: dict[str, Any] | None = None
     report_path: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
@@ -444,30 +445,42 @@ def publish_branch(worktree: Path, branch: str, title: str, body: str, base: str
     return url or f"branch {branch} pushed"
 
 
-def default_tools(repo_root: Path, open_pr: bool = True, run_plans: bool = True, only_plans: list[str] | None = None) -> EngineerTools:
-    from google.genai import types
-
+def default_tools(
+    repo_root: Path,
+    open_pr: bool = True,
+    run_plans: bool = True,
+    only_plans: list[str] | None = None,
+    stored_patch: dict[str, Any] | None = None,
+) -> EngineerTools:
+    """Gemini drafts (or a stored patch is replayed), subprocess pytest, in-worktree regression, git push + gh."""
     from app.config import get_settings
-    from app.utils.gemini_client import get_gemini_client
-    from app.utils.llm_utils import extract_json_from_text
 
     settings = get_settings()
-    if not settings.gemini_configured:
-        raise ValueError("Gemini is not configured; the engineer cannot draft a patch.")
-    client = get_gemini_client(settings)
-    model = settings.gemini_text_model
-    thinking = types.ThinkingConfig(thinking_budget=8192) if model.lower().startswith("gemini-2") else types.ThinkingConfig(thinking_level="high")
+    if stored_patch is not None:
+        def draft(prompt: str) -> dict[str, Any]:
+            return stored_patch
+    else:
+        from google.genai import types
 
-    def draft(prompt: str) -> dict[str, Any]:
-        response = client.models.generate_content(
-            model=model,
-            contents=[prompt],
-            config=types.GenerateContentConfig(
-                temperature=0.2, response_mime_type="application/json", response_schema=GeminiPatch,
-                max_output_tokens=32768, thinking_config=thinking,
-            ),
-        )
-        return extract_json_from_text(response.text or "{}")
+        from app.utils.gemini_client import get_gemini_client
+        from app.utils.llm_utils import extract_json_from_text
+
+        if not settings.gemini_configured:
+            raise ValueError("Gemini is not configured; the engineer cannot draft a patch.")
+        client = get_gemini_client(settings)
+        model = settings.gemini_text_model
+        thinking = types.ThinkingConfig(thinking_budget=8192) if model.lower().startswith("gemini-2") else types.ThinkingConfig(thinking_level="high")
+
+        def draft(prompt: str) -> dict[str, Any]:
+            response = client.models.generate_content(
+                model=model,
+                contents=[prompt],
+                config=types.GenerateContentConfig(
+                    temperature=0.2, response_mime_type="application/json", response_schema=GeminiPatch,
+                    max_output_tokens=32768, thinking_config=thinking,
+                ),
+            )
+            return extract_json_from_text(response.text or "{}")
 
     base = git(["rev-parse", "--abbrev-ref", "HEAD"], repo_root, check=False).strip() or "master"
 
@@ -580,6 +593,7 @@ def propose(
                 feedback = "validation errors:\n" + "\n".join(f"- {error}" for error in errors)
                 proposal.notes.append(f"attempt {attempt}: {len(errors)} validation error(s): {errors[0]}")
                 continue
+            proposal.patch = candidate.model_dump()  # kept in the report so the same patch can be re-verified without a new draft
             reset_worktree(worktree, patch_paths(candidate))
             apply_patch(candidate, worktree)
             ok, output = tools.tests(worktree, None)

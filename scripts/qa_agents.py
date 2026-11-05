@@ -87,12 +87,20 @@ def regression_command(plans: list[str] | None, out: Path | None, manifest: Path
     return 0 if report["ok"] else 1
 
 
-def propose_command(item_id: str, attempts: int, open_pr: bool, run_plans: bool, plans: list[str] | None) -> int:
+def propose_command(item_id: str, attempts: int, open_pr: bool, run_plans: bool, plans: list[str] | None, from_report: Path | None = None) -> int:
     from app.agents.engineer import default_tools, propose
     from app.agents.playbook import save_playbook
 
+    stored_patch = None
+    if from_report is not None:
+        stored_patch = json.loads(from_report.read_text(encoding="utf-8")).get("patch")
+        if not stored_patch:
+            print(f"{from_report} holds no patch to replay")
+            return 1
+        attempts = 1
+        print(f"replaying the patch from {from_report.name}: {stored_patch.get('title')}")
     playbook = load_playbook()
-    tools = default_tools(ROOT_DIR, open_pr=open_pr, run_plans=run_plans, only_plans=plans or None)
+    tools = default_tools(ROOT_DIR, open_pr=open_pr, run_plans=run_plans, only_plans=plans or None, stored_patch=stored_patch)
     updated, proposal = propose(playbook, item_id, ROOT_DIR, tools, attempts=attempts)
     save_playbook(updated)
     print(f"{proposal.item_id} on {proposal.branch}: {proposal.status} after {proposal.attempts} attempt(s)")
@@ -200,6 +208,7 @@ def main() -> int:
     propose.add_argument("--no-pr", action="store_true", help="commit on a local branch but do not push or open a pull request")
     propose.add_argument("--skip-plans", action="store_true", help="skip the fixture-plan regression (unit tests only)")
     propose.add_argument("--plans", nargs="*", help="limit the regression to these plan names")
+    propose.add_argument("--from-report", help="re-verify the patch stored in a data/agents/proposals/*.json report instead of drafting a new one")
     args = parser.parse_args()
     if args.command == "playbook":
         show_playbook()
@@ -212,7 +221,10 @@ def main() -> int:
     if args.command == "regression":
         return regression_command(args.plans, Path(args.out).resolve() if args.out else None, Path(args.manifest).resolve() if args.manifest else None)
     if args.command == "propose":
-        return propose_command(args.item_id, args.attempts, open_pr=not args.no_pr, run_plans=not args.skip_plans, plans=args.plans)
+        return propose_command(
+            args.item_id, args.attempts, open_pr=not args.no_pr, run_plans=not args.skip_plans, plans=args.plans,
+            from_report=Path(args.from_report).resolve() if args.from_report else None,
+        )
     return review_run(Path(args.run_dir).resolve(), teach=not args.no_teach, max_rounds=args.rounds)
 
 

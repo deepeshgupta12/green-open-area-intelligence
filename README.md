@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-108%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -196,6 +196,7 @@ request ─► extractor ─► reviewer ─► fixer ─► reviewer ─► bes
 python scripts/qa_agents.py backlog          # the queue, the tolerances and the pull requests already open
 python scripts/qa_agents.py propose B7       # one item (or `next` for the most frequent open one)
 python scripts/qa_agents.py propose B7 --skip-plans --no-pr   # unit tests only, local branch only
+python scripts/qa_agents.py propose B7 --from-report data/agents/proposals/B7-<stamp>.json   # re-verify a stored patch, no new draft
 python scripts/qa_agents.py regression       # re-run the five fixture plans by hand
 ```
 
@@ -204,7 +205,7 @@ The engineer's gates, in order. A proposal that fails any of them is not publish
 1. **Allowed shape.** Edits only under `app/agents`, `app/services`, `app/schemas`, `app/utils` and `tests`, never `app/config.py`, the frontend, docs or dependencies; every `old_text` must occur exactly once; at most 16 edits and 400 changed lines; at least one new test function; no test function is ever removed. The model gets the validation errors back and tries once more.
 2. **Unit suite.** The whole pytest suite passes in the worktree with the patch applied. A failure is fed back to the model for a second draft.
 3. **The test guards the change.** The new tests are run alone on the base code with only the test edits applied; they must fail there and pass with the change. A test that passes either way is reported and the proposal is refused.
-4. **Fixture plans.** `docs/regression/plans.json` lists the five plans with the facts confirmed by hand (12 towers on the Mahindra block plan, 2 towers and no water on Kalpataru Vian, 8 wings and one pool on Sattva Lumina, 6 towers and a boxed court on Lodha Corinthia, 58 legend rows at 80%+ coverage on Birla Taranya) as inclusive ranges. The pipeline is re-run on each plan from the worktree with the patched code; every fact must still hold. The stored input images are used when present, otherwise the public URLs.
+4. **Fixture plans.** `docs/regression/plans.json` lists the five plans with the facts confirmed by hand (12 towers on the Mahindra block plan, 2 towers and no water on Kalpataru Vian, 8 wings and one pool on Sattva Lumina, 6 towers and a boxed court on Lodha Corinthia, 58 legend rows at 80%+ coverage on Birla Taranya) as inclusive ranges. The pipeline is re-run on each plan from the worktree with the patched code; every fact must still hold. A plan that fails is run once more before it counts as a regression, because the vision model varies run to run; a pass on the retry is reported as "pass (on attempt 2)" so the reviewer sees the flakiness. The stored input images are used when present, otherwise the public URLs.
 
 Only then does it commit on a `qa/engineer-<item>-<finding>-<date>` branch, push, and open the pull request with `gh`, whose body carries the backlog evidence, the rationale, the new tests, the guard result and the regression table. The backlog item becomes `proposed` with the pull request URL; merging it (or closing it) is a human decision, after which `teach` on new runs stops recording the finding.
 
@@ -217,6 +218,8 @@ The engineer's first real run took backlog item B3 (marker-placed courts and law
 Every gate passed and the pull request should still be **closed, not merged**. The patch only marks the marker-expansion recipe as "checked" when it boxes nothing: safe, but it changes nothing on the plan, and it would count those runs as verified clean when the court simply could not be boxed. The model took the easiest route to a green build. That is exactly the judgement the gates cannot make and the reason a human stays in the loop. The prompt now requires a proposal to change what the extractor or the fixer produces for the example runs, and to decline otherwise; the pull request is kept as the worked example.
 
 Two harness lessons from the same run, both fixed: the worktree must carry the git-ignored test fixtures (`data/input/342956.json` and the master plan image) and the credentials, otherwise the API tests fail and the failure is blamed on the patch; and the suite is run once on the base commit before any model call is spent.
+
+The second run for B3, under the tightened prompt, drafted a real change: it relaxed the acceptance of a marker's drawn area (the marker may sit up to 4% of the sheet outside the box instead of 1%, and the box may be only 10% larger than the disc instead of 20%), with a test that fails on the base. The suite passed, the guard passed, and the fixture gate refused it because the Mahindra block plan came back with 11 towers. That plan has no legend markers, so the patch cannot have touched it: the failure was the vision model's own variance. Two things followed. The regression now re-runs a failing plan once before it counts, and a proposal's patch is stored in its report so `--from-report` can re-verify the same patch without a new draft. The gate was still right to refuse: it cannot tell variance from damage, and only a re-run can.
 
 **What the agents do learn on their own.** Three things change without a developer, all of them in the playbook file and all of them bounded. (1) Rules, rejection cases and lessons: the teacher adds a rule only when a trail shows the same fix working, so the reviewer's prompt and the fixer's prompt grow from evidence. (2) Reviewer tolerances: each fixer recipe reports whether it verified the disputed items and found nothing wrong (`checked`); the teacher counts those into the backlog item (`verified_clean`), and after three such runs for the same finding and plan style it raises the matching tolerance by one tower, never above two, and logs the step in `tuning_history`. The Mahindra block plan is the worked example: the independent count kept saying 11 towers against 12 verified footprints, and after three verified-clean rounds the reviewer stops raising that over-count. (3) The backlog itself, which is the list of things only code can fix. `python scripts/qa_agents.py backlog` prints the tolerances and their history above the open items.
 
@@ -261,7 +264,7 @@ green-open-area-intelligence/
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
 ├── docs/                         # contract schema, sample responses, screenshots, regression manifest (fixture plans)
 ├── scripts/                      # run_single_project.py, qa_agents.py, export_contract.py
-├── tests/                        # pytest suite (107 tests)
+├── tests/                        # pytest suite (108 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
