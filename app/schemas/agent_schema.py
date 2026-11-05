@@ -105,8 +105,11 @@ class BacklogItem(BaseModel):
     example_runs: list[str] = Field(default_factory=list)
     detail: str
     suggested_change: str | None = None
-    status: Literal["open", "done"] = "open"
+    status: Literal["open", "proposed", "done"] = "open"
     verified_clean: int = Field(default=0, description="Occurrences where the fixer verified the disputed items and found nothing wrong.")
+    attempts: int = Field(default=0, description="Engineer proposals tried for this item.")
+    proposal_url: str | None = Field(default=None, description="Pull request (or branch) the engineer opened for it.")
+    last_attempt: str | None = Field(default=None, description="Why the last engineer attempt did not become a pull request.")
 
 
 class Playbook(BaseModel):

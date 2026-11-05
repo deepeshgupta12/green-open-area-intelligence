@@ -144,7 +144,7 @@ def record_code_gaps(playbook: Playbook, trail: QaTrail, suggestions: dict[str, 
             continue
         seen_codes.add(finding.code)
         suggestion = (suggestions or {}).get(finding.code)
-        detail = finding.detail + (f" Fixer: {action.detail}" if action is not None else " Fixer: no recipe.")
+        detail = finding.detail + (f" Fixer: {action.detail}" if action is not None else " Fixer: not invoked (the review passed above the repair threshold).")
         verified_clean = 1 if action is not None and action.checked else 0
         existing = next((item for item in backlog if item.finding_code == finding.code and item.plan_style == trail.plan_style and item.status == "open"), None)
         if existing is not None:

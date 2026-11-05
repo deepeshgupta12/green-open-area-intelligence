@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
 [![Gemini 3.5 Flash](https://img.shields.io/badge/Gemini-3.5%20Flash-4285F4)](https://ai.google.dev)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.10-5C3EE8)](https://opencv.org)
-[![Tests](https://img.shields.io/badge/tests-95%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-105%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
@@ -24,17 +24,18 @@ The engine is deliberately honest: it returns ranges, never fake precision; it n
 5. [Confidence scoring](#confidence-scoring)
 6. [Three-project master plan comparison](#three-project-master-plan-comparison)
 7. [Master plan entity map and hover viewer](#master-plan-entity-map-and-hover-viewer)
-8. [Architecture](#architecture)
-9. [Repository structure](#repository-structure)
-10. [Getting started](#getting-started)
-11. [API reference](#api-reference)
-12. [CLI](#cli)
-13. [Output example](#output-example)
-14. [Environment variables](#environment-variables)
-15. [Testing](#testing)
-16. [Status and roadmap](#status-and-roadmap)
-17. [Disclaimer](#disclaimer)
-18. [License](#license)
+8. [Backend QA agents](#backend-qa-agents) (reviewer, fixer, teacher, and the engineer that opens pull requests)
+9. [Architecture](#architecture)
+10. [Repository structure](#repository-structure)
+11. [Getting started](#getting-started)
+12. [API reference](#api-reference)
+13. [CLI](#cli)
+14. [Output example](#output-example)
+15. [Environment variables](#environment-variables)
+16. [Testing](#testing)
+17. [Status and roadmap](#status-and-roadmap)
+18. [Disclaimer](#disclaimer)
+19. [License](#license)
 
 ---
 
@@ -156,15 +157,49 @@ Entity vocabulary: `residential_block`, `commercial_block`, `clubhouse`, `securi
 
 ## Backend QA agents
 
-Every analysis is checked by three backend agents before the response is built. They run inside the API, write their trail to `qa_trail.json` beside the run artifacts, and add nothing to the API contract or the UI.
+Every analysis is checked by three backend agents before the response is built. They run inside the API, write their trail to `qa_trail.json` beside the run artifacts, and add nothing to the API contract or the UI. A fourth agent, the engineer, runs offline and turns what the first three could not fix into pull requests.
+
+```text
+request ─► extractor ─► reviewer ─► fixer ─► reviewer ─► best version ─► response
+                            │                                │
+                            └──── trail (qa_trail.json) ─────┘
+                                          │
+                                       teacher ─► playbook: rules, cases, recipes, lessons,
+                                                           tolerances (self-tuned), backlog
+                                                                                      │
+                               offline, by a developer: `qa_agents.py propose <id>`   ▼
+                                       engineer ─► patch + test ─► unit suite ─► test guards the change
+                                                   ─► five fixture plans ─► pull request (human merges)
+```
 
 | Agent | Module | What it does |
 |-------|--------|--------------|
 | **Reviewer** | `app/agents/reviewer.py` | Deterministic rule checks first (unique block labels, water needs legend/record/marker support or blue ink, no box over 35% of the sheet, legend coverage, printed records on block plans, green never above open, Low confidence on line drawings), then two model calls: an **independent count** of towers, pools and gates that sees only the drawing, and a judgement that reads the playbook, the count and the extraction summary. Produces a pass/fail verdict, a score (blocker 0.5, major 0.2, minor 0.05 off) and typed findings. |
 | **Fixer** | `app/agents/fixer.py` | Maps finding codes to recipes that reuse the extractor's verified tools: tiled footprint recovery for missed towers on block plans, blue-ink and crop checks for suspect water, crop checks for suspect blocks, duplicate-label renaming, oversized-box drops, estimate clamping and downgrading. A model opinion alone never removes a feature. |
-| **Teacher** | `app/agents/teacher.py` | Maintains the **playbook** (`app/agents/playbook.py`): acceptance rules, rejection cases and fix recipes, seeded from the Sattva Lumina, Birla Taranya, Kalpataru Vian and Mahindra Rainforest cases. After a cycle with findings it distils new entries from the trail with the text model, deduplicates them against the existing text (at most three per kind per cycle) and always records a deterministic lesson line. The runtime copy lives at `data/agents/playbook.json`; the seed in code never changes. |
+| **Teacher** | `app/agents/teacher.py` | Maintains the **playbook** (`app/agents/playbook.py`): acceptance rules, rejection cases and fix recipes, seeded from the Sattva Lumina, Birla Taranya, Kalpataru Vian and Mahindra Rainforest cases. After a cycle with findings it distils new entries from the trail with the text model, deduplicates them against the existing text (at most three per kind per cycle) and always records a deterministic lesson line. It also tunes the reviewer's tolerances from evidence and keeps the backlog of what only code can fix. The runtime copy lives at `data/agents/playbook.json`; the seed in code never changes, and seed entries added later are merged into the runtime copy on load. |
+| **Engineer** | `app/agents/engineer.py` | Runs **offline, never inside a request**. Takes one backlog item, drafts a minimal patch plus a unit test with the text model (it sees the item, the QA trails behind it, the confirmed facts of the fixture plans and the source it may touch), applies it in a throwaway git worktree and opens a pull request only when every gate passes. A human reviews and merges; the agent never merges. |
 
-**What the agents cannot do, and what happens then.** The fixer only runs recipes that exist as tested code, and the teacher writes the playbook, never the pipeline's source: agents editing the extraction code while a request is served would put untested changes into production. Every finding the fixer could not act on is therefore recorded by the teacher as a **backlog item** in the playbook, keyed by finding code and plan style, with occurrence counts, example run ids and the model's suggested code change. `python scripts/qa_agents.py backlog` lists it; `python scripts/qa_agents.py teach <run_dir>...` feeds stored trails to the teacher. That backlog is the hand-off to a developer, who turns an item into code with tests; the Kalpataru small-sheet marker pass and the contradicted-box check were both of that kind.
+**What runs inside a request and what does not.** The fixer only runs recipes that exist as tested code, and the teacher writes the playbook, never the pipeline's source: agents editing the extraction code while a request is served would put untested changes into production. Every finding the fixer could not act on is therefore recorded by the teacher as a **backlog item** in the playbook, keyed by finding code and plan style, with occurrence counts, example run ids and the model's suggested code change. `python scripts/qa_agents.py backlog` lists it; `python scripts/qa_agents.py teach <run_dir>...` feeds stored trails to the teacher. The backlog is the engineer's queue.
+
+### From backlog to pull request
+
+```bash
+python scripts/qa_agents.py backlog          # the queue, the tolerances and the pull requests already open
+python scripts/qa_agents.py propose B7       # one item (or `next` for the most frequent open one)
+python scripts/qa_agents.py propose B7 --skip-plans --no-pr   # unit tests only, local branch only
+python scripts/qa_agents.py regression       # re-run the five fixture plans by hand
+```
+
+The engineer's gates, in order. A proposal that fails any of them is not published; the attempt, its reason and the patch are kept under `data/agents/proposals/` and on the backlog item (`attempts`, `last_attempt`), so the next attempt or the next developer starts from the evidence.
+
+1. **Allowed shape.** Edits only under `app/agents`, `app/services`, `app/schemas`, `app/utils` and `tests`, never `app/config.py`, the frontend, docs or dependencies; every `old_text` must occur exactly once; at most 16 edits and 400 changed lines; at least one new test function; no test function is ever removed. The model gets the validation errors back and tries once more.
+2. **Unit suite.** The whole pytest suite passes in the worktree with the patch applied. A failure is fed back to the model for a second draft.
+3. **The test guards the change.** The new tests are run alone on the base code with only the test edits applied; they must fail there and pass with the change. A test that passes either way is reported and the proposal is refused.
+4. **Fixture plans.** `docs/regression/plans.json` lists the five plans with the facts confirmed by hand (12 towers on the Mahindra block plan, 2 towers and no water on Kalpataru Vian, 8 wings and one pool on Sattva Lumina, 6 towers and a boxed court on Lodha Corinthia, 58 legend rows at 80%+ coverage on Birla Taranya) as inclusive ranges. The pipeline is re-run on each plan from the worktree with the patched code; every fact must still hold. The stored input images are used when present, otherwise the public URLs.
+
+Only then does it commit on a `qa/engineer-<item>-<finding>-<date>` branch, push, and open the pull request with `gh`, whose body carries the backlog evidence, the rationale, the new tests, the guard result and the regression table. The backlog item becomes `proposed` with the pull request URL; merging it (or closing it) is a human decision, after which `teach` on new runs stops recording the finding.
+
+Why this shape rather than self-modifying code: the pipeline's quality was won by hand through many probe runs, and run-to-run variance on the vision model is large. An agent that edits production code on its own would have no way to tell a real fix from a lucky run; the regression manifest is the only ground truth, and a pull request is the only place a human can weigh the trade-off. The engineer needs Gemini and a configured `gh`; `--no-pr` keeps everything local.
 
 **What the agents do learn on their own.** Three things change without a developer, all of them in the playbook file and all of them bounded. (1) Rules, rejection cases and lessons: the teacher adds a rule only when a trail shows the same fix working, so the reviewer's prompt and the fixer's prompt grow from evidence. (2) Reviewer tolerances: each fixer recipe reports whether it verified the disputed items and found nothing wrong (`checked`); the teacher counts those into the backlog item (`verified_clean`), and after three such runs for the same finding and plan style it raises the matching tolerance by one tower, never above two, and logs the step in `tuning_history`. The Mahindra block plan is the worked example: the independent count kept saying 11 towers against 12 verified footprints, and after three verified-clean rounds the reviewer stops raising that over-count. (3) The backlog itself, which is the list of things only code can fix. `python scripts/qa_agents.py backlog` prints the tolerances and their history above the open items.
 
@@ -202,14 +237,14 @@ green-open-area-intelligence/
 │   ├── main.py                   # FastAPI app: /health, /estimate, /compare-master-plans, /master-plan/entities, /master-plan/analysis
 │   ├── rules/                    # class definitions, green/open rules, guardrails, confidence rules
 │   ├── schemas/                  # Pydantic models for every stage's input and output
-│   ├── agents/                   # backend QA agents: reviewer, fixer, teacher, playbook, orchestrator
+│   ├── agents/                   # backend QA agents: reviewer, fixer, teacher, playbook, orchestrator, engineer, regression
 │   ├── services/                 # pipeline stages (see table above)
 │   ├── storage/                  # SQLAlchemy scaffolding (persistence not yet wired)
 │   └── utils/                    # file, image and Gemini client helpers
 ├── frontend/                     # Vite + React + TypeScript master plan analysis app (URL or upload)
-├── docs/                         # contract schema, sample responses, screenshots
+├── docs/                         # contract schema, sample responses, screenshots, regression manifest (fixture plans)
 ├── scripts/                      # run_single_project.py, qa_agents.py, export_contract.py
-├── tests/                        # pytest suite (95 tests)
+├── tests/                        # pytest suite (105 tests)
 ├── data/
 │   ├── benchmarks/               # density benchmark dataset (synthetic sample shipped)
 │   ├── input/                    # your project JSON + master plan images (git-ignored)
@@ -442,7 +477,9 @@ Flags are cumulative; omit later ones to stop at an earlier stage. Outputs land 
 pytest -q
 ```
 
-The suite covers the JSON parser, image preprocessor, vision analyzer, segmentation engine, area calculator, confidence engine, validation engine, report writer, category insight engine, master plan compare engine, the master plan entity extractor (payload parsing, marker reconciliation, pattern filters, tiling, truncated-response salvage), the site metrics engine (unit conversions, provenance, allocation flow, density benchmarks) and all API endpoints. No test needs network access; Gemini calls are stubbed.
+The suite covers the JSON parser, image preprocessor, vision analyzer, segmentation engine, area calculator, confidence engine, validation engine, report writer, category insight engine, master plan compare engine, the master plan entity extractor (payload parsing, marker reconciliation, pattern filters, tiling, truncated-response salvage), the site metrics engine (unit conversions, provenance, allocation flow, density benchmarks), the QA agents (rule checks, severities, fixer recipes, teacher learning and tuning, playbook merge), the engineer (patch validation, the full propose flow on a throwaway git repository with fake tools, the regression manifest) and all API endpoints. No test needs network access; Gemini calls are stubbed.
+
+The fixture-plan regression is the one check that does need Gemini: `python scripts/qa_agents.py regression` re-runs the five plans in `docs/regression/plans.json` and prints a pass/fail table against their confirmed facts. Run it before merging any change to the extractor; the engineer runs it for you before it opens a pull request.
 
 Frontend type-check and build:
 
@@ -452,7 +489,7 @@ cd frontend && npm run build
 
 ## Status and roadmap
 
-**Implemented**: full single-project pipeline (parse, preprocess, Gemini vision, OpenCV segmentation, range estimate, guardrails, confidence, explanation, report), category insight engine, three-project master plan comparison API with deterministic statuses and AI narrative, frontend contract validator, master plan spatial entity map with legend-marker reconciliation, key-value site metrics with density benchmarks, FastAPI endpoints, and a React master plan analysis app (plan by URL or upload) with composition, amenity-mix, legend-coverage and block-access dashboards from the plan alone, a hover-to-inspect entity viewer, and zoning / density / allocation dashboards when project records are supplied.
+**Implemented**: full single-project pipeline (parse, preprocess, Gemini vision, OpenCV segmentation, range estimate, guardrails, confidence, explanation, report), category insight engine, three-project master plan comparison API with deterministic statuses and AI narrative, frontend contract validator, master plan spatial entity map with legend-marker reconciliation, key-value site metrics with density benchmarks, FastAPI endpoints, and a React master plan analysis app (plan by URL or upload) with composition, amenity-mix, legend-coverage and block-access dashboards from the plan alone, a hover-to-inspect entity viewer, and zoning / density / allocation dashboards when project records are supplied. Backend QA agents (reviewer, fixer, teacher) run on every analysis with a self-tuning playbook, and an offline engineer agent turns their backlog into gated pull requests.
 
 **Planned**: reviewer UI with manual polygon correction, batch processing, a trained segmentation model to shrink the unknown share, a human-reviewed evaluation dataset, and wiring the SQLAlchemy storage layer (`scripts/init_db.py` and `scripts/generate_sample_report.py` are placeholders today).
 

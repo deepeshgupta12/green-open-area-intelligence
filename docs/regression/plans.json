@@ -1,0 +1,83 @@
+{
+  "description": "Fixture plans the engineer agent re-runs before it opens a pull request. Expectations are the facts confirmed by hand on these sheets; a range is [min, max] inclusive.",
+  "plans": [
+    {
+      "name": "sattva-lumina",
+      "title": "Sattva Lumina (rendered plan, 38-row legend)",
+      "image_url": "https://static.squareyards.com/resources/images/bangalore/project-image/sattva-lumina-project-master-plan-image1-8725.jpg",
+      "local_image": "data/input/analysis_runs/46b299aa-38e7-4a40-b569-683d674798ab/sattva-lumina-project-master-plan-image1-8725.jpg",
+      "expect": {
+        "drawing_style": "rendered",
+        "residential_block": [8, 8],
+        "swimming_pool": [1, 1],
+        "water_feature": [0, 4],
+        "entities_total": [55, 140],
+        "legend_total": [36, 40],
+        "legend_placed_share": [0.5, 1.0]
+      }
+    },
+    {
+      "name": "kalpataru-vian",
+      "title": "Kalpataru Vian (720x800 sheet, key-note wing names, no water)",
+      "image_url": "https://static.squareyards.com/resources/images/mumbai/project-image/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21749efe4.jpg",
+      "local_image": "data/input/analysis_runs/a2360bf2-aab0-4c47-880c-93c8fe149842/kalpataru-vian-project-master-plan-image1-6699-opt-3d73f302-f4b9-476d-b1ac-c0b21.jpg",
+      "expect": {
+        "drawing_style": "rendered",
+        "residential_block": [2, 2],
+        "swimming_pool": [0, 0],
+        "water_feature": [0, 0],
+        "entities_total": [28, 80],
+        "legend_total": [8, 10],
+        "legend_placed_share": [0.5, 1.0],
+        "diagnostics_present": ["blocks_named_from_key_notes"]
+      }
+    },
+    {
+      "name": "mahindra-rainforest",
+      "title": "Mahindra Rainforest Phase-2 (CAD block plan, 12 towers)",
+      "image_url": "https://static.squareyards.com/resources/images/mumbai/project-image/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-e14ccd0af67f.jpg",
+      "local_image": "data/input/analysis_runs/55c3feae-b52b-4443-a124-37aac5acd2ae/mahindra-rainforest-project-master-plan-image1-7011-opt-69ca849c-0e5f-47aa-bcf4-.jpg",
+      "expect": {
+        "drawing_style": "block_plan",
+        "residential_block": [12, 12],
+        "swimming_pool": [0, 0],
+        "water_feature": [0, 0],
+        "entities_total": [25, 80],
+        "legend_total": [0, 0],
+        "diagnostics_present": ["block_plan_mode"]
+      }
+    },
+    {
+      "name": "lodha-corinthia",
+      "title": "Lodha Corinthia (rendered plan, futsal court boxed from its marker)",
+      "image_url": "https://static.squareyards.com/resources/images/mumbai/project-image/lodha-corinthia-project-master-plan-image1-6134.jpg",
+      "local_image": "data/input/analysis_runs/bacbd044-9165-442e-a3e2-5439798d3311/lodha-corinthia-project-master-plan-image1-6134.jpg",
+      "expect": {
+        "drawing_style": "rendered",
+        "residential_block": [6, 6],
+        "swimming_pool": [0, 0],
+        "water_feature": [0, 0],
+        "sports_court": [1, 4],
+        "entities_total": [24, 80],
+        "legend_total": [15, 17],
+        "legend_placed_share": [0.5, 1.0],
+        "diagnostics_present": ["marker_features_boxed"]
+      }
+    },
+    {
+      "name": "birla-taranya",
+      "title": "Birla Taranya (rendered plan, GR/PT/RE-prefixed legend of 58 rows)",
+      "note": "Tower and pool counts on this sheet are not confirmed by hand and vary run to run (4-6 blocks, 4-5 marker-placed pools); the ranges are wide on purpose and the legend coverage is the real check.",
+      "image_url": "https://static.squareyards.com/resources/images/thane/project-image/birla-taranya-project-master-plan-image1-4203-opt-178f2ac7-ebc5-4816-ba4b-1170de852197.jpg",
+      "local_image": "data/input/analysis_runs/f14655c6-5f90-4913-9868-d6dd11812c75/birla-taranya-project-master-plan-image1-4203-opt-178f2ac7-ebc5-4816-ba4b-1170de.jpg",
+      "expect": {
+        "drawing_style": "rendered",
+        "residential_block": [3, 6],
+        "swimming_pool": [1, 6],
+        "entities_total": [90, 200],
+        "legend_total": [56, 60],
+        "legend_placed_share": [0.8, 1.0]
+      }
+    }
+  ]
+}

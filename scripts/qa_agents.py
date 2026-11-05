@@ -1,7 +1,11 @@
 """Backend QA agents from the command line.
 
   python scripts/qa_agents.py playbook              # show the current playbook
+  python scripts/qa_agents.py backlog               # tolerances, open backlog, proposals
   python scripts/qa_agents.py review <run_dir>      # re-review a stored run (and fix, re-review, teach)
+  python scripts/qa_agents.py teach <run_dir>...    # feed stored trails to the teacher
+  python scripts/qa_agents.py regression            # re-run the fixture plans against docs/regression/plans.json
+  python scripts/qa_agents.py propose B7            # engineer: backlog item -> patch -> tests -> plans -> pull request
 
 A run directory is data/output/analysis_runs/<id> or data/output/entity_runs/<id>;
 the matching data/input/.../<id> folder supplies the image.
@@ -53,7 +57,7 @@ def show_backlog(playbook=None) -> None:
     for line in playbook.tuning_history[-6:]:
         print(f"  - {line}")
     items = sorted((item for item in playbook.backlog if item.status == "open"), key=lambda item: -item.occurrences)
-    print("\nBacklog: findings the fixer has no code for (a developer's list)")
+    print("\nBacklog: findings the fixer has no code for (the engineer's queue; `propose <id>` or `propose next`)")
     if not items:
         print("  (empty)")
     for item in items:
@@ -61,6 +65,50 @@ def show_backlog(playbook=None) -> None:
         print(f"       {item.detail[:160]}")
         if item.suggested_change:
             print(f"       change: {item.suggested_change[:200]}")
+        if item.attempts:
+            print(f"       engineer: {item.attempts} attempt(s); last: {item.last_attempt or 'n/a'}")
+    proposed = [item for item in playbook.backlog if item.status == "proposed"]
+    if proposed:
+        print("\nProposed: pull requests the engineer opened, waiting for a human")
+        for item in proposed:
+            print(f"  {item.id} {item.finding_code} [{item.plan_style}] -> {item.proposal_url}")
+
+
+def regression_command(plans: list[str] | None, out: Path | None, manifest: Path | None) -> int:
+    from app.agents.regression import report_markdown, run_regression
+
+    report = run_regression(manifest_path=manifest, only=plans or None, repo_root=ROOT_DIR)
+    print(report_markdown(report))
+    if out is not None:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        print(f"report written to {out}")
+    print("regression:", "pass" if report["ok"] else "FAIL")
+    return 0 if report["ok"] else 1
+
+
+def propose_command(item_id: str, attempts: int, open_pr: bool, run_plans: bool, plans: list[str] | None) -> int:
+    from app.agents.engineer import default_tools, propose
+    from app.agents.playbook import save_playbook
+
+    playbook = load_playbook()
+    tools = default_tools(ROOT_DIR, open_pr=open_pr, run_plans=run_plans, only_plans=plans or None)
+    updated, proposal = propose(playbook, item_id, ROOT_DIR, tools, attempts=attempts)
+    save_playbook(updated)
+    print(f"{proposal.item_id} on {proposal.branch}: {proposal.status} after {proposal.attempts} attempt(s)")
+    if proposal.title:
+        print(f"  title: {proposal.title}")
+    if proposal.url:
+        print(f"  {proposal.url}")
+    for note in proposal.notes:
+        print(f"  - {note}")
+    if proposal.regression and proposal.regression.get("plans"):
+        from app.agents.regression import report_markdown
+
+        print(report_markdown(proposal.regression))
+    if proposal.report_path:
+        print(f"  report: {proposal.report_path}")
+    return 0 if proposal.status == "proposed" else 1
 
 
 def _backfill_checked(raw: dict) -> dict:
@@ -142,6 +190,16 @@ def main() -> int:
     review.add_argument("--rounds", type=int, default=2)
     teach = sub.add_parser("teach", help="feed stored qa_trail.json files to the teacher")
     teach.add_argument("run_dirs", nargs="+")
+    regression = sub.add_parser("regression", help="re-run the fixture plans and check their confirmed facts")
+    regression.add_argument("--plans", nargs="*", help="plan names from the manifest (default: all)")
+    regression.add_argument("--out", help="write the JSON report here")
+    regression.add_argument("--manifest", help="manifest path (default docs/regression/plans.json)")
+    propose = sub.add_parser("propose", help="engineer: turn a backlog item into a pull request")
+    propose.add_argument("item_id", help="backlog id such as B7, or 'next' for the most frequent open item")
+    propose.add_argument("--attempts", type=int, default=2, help="drafts to try before giving up")
+    propose.add_argument("--no-pr", action="store_true", help="commit on a local branch but do not push or open a pull request")
+    propose.add_argument("--skip-plans", action="store_true", help="skip the fixture-plan regression (unit tests only)")
+    propose.add_argument("--plans", nargs="*", help="limit the regression to these plan names")
     args = parser.parse_args()
     if args.command == "playbook":
         show_playbook()
@@ -151,6 +209,10 @@ def main() -> int:
         return 0
     if args.command == "teach":
         return teach_from_trails([Path(path).resolve() for path in args.run_dirs])
+    if args.command == "regression":
+        return regression_command(args.plans, Path(args.out).resolve() if args.out else None, Path(args.manifest).resolve() if args.manifest else None)
+    if args.command == "propose":
+        return propose_command(args.item_id, args.attempts, open_pr=not args.no_pr, run_plans=not args.skip_plans, plans=args.plans)
     return review_run(Path(args.run_dir).resolve(), teach=not args.no_teach, max_rounds=args.rounds)
 
 
