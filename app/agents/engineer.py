@@ -281,6 +281,9 @@ def build_engineer_prompt(item: BacklogItem, trails: list[str], files: dict[str,
         "- Add at least one test in tests/test_agents.py or tests/test_master_plan_entity_extractor.py that FAILS without your change and PASSES with it. "
         "Tests run offline: use fakes for the model like the existing tests do (a fake `call` returning dicts); never the network or Gemini.\n"
         "- Prefer a new guardrail or recipe over editing the heart of an existing pass. Keep public function names and the output contract unchanged.\n"
+        "- The change must alter what the extractor or the fixer PRODUCES for the example runs (a feature boxed, a false box dropped, a block named), "
+        "so that the finding no longer occurs. A patch that only changes bookkeeping, flags such as `checked`, wording, logging or diagnostics does not "
+        "resolve a backlog item; if that is all you can do, return an empty edits list and say so.\n"
         f"- Keep the whole patch under {MAX_CHANGED_LINES} changed lines and {MAX_EDITS} edits.\n"
         "- If the item cannot be fixed safely in code, return an empty edits list and say why in the rationale.",
         "BACKLOG ITEM:\n"
