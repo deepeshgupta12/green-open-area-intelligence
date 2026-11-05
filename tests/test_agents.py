@@ -555,3 +555,44 @@ def test_loaded_playbook_gains_seed_entries_added_after_it_was_written(tmp_path)
     assert [rule.id for rule in loaded.acceptance_rules] == [rule.id for rule in seed.acceptance_rules]
     assert [recipe.id for recipe in loaded.fix_recipes] == [recipe.id for recipe in seed.fix_recipes]
     assert loaded.lessons == ["learned on disk"]  # what the teacher wrote is untouched
+
+
+def test_marker_only_area_features_checked_when_not_expanded():
+    from app.schemas.master_plan_entity_schema import EntityBox, MasterPlanEntity
+    from app.agents.playbook import load_playbook
+    entity_map = build_map()
+    small_court = MasterPlanEntity(
+        entity_id="m24-1",
+        entity_type="sports_court",
+        entity_group="amenity",
+        label="Tennis Court",
+        legend_code="24",
+        box=EntityBox(x_min=0.1, y_min=0.1, x_max=0.11, y_max=0.11),
+        center_x=0.105,
+        center_y=0.105,
+        relative_area=0.0001,
+        confidence_label="Medium",
+        located_by="legend_marker",
+        attributes={},
+        adjacent_to=[],
+    )
+    entity_map = entity_map.model_copy(update={"entities": [*entity_map.entities, small_court]})
+    
+    def fake_call(*args, **kwargs):
+        return {"found": False}
+        
+    img = Image.new("RGB", (100, 100), "white")
+    ctx = FixContext(image=img, image_part=None, call=fake_call, project=None)
+    playbook = load_playbook()
+    findings = [
+        Finding(
+            code="marker_only_area_features",
+            severity="major",
+            detail="1 area features are placed by a marker but not boxed",
+            entity_ids=["m24-1"],
+        )
+    ]
+    new_map, _, actions = apply_fixes(entity_map, None, findings, ctx, playbook)
+    action = next(a for a in actions if a.finding_code == "marker_only_area_features")
+    assert action.applied is False
+    assert action.checked is True

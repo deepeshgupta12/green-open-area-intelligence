@@ -213,7 +213,12 @@ def apply_fixes(
                 before = {entity.entity_id for entity in marker_only_area_features(entity_map)}
                 entity_map = expand_marker_features(entity_map, ctx.image, ctx.call)
                 after = {entity.entity_id for entity in marker_only_area_features(entity_map)}
-                record(code, len(after) < len(before), f"{len(before) - len(after)} of {len(before)} marker-only features boxed as areas")
+                record(
+                    code,
+                    len(after) < len(before),
+                    f"{len(before) - len(after)} of {len(before)} marker-only features boxed as areas",
+                    checked=len(after) == len(before),
+                )
             else:
                 record(code, False, "no image or model available to box the areas")
         elif code == "estimate_overconfident" and area_estimate is not None:
