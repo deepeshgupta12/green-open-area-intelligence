@@ -1062,3 +1062,54 @@ def test_two_verified_footprints_inside_a_wing_box_replace_it_as_an_umbrella():
     assert "Tower 6" not in {entity.label for entity in blocks}
     assert sorted(round(entity.box.x_min, 2) for entity in blocks) == [0.1, 0.19, 0.24, 0.38, 0.49, 0.6]  # two towers replace the umbrella; the lone duplicate is gone
     assert {diagnostic.code for diagnostic in result.diagnostics} >= {"umbrella_blocks_split_by_footprints", "footprints_added"}
+def test_region_box_from_payload_robust_pad_and_size():
+    from app.schemas.master_plan_entity_schema import EntityBox, MasterPlanEntity
+    from app.services.master_plan_entity_extractor import region_box_from_payload
+
+    entity = MasterPlanEntity(
+        entity_id="m1",
+        entity_type="sports_court",
+        entity_group="amenity",
+        label="Tennis Court",
+        box=EntityBox(x_min=0.1, y_min=0.1, x_max=0.12, y_max=0.12),
+        center_x=0.11,
+        center_y=0.11,
+        relative_area=0.0004,
+        confidence_label="Medium",
+        located_by="legend_marker",
+        attributes={},
+        adjacent_to=[],
+    )
+
+    # Case 1: Marker is slightly outside the returned box (pad > 0.01 but <= 0.04)
+    payload = {
+        "found": True,
+        "box_2d": [125, 125, 250, 250]
+    }
+    tile = (0.0, 0.0, 1.0, 1.0)
+
+    box = region_box_from_payload(payload, tile, entity)
+    assert box is not None
+    assert box.x_min == 0.125
+
+    # Case 2: Returned box is expanded but only by 15% in both dimensions (1.15x)
+    entity_small = MasterPlanEntity(
+        entity_id="m2",
+        entity_type="sports_court",
+        entity_group="amenity",
+        label="Tennis Court",
+        box=EntityBox(x_min=0.1, y_min=0.1, x_max=0.12, y_max=0.12),
+        center_x=0.11,
+        center_y=0.11,
+        relative_area=0.0004,
+        confidence_label="Medium",
+        located_by="legend_marker",
+        attributes={},
+        adjacent_to=[],
+    )
+    payload_1_15 = {
+        "found": True,
+        "box_2d": [98, 98, 121, 121]
+    }
+    box_1_15 = region_box_from_payload(payload_1_15, tile, entity_small)
+    assert box_1_15 is not None

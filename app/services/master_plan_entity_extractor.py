@@ -938,11 +938,11 @@ def region_box_from_payload(
     box = _box_from_payload(mapped[0]["box_2d"])
     if box is None:
         return None
-    if not _point_near_box(entity.center_x, entity.center_y, box, pad=0.01):
+    if not _point_near_box(entity.center_x, entity.center_y, box, pad=0.04):
         return None
     if box.width > MARKER_EXPANSION_MAX_SIDE or box.height > MARKER_EXPANSION_MAX_SIDE:
         return None
-    if box.width < entity.box.width * 1.2 and box.height < entity.box.height * 1.2:
+    if box.width < entity.box.width * 1.1 and box.height < entity.box.height * 1.1:
         return None
     if box.width * box.height > TYPE_MAX_AREA.get(entity.entity_type, MAX_RELATIVE_AREA):
         return None
