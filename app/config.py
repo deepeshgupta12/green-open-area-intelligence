@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     development and CLI-based execution.
     """
 
-    app_name: str = "Green Open Area Intelligence Engine"
+    app_name: str = "Master Plan Intelligence"
     app_env: str = "local"
 
     # Gemini auth. Either a Vertex AI service-account key file (preferred when

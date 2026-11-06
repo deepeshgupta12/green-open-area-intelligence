@@ -22,7 +22,7 @@ console = Console()
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run Green Open Area Intelligence Engine for a single project."
+        description="Run Master Plan Intelligence for a single project."
     )
     parser.add_argument("--json", required=True, help="Path to project Datacenter JSON file.")
     parser.add_argument("--image", required=False, help="Path to project master plan image.")

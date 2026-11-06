@@ -37,7 +37,7 @@ from app.utils.remote_image import IMAGE_EXTENSIONS, RemoteImageError, download_
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Green Open Area Intelligence Engine",
+    title="Master Plan Intelligence",
     description=(
         "Backend API for estimating Green Area and Open Area from "
         "project Datacenter JSON and master plan images."

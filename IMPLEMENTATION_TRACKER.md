@@ -2,7 +2,7 @@
 
 ## Product
 
-Green Open Area Intelligence Engine
+Master Plan Intelligence
 
 ## Current Status
 

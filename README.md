@@ -1,4 +1,4 @@
-# Green Open Area Intelligence Engine
+# Master Plan Intelligence
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)](https://fastapi.tiangolo.com)
@@ -7,9 +7,9 @@
 [![Tests](https://img.shields.io/badge/tests-109%20passing-brightgreen)](tests/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A hybrid AI estimation engine that answers a question property portals usually cannot: **how green and how open is this project, really?**
+**Master Plan Intelligence** reads a real-estate project's master plan image and turns it into structured, auditable intelligence: a spatial map of every drawn entity (towers and wings, amenities, legend markers, roads, water, open space) reconciled against the printed legend; executive dashboards for land use, amenity mix, spatial access and architectural block plans; key-value site metrics with density benchmarks when project records are supplied; and range-based **Green Area %** and **Open Area %** estimates with a confidence score, reasons and hard guardrails. A second layer compares three projects side by side on buyer-facing categories.
 
-Given only two inputs, a project's **Datacenter JSON** and its **master plan image**, the engine produces range-based estimates of **Green Area %** and **Open Area %**, a **confidence score with reasons**, **guardrail warnings**, and a compare-module-ready contract. A second layer compares **three projects side by side** on buyer-facing master plan categories and serves the result to a React frontend.
+Every analysis is checked before it is returned by three backend QA agents (reviewer, fixer, teacher) that keep a self-tuning playbook, and an offline engineer agent turns what they could not fix into pull requests with tests and a fixture-plan regression gate. The output contract is typed and identical across plans.
 
 The engine is deliberately honest: it returns ranges, never fake precision; it never uses "official" language unless the value is in RERA, brochure or structured project data; and every output carries the reasons behind its confidence.
 
@@ -80,7 +80,7 @@ The backend agents have no UI; what they produce is a backlog, a trail and, from
 | ![The backlog command: self-tuned reviewer tolerances with their history, the open backlog items with occurrence counts and example runs, and the pull request already open](docs/screenshots/qa-backlog-cli.png) | ![The propose command on backlog item B3: branch, title, pull request URL and the five fixture plans passing](docs/screenshots/engineer-propose-cli.png) |
 | *`qa_agents.py backlog`: tolerances the teacher tuned from evidence, the engineer's queue, the open proposal* | *`qa_agents.py propose B3`: one attempt, every gate passed, pull request opened* |
 | ![Pull request #1 opened by the engineer agent on GitHub, with the backlog evidence, rationale, tests, guard result and fixture-plan table](docs/screenshots/engineer-pull-request.png) | |
-| *The pull request the engineer opened ([#1](https://github.com/deepeshgupta12/green-open-area-intelligence/pull/1)): evidence, rationale, tests, guard result and the regression table, waiting for a human. See [the first live proposal](#the-first-live-proposal) for why it should be closed rather than merged.* | |
+| *The pull request the engineer opened ([#1](https://github.com/deepeshgupta12/master-plan-intelligence/pull/1)): evidence, rationale, tests, guard result and the regression table, waiting for a human. See [the first live proposal](#the-first-live-proposal) for why it should be closed rather than merged.* | |
 
 ## Locked definitions
 
@@ -213,7 +213,7 @@ Why this shape rather than self-modifying code: the pipeline's quality was won b
 
 ### The first live proposal
 
-The engineer's first real run took backlog item B3 (marker-placed courts and lawns left as discs on rendered plans, seen on five runs) and opened [pull request #1](https://github.com/deepeshgupta12/green-open-area-intelligence/pull/1) after one attempt: the suite passed, the new test failed on the base branch and passed with the change, and all five fixture plans held, 12 towers on Mahindra and no water on Kalpataru included. The run is shown in the [screenshots](#screenshots).
+The engineer's first real run took backlog item B3 (marker-placed courts and lawns left as discs on rendered plans, seen on five runs) and opened [pull request #1](https://github.com/deepeshgupta12/master-plan-intelligence/pull/1) after one attempt: the suite passed, the new test failed on the base branch and passed with the change, and all five fixture plans held, 12 towers on Mahindra and no water on Kalpataru included. The run is shown in the [screenshots](#screenshots).
 
 Every gate passed and the pull request should still be **closed, not merged**. The patch only marks the marker-expansion recipe as "checked" when it boxes nothing: safe, but it changes nothing on the plan, and it would count those runs as verified clean when the court simply could not be boxed. The model took the easiest route to a green build. That is exactly the judgement the gates cannot make and the reason a human stays in the loop. The prompt now requires a proposal to change what the extractor or the fixer produces for the example runs, and to decline otherwise; the pull request is kept as the worked example.
 
@@ -221,7 +221,7 @@ Two harness lessons from the same run, both fixed: the worktree must carry the g
 
 The second run for B3, under the tightened prompt, drafted a real change: it relaxed the acceptance of a marker's drawn area (the marker may sit up to 4% of the sheet outside the box instead of 1%, and the box may be only 10% larger than the disc instead of 20%), with a test that fails on the base. The suite passed, the guard passed, and the fixture gate refused it because the Mahindra block plan came back with 11 towers. That plan has no legend markers, so the patch cannot have touched it. Two things followed: the regression now re-runs a failing plan once before it counts, and a proposal's patch is stored in its report so `--from-report` can re-verify the same patch without a new draft.
 
-The replay failed on Mahindra again, twice in a row, which ruled out variance. The first suspect was the harness: the worktree had no runtime playbook, so the regression ran with the seed rather than the tolerances the teacher had learned. That was a real gap and is fixed (the worktree now carries `data/agents/playbook.json` with the credentials and the stored fixture images, and every regression run writes its extracted map and QA trail under `data/output/regression_runs/`), but the trails then showed it was not the cause: the extractor itself returned 11 towers before the QA loop ran, and a clean worktree without the patch did the same. The pipeline had drifted with no code change. The wing pass had started returning one box over the two narrow bottom-left towers at 1.55 times the median tower width, just under the 1.6 umbrella threshold, and the two real outlines the footprint pass found inside it were discarded as duplicates of that box. A width threshold cannot separate a two-tower umbrella from one large tower on this sheet (both about 0.14 of the sheet wide); two verified outlines inside the box can. The extractor now keeps footprint candidates that sit inside a wider block, and when two of them pass the crop check side by side with a gap between them, they replace the block (`umbrella_blocks_split_by_footprints`). Mahindra was back to 12 towers on three consecutive runs. The gate was right to refuse each time; what it could not tell was why, and the preserved trails could.
+The replay failed on Mahindra again, twice in a row, which ruled out variance. The first suspect was the harness: the worktree had no runtime playbook, so the regression ran with the seed rather than the tolerances the teacher had learned. That was a real gap and is fixed (the worktree now carries `data/agents/playbook.json` with the credentials and the stored fixture images, and every regression run writes its extracted map and QA trail under `data/output/regression_runs/`), but the trails then showed it was not the cause: the extractor itself returned 11 towers before the QA loop ran, and a clean worktree without the patch did the same. The pipeline had drifted with no code change. The wing pass had started returning one box over the two narrow bottom-left towers at 1.55 times the median tower width, just under the 1.6 umbrella threshold, and the two real outlines the footprint pass found inside it were discarded as duplicates of that box. A width threshold cannot separate a two-tower umbrella from one large tower on this sheet (both about 0.14 of the sheet wide); two verified outlines inside the box can. The extractor now keeps footprint candidates that sit inside a wider block, and when two of them pass the crop check side by side with a gap between them, they replace the block (`umbrella_blocks_split_by_footprints`). Mahindra was back to 12 towers on three consecutive runs. The gate was right to refuse each time; what it could not tell was why, and the preserved trails could. With the extractor fixed, the same stored patch was replayed through the gates and passed all five plans, Mahindra at 12 towers on the first attempt; it is open as [pull request #2](https://github.com/deepeshgupta12/master-plan-intelligence/pull/2), this time a real change for a human to judge on quality: the relaxed thresholds could let an area jump to a neighbouring feature, which only the overlays show.
 
 **What the agents do learn on their own.** Three things change without a developer, all of them in the playbook file and all of them bounded. (1) Rules, rejection cases and lessons: the teacher adds a rule only when a trail shows the same fix working, so the reviewer's prompt and the fixer's prompt grow from evidence. (2) Reviewer tolerances: each fixer recipe reports whether it verified the disputed items and found nothing wrong (`checked`); the teacher counts those into the backlog item (`verified_clean`), and after three such runs for the same finding and plan style it raises the matching tolerance by one tower, never above two, and logs the step in `tuning_history`. The Mahindra block plan is the worked example: the independent count kept saying 11 towers against 12 verified footprints, and after three verified-clean rounds the reviewer stops raising that over-count. (3) The backlog itself, which is the list of things only code can fix. `python scripts/qa_agents.py backlog` prints the tolerances and their history above the open items.
 
@@ -253,7 +253,7 @@ Vision and segmentation are deliberately separate sources of evidence. The visio
 ## Repository structure
 
 ```text
-green-open-area-intelligence/
+master-plan-intelligence/
 ├── app/
 │   ├── config.py                 # pydantic-settings; reads .env
 │   ├── main.py                   # FastAPI app: /health, /estimate, /compare-master-plans, /master-plan/entities, /master-plan/analysis
@@ -488,7 +488,7 @@ Flags are cumulative; omit later ones to stop at an earlier stage. Outputs land 
 | `QA_PLAYBOOK_PATH` | `data/agents/playbook.json` | Runtime playbook (git-ignored; seeded from code) |
 | `DENSITY_BENCHMARKS_PATH` | `data/benchmarks/density_benchmarks.sample.json` | Project parcel/unit dataset for density benchmarks; the default is a labelled synthetic sample |
 | `APP_ENV` | `local` | Environment label |
-| `APP_NAME` | `Green Open Area Intelligence Engine` | Reported by `/health` |
+| `APP_NAME` | `Master Plan Intelligence` | Reported by `/health` |
 | `DATABASE_URL` | `sqlite:///./goa_engine.sqlite3` | Reserved for the storage layer |
 | `MAX_IMAGE_SIZE_MB` | `30` | Upload size gate |
 | `DEFAULT_CONFIDENCE_THRESHOLD` | `0.65` | Threshold used by compare-module display logic |

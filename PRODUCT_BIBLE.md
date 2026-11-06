@@ -1,8 +1,8 @@
-# Product Bible: Green Open Area Intelligence Engine
+# Product Bible: Master Plan Intelligence
 
 ## 1. Product Vision
 
-The Green Open Area Intelligence Engine estimates how much green area and open area may exist within a real-estate project using only the project Datacenter JSON and the project master plan image.
+The Master Plan Intelligence estimates how much green area and open area may exist within a real-estate project using only the project Datacenter JSON and the project master plan image.
 
 The engine is designed for Square Yards-style compare modules where users need a quick, understandable signal about project openness, green cover, density, and family-friendly livability.
 

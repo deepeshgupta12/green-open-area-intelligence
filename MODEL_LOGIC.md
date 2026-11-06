@@ -2,7 +2,7 @@
 
 ## 1. Model Type
 
-The Green Open Area Intelligence Engine is a hybrid AI estimation engine.
+The Master Plan Intelligence is a hybrid AI estimation engine.
 
 It combines:
 
