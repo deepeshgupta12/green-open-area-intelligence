@@ -1238,7 +1238,24 @@ def recover_footprints(
         rejected_raws = [raw for raw in candidates if raw not in kept]
         rescued = rescue_aligned_footprints(kept, rejected_raws, existing)
         rejected -= len(rescued)
-        candidates = dedupe_footprints(kept + rescued, existing)
+        # Two verified outlines side by side inside one wing box make that box
+        # an umbrella: the outlines replace it. A lone outline inside a block
+        # is a duplicate of it and goes.
+        umbrellas = umbrella_blocks(existing, kept + rescued)
+        survivors = []
+        for raw in kept + rescued:
+            box = _box_from_payload(raw.get("box_2d"))
+            parent = inner_block_of(box, existing) if box is not None else None
+            if parent is None or parent.entity_id in umbrellas:
+                survivors.append(raw)
+        existing = [block for block in existing if block.entity_id not in umbrellas]
+        if umbrellas:
+            entity_map = _with_entities(
+                entity_map,
+                [entity for entity in entity_map.entities if entity.entity_id not in umbrellas],
+                list(entity_map.diagnostics) + [Diagnostic(code="umbrella_blocks_split_by_footprints", count=len(umbrellas))],
+            )
+        candidates = dedupe_footprints(survivors, existing)
     printed_names: list[str | None] = []
     if candidates:
         with ThreadPoolExecutor(max_workers=min(8, len(candidates))) as pool:
@@ -1929,15 +1946,60 @@ def merge_footprint_candidates(*passes: list[dict[str, Any]], overlap: float = 0
     return [raw for raw, _ in merged]
 
 
+UMBRELLA_INNER_CONTAINMENT = 0.7
+UMBRELLA_INNER_WIDTH_SHARE = 0.7
+UMBRELLA_INNER_GAP_SHARE = 0.05
+
+
+def inner_block_of(box: EntityBox, existing_blocks: list[MasterPlanEntity]) -> MasterPlanEntity | None:
+    """The existing block this box sits inside at well under its width, if any.
+
+    A wing box that spans two narrow towers is not always wide enough to be
+    recognised as an umbrella by width alone; the footprint pass boxing the
+    towers inside it is the evidence that it is one.
+    """
+    for block in existing_blocks:
+        if _containment(box, block.box) >= UMBRELLA_INNER_CONTAINMENT and box.width <= UMBRELLA_INNER_WIDTH_SHARE * block.box.width:
+            return block
+    return None
+
+
+def umbrella_blocks(existing_blocks: list[MasterPlanEntity], raws: list[dict[str, Any]]) -> set[str]:
+    """Ids of existing blocks that contain two or more verified footprints side by side with a gap between them."""
+    inside: dict[str, list[EntityBox]] = {}
+    for raw in raws:
+        box = _box_from_payload(raw.get("box_2d"))
+        if box is None:
+            continue
+        block = inner_block_of(box, existing_blocks)
+        if block is not None:
+            inside.setdefault(block.entity_id, []).append(box)
+    umbrellas: set[str] = set()
+    for block in existing_blocks:
+        boxes = sorted(inside.get(block.entity_id, []), key=lambda item: item.x_min)
+        gap = UMBRELLA_INNER_GAP_SHARE * block.box.width
+        for left, right in zip(boxes, boxes[1:]):
+            if _iou(left, right) == 0.0 and right.x_min - left.x_max >= gap:
+                umbrellas.add(block.entity_id)
+                break
+    return umbrellas
+
+
 def select_footprints(raws: list[dict[str, Any]], existing_blocks: list[MasterPlanEntity]) -> list[dict[str, Any]]:
-    """Footprint boxes that are new and sized like the other towers, in reading order."""
+    """Footprint boxes that are new and sized like the other towers, in reading order.
+
+    A box inside an existing block at well under its width is kept as well: it
+    is either a duplicate (dropped later unless a second one sits beside it)
+    or the evidence that the block is an umbrella over two towers.
+    """
     boxed = [
         (raw, box)
         for raw in raws
         if isinstance(raw, dict) and (box := _box_from_payload(raw.get("box_2d"))) is not None
     ]
     fresh = [
-        (raw, box) for raw, box in boxed if all(_iou(box, block.box) <= FOOTPRINT_OVERLAP_IOU for block in existing_blocks)
+        (raw, box) for raw, box in boxed
+        if all(_iou(box, block.box) <= FOOTPRINT_OVERLAP_IOU for block in existing_blocks) or inner_block_of(box, existing_blocks) is not None
     ]
     if len(fresh) >= 3:
         widths = sorted(box.width for _, box in fresh)

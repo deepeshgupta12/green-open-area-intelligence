@@ -1015,3 +1015,50 @@ def test_contradicted_boxes_are_kept_for_a_crop_check_when_asked():
     primary = [{"legend_code": "8", "box_2d": [0.30, 0.30, 0.32, 0.32]}]
     extra = [{"legend_code": "8", "box_2d": [0.305, 0.31, 0.325, 0.33]}, {"legend_code": "8", "box_2d": [0.6, 0.3, 0.62, 0.32]}, {"legend_code": "3", "box_2d": [0.3, 0.3, 0.32, 0.32]}]
     assert len(merge_markers(primary, extra)) == 3  # the near-duplicate "8" is dropped, the far "8" and the "3" are added
+
+
+def test_two_verified_footprints_inside_a_wing_box_replace_it_as_an_umbrella():
+    """Mahindra, Nov 2026: the wing pass boxed the two narrow bottom-left towers as one 'Tower 6' only 1.55x the
+    median width, under the umbrella threshold, and the footprint pass's two outlines inside it were discarded as
+    duplicates of it. Two verified outlines side by side are the evidence that the box is an umbrella."""
+    from app.services.master_plan_entity_extractor import _box_from_payload, inner_block_of, recover_footprints, select_footprints, umbrella_blocks
+
+    payload = build_sample_payload()
+    payload["legend_items"] = []
+    payload["entities"] = [
+        {"entity_id": "u", "entity_type": "residential_block", "label": "Tower 6", "box_2d": [770, 100, 880, 240]},  # spans two towers
+        {"entity_id": "d", "entity_type": "residential_block", "label": "WING - D", "box_2d": [760, 240, 870, 380]},
+        {"entity_id": "t4", "entity_type": "residential_block", "label": "Tower 4", "box_2d": [762, 383, 868, 480]},
+        {"entity_id": "t3", "entity_type": "residential_block", "label": "Tower 3", "box_2d": [758, 492, 872, 578]},
+    ]
+    entity_map = parse_master_plan_entity_payload(payload, image_width=1000, image_height=1000)
+    existing = [entity for entity in entity_map.entities if entity.entity_type == "residential_block"]
+    assert [entity.label for entity in existing] == ["Tower 6", "WING - D", "Tower 4", "Tower 3"]
+
+    left = {"box_2d": [780, 100, 880, 160]}
+    right = {"box_2d": [770, 190, 870, 250]}
+    lone = {"box_2d": [770, 250, 870, 330]}  # a single outline inside WING - D: a duplicate of it
+    elsewhere = {"box_2d": [560, 600, 660, 690]}
+    umbrella = next(entity for entity in existing if entity.label == "Tower 6")
+    assert inner_block_of(_box_from_payload(left["box_2d"]), existing) is umbrella and inner_block_of(_box_from_payload(elsewhere["box_2d"]), existing) is None
+    chosen = select_footprints([left, right, lone, elsewhere], existing)
+    assert chosen == [elsewhere, left, right, lone]  # overlapping boxes survive selection when they sit inside a wider block
+    assert umbrella_blocks(existing, [left, right, lone]) == {umbrella.entity_id}
+    assert umbrella_blocks(existing, [left, lone]) == set()  # one outline is no evidence
+
+    calls = {"footprints": 0}
+
+    def fake_call(prompt, part, schema, temperature=0.0, max_output_tokens=0):
+        if schema.__name__ == "GeminiFootprints":
+            calls["footprints"] += 1
+            return {"footprints": [left, right, lone, elsewhere]} if calls["footprints"] == 1 else {"footprints": []}
+        if schema.__name__ == "GeminiFootprintCheck":
+            return {"is_building": True, "what": "building"}
+        return {}
+
+    image = Image.new("RGB", (1000, 1000), "white")
+    result = recover_footprints(entity_map, image, object(), fake_call)
+    blocks = [entity for entity in result.entities if entity.entity_type == "residential_block"]
+    assert "Tower 6" not in {entity.label for entity in blocks}
+    assert sorted(round(entity.box.x_min, 2) for entity in blocks) == [0.1, 0.19, 0.24, 0.38, 0.49, 0.6]  # two towers replace the umbrella; the lone duplicate is gone
+    assert {diagnostic.code for diagnostic in result.diagnostics} >= {"umbrella_blocks_split_by_footprints", "footprints_added"}
